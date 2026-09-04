@@ -1,24 +1,26 @@
-import { Application, Container } from 'pixi.js';
+import { WebGLRenderer } from 'three';
 import { resolveQuality, type QualityProfile } from './Quality';
 import type { IPlatform } from '../platform';
-import { FishingScene } from '../scenes/FishingScene';
-import type { CatchEntry, FightPhase } from '../content/types';
-import type { Rarity } from '../gameplay/Rarity';
-import type { Effects } from '../meta/Progression';
-import type { Quest } from '../meta/Quests';
+import { FishingScene3D } from '../scene3d/FishingScene3D';
 import { PerfHud } from '../debug/PerfHud';
 import { GameUi } from '../ui/GameUi';
-import { Progression, type BranchId } from '../meta/Progression';
+import { Progression, type BranchId, type Effects } from '../meta/Progression';
 import { Album } from '../meta/Album';
-import { Quests } from '../meta/Quests';
+import { Quests, type Quest } from '../meta/Quests';
 import { Zones, zoneCatchIds } from '../meta/Zones';
 import { Bosses, bossAsCatch } from '../meta/Bosses';
 import { SaveService, emptySave, type GameSave } from '../services/SaveService';
 import { i18n } from '../services/I18n';
 import { AudioService } from '../services/AudioService';
 import { AdManager } from '../services/AdManager';
+import type { CatchEntry, FightPhase } from '../content/types';
+import type { Rarity } from '../gameplay/Rarity';
 
-export type DebugSnapshot = FishingScene['debugSnapshot'] & {
+/** Касание короче этого и без сдвига считается тапом, а не свайпом. */
+const TAP_MS = 200;
+const TAP_SLOP = 10;
+
+export type DebugSnapshot = FishingScene3D['debugSnapshot'] & {
   money: number;
   upgrades: Record<string, number>;
   shopOpen: boolean;
@@ -35,23 +37,20 @@ declare global {
   }
 }
 
-/** Касание короче этого и без сдвига считается тапом, а не свайпом. */
-const TAP_MS = 200;
-const TAP_SLOP = 10;
-
 /**
- * Бутстрап приложения: рендерер, ресайз, ввод, пауза по потере фокуса.
+ * Бутстрап: рендерер, цикл, ввод, пауза по потере фокуса.
  *
  * Пауза геймплея при уходе из вкладки — требование площадки и частая причина
- * отказа модерации, поэтому живёт в ядре с первого дня.
+ * отказа модерации, поэтому живёт в ядре.
  */
 export class App {
-  private readonly pixi = new Application();
+  private renderer!: WebGLRenderer;
   private readonly quality: QualityProfile = resolveQuality();
-  private scene!: FishingScene;
+  private scene!: FishingScene3D;
   private hud?: PerfHud;
   private ui!: GameUi;
   private running = false;
+  private lastFrame = 0;
 
   private readonly progression = new Progression();
   private readonly album = new Album();
@@ -62,7 +61,6 @@ export class App {
   private readonly save: SaveService;
   private readonly ads: AdManager;
   private state: GameSave = emptySave();
-  /** Награда за последний улов — её и удваивает ролик. */
   private lastReward = 0;
 
   constructor(private readonly platform: IPlatform) {
@@ -86,20 +84,14 @@ export class App {
     const host = document.getElementById('app');
     if (!host) throw new Error('#app не найден в разметке');
 
-    await this.pixi.init({
-      resizeTo: host,
-      antialias: false,
-      background: 0x04141a,
-      resolution: Math.min(devicePixelRatio || 1, this.quality.maxResolution),
-      autoDensity: true,
-      powerPreference: 'high-performance',
-    });
-    host.appendChild(this.pixi.canvas);
+    this.renderer = new WebGLRenderer({ antialias: this.quality.filters, alpha: false });
+    this.renderer.setPixelRatio(Math.min(devicePixelRatio || 1, this.quality.maxResolution));
+    host.appendChild(this.renderer.domElement);
 
     i18n.setLang(this.platform.lang());
     await this.restore();
 
-    this.scene = new FishingScene(this.quality, {
+    this.scene = new FishingScene3D({
       toast: (text) => showToast(text),
       sfx: (name) => this.audio.play(name),
       zoneCatches: () => zoneCatchIds(this.zones.current),
@@ -113,10 +105,8 @@ export class App {
       effects: () => this.effects,
       onCatch: (entry, reward, rarity) => this.collect(entry, reward, rarity),
     });
-    this.pixi.stage.addChild(this.scene.root);
+    this.scene.applyZone(this.zones.current);
     this.resize();
-
-    this.scene.environment.applyZone(this.zones.current);
 
     this.ui = new GameUi(
       {
@@ -124,7 +114,6 @@ export class App {
         travel: (id) => void this.travel(id),
         shopToggled: (open) => {
           this.scene.paused = open;
-          // Разметка геймплея: пока открыт магазин, это уже не игра.
           if (open) this.platform.gameplayStop();
           else this.platform.gameplayStart();
         },
@@ -137,44 +126,50 @@ export class App {
     this.bindFocus();
 
     this.hud = new PerfHud(this.quality, () => ({
-      sprites: countNodes(this.pixi.stage),
+      sprites: countNodes(this.scene),
       rows: this.scene.metrics,
     }));
-
-    let lastSceneState = this.scene.state;
-    this.pixi.ticker.add((ticker) => {
-      if (!this.running) return;
-      this.scene.update(ticker.deltaMS);
-
-      const depth = this.scene.debugSnapshot.depth ?? 0;
-      const reached = this.quests.onDepth(depth);
-      if (reached) {
-        this.completeQuest(reached);
-        this.persist();
-      }
-
-      if (this.scene.state !== lastSceneState) {
-        lastSceneState = this.scene.state;
-        this.renderUi();
-      }
-      this.hud?.update(ticker.deltaMS);
-      window.__htfu = {
-        ...this.scene.debugSnapshot,
-        money: this.state.money,
-        upgrades: this.progression.serialize(),
-        shopOpen: this.ui.isShopOpen,
-        zone: this.zones.current.id,
-        trophies: this.bosses.trophyCount,
-        platform: this.platform.name,
-        lastReward: this.lastReward,
-      };
-    });
 
     this.running = true;
     this.platform.ready();
     this.platform.gameplayStart();
     document.getElementById('boot')?.classList.add('hidden');
+
+    this.lastFrame = performance.now();
+    requestAnimationFrame((now) => this.frame(now));
   }
+
+  private frame(now: number): void {
+    requestAnimationFrame((next) => this.frame(next));
+    const delta = now - this.lastFrame;
+    this.lastFrame = now;
+    if (!this.running) return;
+
+    const lastState = this.scene.state;
+    this.scene.update(delta);
+    this.renderer.render(this.scene.scene, this.scene.camera);
+    this.hud?.update(delta);
+
+    const reached = this.quests.onDepth(this.scene.debugSnapshot.depth);
+    if (reached) {
+      this.completeQuest(reached);
+      this.persist();
+    }
+    if (this.scene.state !== lastState) this.renderUi();
+
+    window.__htfu = {
+      ...this.scene.debugSnapshot,
+      money: this.state.money,
+      upgrades: this.progression.serialize(),
+      shopOpen: this.ui.isShopOpen,
+      zone: this.zones.current.id,
+      trophies: this.bosses.trophyCount,
+      platform: this.platform.name,
+      lastReward: this.lastReward,
+    };
+  }
+
+  // --- прогресс ------------------------------------------------------------
 
   private async restore(): Promise<void> {
     this.state = await this.save.load();
@@ -185,8 +180,12 @@ export class App {
     this.bosses.restore(this.state.bosses);
   }
 
-  /** Улов зачтён: деньги, альбом, сохранение. */
-  /** Босс клюёт, когда игрок наловил своё в локации, и ровно один раз. */
+  /** Эффекты снасти плюс постоянные бонусы за заполнение альбома. */
+  private get effects(): Effects {
+    const base = this.progression.effects;
+    return { ...base, lineStrength: base.lineStrength * this.album.lineStrengthMultiplier };
+  }
+
   private rollBoss(): { entry: CatchEntry; phases: FightPhase[]; taunt: string } | null {
     const zone = this.zones.current;
     if (!this.bosses.isReady(zone.id)) return null;
@@ -202,20 +201,11 @@ export class App {
     this.bosses.defeat(bossId);
     this.state.money += boss.reward;
     this.album.record(bossId, 'common');
-    showToast(
-      i18n.t('toast.boss', { name: i18n.pick(boss.name), trophy: i18n.pick(boss.trophy) }),
-    );
+    showToast(i18n.t('toast.boss', { name: i18n.pick(boss.name), trophy: i18n.pick(boss.trophy) }));
     this.persist();
   }
 
-  /** Эффекты снасти плюс постоянные бонусы за заполнение альбома. */
-  private get effects(): Effects {
-    const base = this.progression.effects;
-    return { ...base, lineStrength: base.lineStrength * this.album.lineStrengthMultiplier };
-  }
-
   private collect(entry: CatchEntry, reward: number, rarity: Rarity): void {
-    // Бонусы альбома множат награду: собранная коллекция должна ощущаться.
     const total = Math.round(
       reward * this.album.priceMultiplier * this.album.priceMultiplierFor(entry.id),
     );
@@ -225,16 +215,15 @@ export class App {
     this.audio.play('coin');
 
     const record = this.album.record(entry.id, rarity);
-    if (record.speciesCompleted) showToast(i18n.t('toast.speciesDone', { name: i18n.pick(entry.name) }));
-    else if (record.firstEver) showToast(i18n.t('toast.newSpecies'));
+    if (record.speciesCompleted) {
+      showToast(i18n.t('toast.speciesDone', { name: i18n.pick(entry.name) }));
+    } else if (record.firstEver) showToast(i18n.t('toast.newSpecies'));
     else if (record.firstVariant) showToast(i18n.t('toast.newVariant'));
 
     const finished = this.quests.onCatch(entry);
     if (finished) this.completeQuest(finished);
     this.persist();
 
-    // Добровольный бонус: без просмотра игрок ничего не теряет.
-    // Удваиваем ровно ту сумму, которую игрок получил и видит на кнопке.
     if (total > 0 && !this.platform.isTV()) {
       this.ui.offerReward(i18n.t('offer.double', { reward: total }), 6, () =>
         void this.doubleReward(total),
@@ -245,9 +234,7 @@ export class App {
   private completeQuest(quest: Quest): void {
     this.state.money += quest.reward;
     this.audio.play('coin');
-    showToast(
-      i18n.t('quest.reward', { title: i18n.pick(quest.title), reward: quest.reward }),
-    );
+    showToast(i18n.t('quest.reward', { title: i18n.pick(quest.title), reward: quest.reward }));
   }
 
   private async doubleReward(reward: number): Promise<void> {
@@ -285,7 +272,7 @@ export class App {
     await this.ads.interstitial();
 
     this.scene.resetToSurface();
-    this.scene.environment.applyZone(zone);
+    this.scene.applyZone(zone);
     showToast(i18n.pick(zone.name));
     this.persist();
   }
@@ -321,52 +308,52 @@ export class App {
     });
   }
 
+  // --- ввод и фокус --------------------------------------------------------
+
   private resize(): void {
-    this.scene.resize(this.pixi.screen.width, this.pixi.screen.height);
+    const width = innerWidth;
+    const height = innerHeight;
+    this.renderer.setSize(width, height, false);
+    this.renderer.domElement.style.width = '100%';
+    this.renderer.domElement.style.height = '100%';
+    this.scene.setViewport(width, height);
   }
 
   private bindInput(): void {
-    const canvas = this.pixi.canvas;
+    const canvas = this.renderer.domElement;
     addEventListener('resize', () => this.resize());
-    this.pixi.renderer.on('resize', () => this.resize());
-
-    // Контекстное меню в игровой области — отдельный пункт требований площадки.
     canvas.addEventListener('contextmenu', (event) => event.preventDefault());
-
-    canvas.addEventListener(
-      'wheel',
-      (event) => {
-        event.preventDefault();
-        this.scene.freeLook(event.deltaY * 0.06);
-      },
-      { passive: false },
-    );
 
     let pressedAt = 0;
     let startX = 0;
     let startY = 0;
+    let lastX = 0;
+    let lastY = 0;
     let moved = false;
     let down = false;
 
     canvas.addEventListener('pointerdown', (event) => {
-      // Браузеры не дают звук до первого жеста — включаем контекст здесь.
       this.audio.unlock();
       down = true;
       moved = false;
       pressedAt = performance.now();
-      startX = event.clientX;
-      startY = event.clientY;
+      startX = lastX = event.clientX;
+      startY = lastY = event.clientY;
       canvas.setPointerCapture(event.pointerId);
       if (!this.ui.isShopOpen) this.scene.pressStart(event.clientX, event.clientY);
     });
 
     canvas.addEventListener('pointermove', (event) => {
       if (!down) return;
-      const dx = event.clientX - startX;
-      const dy = event.clientY - startY;
-      if (Math.abs(dx) + Math.abs(dy) > TAP_SLOP) moved = true;
-      // Руление крючком: чем дальше увёл палец, тем сильнее снос.
-      this.scene.steer(dx / (this.pixi.screen.width * 0.25));
+      const dx = event.clientX - lastX;
+      const dy = event.clientY - lastY;
+      lastX = event.clientX;
+      lastY = event.clientY;
+      if (Math.abs(event.clientX - startX) + Math.abs(event.clientY - startY) > TAP_SLOP) {
+        moved = true;
+      }
+      // Один палец: то же движение крутит камеру и рулит крючком под водой.
+      this.scene.look(dx, dy);
     });
 
     const release = (event: PointerEvent): void => {
@@ -378,17 +365,18 @@ export class App {
     canvas.addEventListener('pointerup', release);
     canvas.addEventListener('pointercancel', release);
 
-    // Клавиатура нужна десктопу; стрелки и OK — ещё и пульту ТВ.
     let spaceHeld = false;
     addEventListener('keydown', (event) => {
       this.audio.unlock();
       if (event.code === 'Space' && !spaceHeld) {
         spaceHeld = true;
-        this.scene.pressStart(this.pixi.screen.width * 0.26, this.pixi.screen.height * 0.42);
+        this.scene.pressStart(innerWidth / 2, innerHeight / 2);
         event.preventDefault();
       }
-      if (event.key === 'ArrowLeft') this.scene.steer(-1);
-      if (event.key === 'ArrowRight') this.scene.steer(1);
+      if (event.key === 'ArrowLeft') this.scene.look(-14, 0);
+      if (event.key === 'ArrowRight') this.scene.look(14, 0);
+      if (event.key === 'ArrowUp') this.scene.look(0, -10);
+      if (event.key === 'ArrowDown') this.scene.look(0, 10);
       if (event.key === 'r' || event.key === 'R') this.scene.reel();
       if (event.key === 'l' || event.key === 'L') freezeMainThread(250);
     });
@@ -397,7 +385,6 @@ export class App {
         spaceHeld = false;
         this.scene.pressEnd(false);
       }
-      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') this.scene.steer(0);
     });
   }
 
@@ -410,6 +397,7 @@ export class App {
     const resume = (): void => {
       if (this.running) return;
       this.running = true;
+      this.lastFrame = performance.now();
       this.platform.gameplayStart();
     };
 
@@ -417,7 +405,6 @@ export class App {
     addEventListener('blur', suspend);
     addEventListener('focus', resume);
 
-    // Уход со страницы — последний момент, когда можно дописать прогресс в облако.
     addEventListener('pagehide', () => void this.save.flush());
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) void this.save.flush();
@@ -425,18 +412,16 @@ export class App {
   }
 }
 
-/** Узлов в дереве сцены — грубая, но честная метрика нагрузки для спайка. */
-function countNodes(node: Container): number {
-  let total = 1;
-  for (const child of node.children) total += countNodes(child as Container);
+/** Объектов в сцене — грубая, но честная метрика нагрузки. */
+function countNodes(scene: FishingScene3D): number {
+  let total = 0;
+  scene.scene.traverse(() => {
+    total += 1;
+  });
   return total;
 }
 
-/**
- * Искусственный фриз главного потока: проверка из ADR-0001, § 5 (день 2) —
- * леска не должна разваливаться, когда кадр приходит через четверть секунды.
- * Клавиша L.
- */
+/** Искусственный фриз главного потока: проверка устойчивости симуляции. */
 function freezeMainThread(ms: number): void {
   const until = performance.now() + ms;
   while (performance.now() < until) {

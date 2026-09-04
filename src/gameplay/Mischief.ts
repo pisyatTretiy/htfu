@@ -1,5 +1,3 @@
-import { Container } from 'pixi.js';
-import { CatchView } from './CatchView';
 import { Rng } from '../core/Rng';
 import { clamp } from '../core/world';
 import { entryName } from '../content/catalog';
@@ -22,8 +20,6 @@ const BASE_PATIENCE = 7;
 /** Пауза между пакостями. */
 const PRANK_EVERY = 1.7;
 
-/** К какой ширине приводится улов, пока он в лодке. */
-const BOARD_SIZE = 96;
 const GRAVITY = 1100;
 const BOUNCE = 0.68;
 
@@ -52,8 +48,6 @@ const PRANKS: Record<string, Localized[]> = {
  * формулой, а действует, и игрок должен успеть его усмирить.
  */
 export class MischiefAct {
-  readonly view = new Container();
-
   x = 0;
   y = 0;
   private vx = 0;
@@ -63,9 +57,7 @@ export class MischiefAct {
   private prankTimer = PRANK_EVERY;
   private result: MischiefResult = 'active';
 
-  private readonly catchView: CatchView;
   private readonly rng: Rng;
-  private readonly scale: number;
   /** Убытки от пакостей — вычитаются из награды. */
   damage = 0;
 
@@ -78,12 +70,6 @@ export class MischiefAct {
   ) {
     this.patienceSeconds = patienceSeconds > 0 ? patienceSeconds : BASE_PATIENCE;
     this.rng = new Rng(seed);
-    this.catchView = new CatchView(entry);
-    // В лодке улов ужимается: рыба крупнее лодки — шутка, но лодку она при
-    // этом закрывает целиком, и сцена перестаёт читаться.
-    this.scale = clamp(BOARD_SIZE / this.catchView.size, 0.5, 1);
-    this.catchView.view.scale.set(this.scale);
-    this.view.addChild(this.catchView.view);
   }
 
   get progress(): number {
@@ -102,11 +88,14 @@ export class MischiefAct {
     this.vy = -this.rng.range(120, 260);
   }
 
-  /** Попадание пальцем. @returns было ли попадание */
-  tap(worldX: number, worldY: number): boolean {
+  /**
+   * Попадание пальцем. Проверку, попал ли игрок, делает сцена: она одна знает,
+   * как улов расположен на экране.
+   *
+   * @returns засчитан ли удар
+   */
+  tap(): boolean {
     if (this.result !== 'active') return false;
-    const reach = this.catchView.size * this.scale * 0.6;
-    if (Math.hypot(worldX - this.x, worldY - this.y) > reach) return false;
 
     this.taps += 1;
     // Подпрыгивает от каждого удара — иначе не читается, что попал.
@@ -162,11 +151,9 @@ export class MischiefAct {
     return { result: this.result, prank };
   }
 
-  render(dt: number): void {
-    this.view.x = this.x;
-    this.view.y = this.y;
-    this.view.rotation = Math.atan2(this.vy, this.vx) * 0.35;
-    this.catchView.update(dt, clamp(Math.hypot(this.vx, this.vy) / 400, 0.2, 1));
+  /** Насколько резко бьётся прямо сейчас — сцена крутит по этому анимацию. */
+  get intensity(): number {
+    return clamp(Math.hypot(this.vx, this.vy) / 400, 0.2, 1);
   }
 
   private pickPrank(): string | null {

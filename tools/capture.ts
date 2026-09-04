@@ -213,6 +213,15 @@ async function main(): Promise<void> {
   await page.keyboard.press('KeyL');
   await page.waitForTimeout(500);
 
+  // Ещё один заброс: предложение «Удвоить» появляется только после улова,
+  // а после возни в лодке никто не забрасывает сам.
+  await waitForState(page, ['idle'], 30000).catch(() => undefined);
+  if ((await readState(page)) === 'idle') {
+    await cast(page);
+    await waitForState(page, ['fighting'], 20000).catch(() => undefined);
+    if ((await readState(page)) === 'fighting') await fightOnce(page);
+  }
+
   // --- rewarded: добровольный бонус за просмотр ---
   // Ловим до первой награды и проверяем, что кнопка «Удвоить» появляется и
   // деньги после неё растут ровно на величину награды.
