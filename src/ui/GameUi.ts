@@ -3,9 +3,11 @@ import { CATCH_ENTRIES, entryName } from '../content/catalog';
 import type { BranchId, Progression } from '../meta/Progression';
 import type { Album } from '../meta/Album';
 import type { Quests } from '../meta/Quests';
+import type { UnlockContext, Zones } from '../meta/Zones';
 
 export interface UiCallbacks {
   buy(id: BranchId): void;
+  travel(zoneId: string): void;
   /** Магазин открыт или закрыт: сцена ставит разметку геймплея на паузу. */
   shopToggled(open: boolean): void;
 }
@@ -15,6 +17,8 @@ export interface UiState {
   progression: Progression;
   album: Album;
   quests: Quests;
+  zones: Zones;
+  unlock: UnlockContext;
   /** Панели открываются только в покое: в бою они прятали бы происходящее. */
   canShop: boolean;
 }
@@ -33,11 +37,14 @@ export class GameUi {
   private readonly album: HTMLElement;
   private readonly albumList: HTMLElement;
   private readonly albumButton: HTMLButtonElement;
+  private readonly map: HTMLElement;
+  private readonly mapList: HTMLElement;
+  private readonly mapButton: HTMLButtonElement;
   private readonly questEl: HTMLElement;
   private readonly offer: HTMLButtonElement;
   private readonly rows = new Map<BranchId, HTMLElement>();
 
-  private open: 'shop' | 'album' | null = null;
+  private open: 'shop' | 'album' | 'map' | null = null;
   private offerTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(
@@ -52,6 +59,7 @@ export class GameUi {
       <div class="questbar" id="ui-quest"></div>
       <div class="topbar">
         <div class="stat" id="ui-money"></div>
+        <button class="btn" id="ui-map-open">${i18n.t('map.open')}</button>
         <button class="btn" id="ui-album-open">${i18n.t('album.open')}</button>
         <button class="btn" id="ui-shop-open">${i18n.t('shop.open')}</button>
       </div>
@@ -62,6 +70,13 @@ export class GameUi {
           <button class="btn ghost" id="ui-shop-close" aria-label="${i18n.t('shop.close')}">×</button>
         </div>
         <div class="panel-list" id="ui-shop-list"></div>
+      </div>
+      <div class="panel" id="ui-map" hidden>
+        <div class="panel-head">
+          <span>${i18n.t('map.title')}</span>
+          <button class="btn ghost" id="ui-map-close" aria-label="${i18n.t('shop.close')}">×</button>
+        </div>
+        <div class="panel-list" id="ui-map-list"></div>
       </div>
       <div class="panel" id="ui-album" hidden>
         <div class="panel-head">
@@ -77,6 +92,9 @@ export class GameUi {
     this.albumButton = must(document.getElementById('ui-album-open')) as HTMLButtonElement;
     this.shop = must(document.getElementById('ui-shop'));
     this.album = must(document.getElementById('ui-album'));
+    this.map = must(document.getElementById('ui-map'));
+    this.mapList = must(document.getElementById('ui-map-list'));
+    this.mapButton = must(document.getElementById('ui-map-open')) as HTMLButtonElement;
     this.albumList = must(document.getElementById('ui-album-list'));
     this.offer = must(document.getElementById('ui-offer')) as HTMLButtonElement;
 
@@ -102,6 +120,10 @@ export class GameUi {
 
     this.openButton.addEventListener('click', () => this.toggle('shop'));
     this.albumButton.addEventListener('click', () => this.toggle('album'));
+    this.mapButton.addEventListener('click', () => this.toggle('map'));
+    must(document.getElementById('ui-map-close')).addEventListener('click', () =>
+      this.toggle(null),
+    );
     must(document.getElementById('ui-shop-close')).addEventListener('click', () =>
       this.toggle(null),
     );
@@ -143,17 +165,19 @@ export class GameUi {
   }
 
   /** Открытая панель ставит симуляцию на паузу: это уже не геймплей. */
-  toggle(panel: 'shop' | 'album' | null): void {
+  toggle(panel: 'shop' | 'album' | 'map' | null): void {
     const next = this.open === panel ? null : panel;
     if (this.open === next) return;
 
     this.open = next;
     this.shop.hidden = next !== 'shop';
     this.album.hidden = next !== 'album';
+    this.map.hidden = next !== 'map';
     this.callbacks.shopToggled(next !== null);
 
     if (next === 'shop') this.shop.querySelector('button')?.focus();
     else if (next === 'album') this.album.querySelector('button')?.focus();
+    else if (next === 'map') this.map.querySelector('button')?.focus();
     else this.openButton.focus();
   }
 
@@ -161,10 +185,12 @@ export class GameUi {
     this.moneyEl.textContent = `${state.money} ${i18n.t('hud.money')}`;
     this.openButton.disabled = !state.canShop && this.open === null;
     this.albumButton.disabled = !state.canShop && this.open === null;
+    this.mapButton.disabled = !state.canShop && this.open === null;
     this.albumButton.textContent = `${i18n.t('album.open')} ${state.album.discovered}/${state.album.total}`;
 
     this.renderQuest(state);
     this.renderAlbum(state);
+    this.renderMap(state);
 
     for (const branch of state.progression.branches) {
       const row = this.rows.get(branch.id);
@@ -210,6 +236,41 @@ export class GameUi {
       `<span class="quest-npc">${i18n.pick(quest.npc)}</span>` +
       `<span class="quest-title">${i18n.pick(quest.title)}</span>` +
       `<span class="quest-progress">${Math.floor(state.quests.current)}/${state.quests.target}</span>`;
+  }
+
+  private renderMap(state: UiState): void {
+    const current = state.zones.current;
+    this.mapList.innerHTML = state.zones.all
+      .map((zone) => {
+        const unlocked = state.zones.isUnlocked(zone, state.unlock);
+        const here = zone.id === current.id;
+        const requirement =
+          zone.unlock.type === 'quests'
+            ? i18n.t('map.needQuests', { value: zone.unlock.value })
+            : i18n.t('map.needMoney', { value: zone.unlock.value });
+        const action = here
+          ? `<span class="zone-here">${i18n.t('map.here')}</span>`
+          : unlocked
+            ? `<button class="btn go" data-zone="${zone.id}">${i18n.t('map.go')}</button>`
+            : `<span class="zone-locked">${requirement}</span>`;
+        return `
+          <div class="branch zone${here ? ' current' : ''}${unlocked ? '' : ' locked'}">
+            <div class="branch-top">
+              <span class="branch-name">${i18n.pick(zone.name)}</span>
+              <span class="dots">${i18n.t('map.depth', { depth: zone.maxDepth })}</span>
+            </div>
+            <div class="branch-hint">${i18n.pick(zone.note)}</div>
+            <div class="branch-foot">${action}</div>
+          </div>`;
+      })
+      .join('');
+
+    for (const button of this.mapList.querySelectorAll<HTMLButtonElement>('.go')) {
+      button.addEventListener('click', () => {
+        const id = button.dataset.zone;
+        if (id) this.callbacks.travel(id);
+      });
+    }
   }
 
   private renderAlbum(state: UiState): void {

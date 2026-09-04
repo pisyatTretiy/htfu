@@ -12,7 +12,7 @@ const RELAX = 0.62;
  * Через столько секунд улов срывается сам. Без этого бой не имеет давления:
  * можно просто не тянуть, и рыба будет висеть на крючке бесконечно.
  */
-const PATIENCE = 20;
+const PATIENCE = 28;
 
 export type FightOutcome = 'fighting' | 'landed' | 'snapped' | 'escaped';
 

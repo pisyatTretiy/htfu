@@ -29,6 +29,7 @@ interface Snapshot {
   onHook: string;
   upgrades?: Record<string, number>;
   shopOpen?: boolean;
+  zone?: string;
   platform?: string;
   lastReward?: number;
 }
@@ -116,7 +117,17 @@ async function main(): Promise<void> {
     if (!localStorage.getItem('htfu.save')) {
       localStorage.setItem(
         'htfu.save',
-        JSON.stringify({ version: 1, updatedAt: Date.now(), money: 200, upgrades: {}, album: {} }),
+        // Два закрытых задания открывают вторую локацию: иначе переезд
+        // не на что проверять, а копить их прогоном слишком долго.
+        JSON.stringify({
+          version: 3,
+          updatedAt: Date.now(),
+          money: 400,
+          upgrades: {},
+          album: {},
+          quests: { index: 2, progress: 0 },
+          zone: 'dock',
+        }),
       );
     }
   });
@@ -206,12 +217,32 @@ async function main(): Promise<void> {
   // --- магазин: покупка и то, что она переживает перезагрузку ---
   const beforeShop = await snapshot(page);
   await waitForState(page, ['idle'], 30000);
+  // --- карта: переезд в другую локацию перекрашивает сцену ---
+  await waitForState(page, ['idle'], 30000);
+  await page.click('#ui-map-open');
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: `${OUT}/8a-map.png` });
+
+  const travel = page.locator('#ui-map-list .go').first();
+  if (await travel.count()) {
+    await travel.click();
+    await page.waitForTimeout(1600);
+    const moved = await snapshot(page);
+    if (moved.zone === 'dock') {
+      throw new Error(`Переезд не сработал, локация осталась ${moved.zone}`);
+    }
+    await page.screenshot({ path: `${OUT}/8b-zone.png` });
+    console.log(`Переехали в локацию: ${moved.zone}`);
+  } else {
+    console.warn('⚠ Ни одна локация не открыта — переезд не проверен');
+  }
+
   // Свободный осмотр вниз: проверяем, как выглядит глубина под отмелью.
   await waitForState(page, ['idle'], 30000);
   await page.mouse.move(VIEWPORT.width / 2, VIEWPORT.height / 2);
   await page.mouse.wheel(0, 2600);
   await page.waitForTimeout(1400);
-  await page.screenshot({ path: `${OUT}/8b-deep.png` });
+  await page.screenshot({ path: `${OUT}/8c-deep.png` });
   await page.mouse.wheel(0, -2600);
   await page.waitForTimeout(1200);
 

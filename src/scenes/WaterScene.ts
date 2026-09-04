@@ -27,8 +27,12 @@ import {
 } from '../fx/textures';
 
 import { clamp, LIGHT_DEPTH_M, MAX_DEPTH_M, PX_PER_M } from '../core/world';
+import type { Zone } from '../meta/Zones';
 
 const WORLD_H = MAX_DEPTH_M * PX_PER_M;
+
+/** Позиции остановок градиента воды: цвет темнеет неравномерно. */
+const WATER_STOPS = [0, 0.08, 0.2, 0.38, 0.58, 0.8, 1];
 
 interface ParallaxLayer {
   view: Container;
@@ -361,6 +365,35 @@ export class WaterScene {
   /** Глубина камеры в метрах. Считается снаружи — сценой рыбалки. */
   setDepth(meters: number): void {
     this.depth = clamp(meters, 0, MAX_DEPTH_M);
+  }
+
+  /**
+   * Перекраска под локацию. Градиенты пересобираются целиком: смена локации —
+   * редкое событие, а держать пять пар текстур в памяти ради него незачем.
+   */
+  applyZone(zone: Zone): void {
+    const skyStops = zone.sky.map((color, index) => ({
+      at: index / (zone.sky.length - 1),
+      color,
+    }));
+    const waterStops = zone.water.map((color, index) => ({
+      at: WATER_STOPS[index] ?? index / (zone.water.length - 1),
+      color,
+    }));
+
+    const oldSky = this.skySprite.texture;
+    const oldWater = this.waterSprite.texture;
+    this.skySprite.texture = gradientTexture(skyStops);
+    this.waterSprite.texture = gradientTexture(waterStops);
+    oldSky.destroy(true);
+    oldWater.destroy(true);
+
+    this.tint.tint = Number.parseInt(zone.tint.slice(1), 16);
+    this.pier.visible = zone.decor.pier;
+    this.shore.visible = zone.decor.shore;
+    this.shelf.visible = zone.decor.shelf;
+
+    this.resize(this.width, this.height);
   }
 
   /** Экранные координаты в мировые: мир не масштабируется, только смещается. */

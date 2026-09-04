@@ -1,0 +1,232 @@
+{
+  "$comment": "Локации архипелага. Палитра, декор, пул и условие открытия — данные: добавить локацию значит дописать сюда объект, а не трогать сцену.",
+  "zones": [
+    {
+      "id": "dock",
+      "name": {
+        "ru": "Причал новичка",
+        "en": "Rookie Dock"
+      },
+      "note": {
+        "ru": "Мелководье, спокойная рыба",
+        "en": "Shallows, calm fish"
+      },
+      "maxDepth": 45,
+      "unlock": {
+        "type": "start",
+        "value": 0
+      },
+      "decor": {
+        "pier": true,
+        "shore": true,
+        "shelf": true
+      },
+      "sky": [
+        "#4fc9f5",
+        "#9fe6fb",
+        "#dff8ff"
+      ],
+      "water": [
+        "#4ae6d2",
+        "#1ecbd0",
+        "#0fa2c8",
+        "#0c73b6",
+        "#134a9c",
+        "#1b2c78",
+        "#191047"
+      ],
+      "tint": "#2a2f7a",
+      "catches": [
+        "perch",
+        "crab",
+        "mackerel",
+        "boot",
+        "kettle",
+        "cone",
+        "rod"
+      ]
+    },
+    {
+      "id": "bay",
+      "name": {
+        "ru": "Скалистая бухта",
+        "en": "Rocky Bay"
+      },
+      "note": {
+        "ru": "Течения сносят крючок",
+        "en": "Currents drag the hook"
+      },
+      "maxDepth": 90,
+      "unlock": {
+        "type": "quests",
+        "value": 2
+      },
+      "decor": {
+        "pier": false,
+        "shore": true,
+        "shelf": true
+      },
+      "sky": [
+        "#4a86b8",
+        "#86b9d4",
+        "#c2dde8"
+      ],
+      "water": [
+        "#2fc2b4",
+        "#0fa3ae",
+        "#0a7ba4",
+        "#075a94",
+        "#0b3d7a",
+        "#101f56",
+        "#0a0f2e"
+      ],
+      "tint": "#141d4e",
+      "catches": [
+        "perch",
+        "pike",
+        "crab",
+        "mackerel",
+        "jelly",
+        "boot",
+        "tire",
+        "rod"
+      ]
+    },
+    {
+      "id": "wreck",
+      "name": {
+        "ru": "Затонувший корабль",
+        "en": "The Wreck"
+      },
+      "note": {
+        "ru": "Мусора больше, чем рыбы",
+        "en": "More junk than fish"
+      },
+      "maxDepth": 140,
+      "unlock": {
+        "type": "quests",
+        "value": 4
+      },
+      "decor": {
+        "pier": false,
+        "shore": false,
+        "shelf": false
+      },
+      "sky": [
+        "#6b7f7a",
+        "#9aada4",
+        "#c6d2c8"
+      ],
+      "water": [
+        "#3f9a86",
+        "#2a7f7a",
+        "#1c5f6e",
+        "#134860",
+        "#0e3350",
+        "#0a2138",
+        "#050f1c"
+      ],
+      "tint": "#0c2a2a",
+      "catches": [
+        "pike",
+        "jelly",
+        "eel",
+        "mackerel",
+        "boot",
+        "kettle",
+        "tire",
+        "chest"
+      ]
+    },
+    {
+      "id": "ice",
+      "name": {
+        "ru": "Ледяной пролив",
+        "en": "Ice Strait"
+      },
+      "note": {
+        "ru": "Леска дубеет на холоде",
+        "en": "The line stiffens in the cold"
+      },
+      "maxDepth": 190,
+      "unlock": {
+        "type": "money",
+        "value": 1200
+      },
+      "decor": {
+        "pier": false,
+        "shore": true,
+        "shelf": false
+      },
+      "sky": [
+        "#cfe6f2",
+        "#e6f2f8",
+        "#fbfeff"
+      ],
+      "water": [
+        "#b6ecf2",
+        "#86cfe4",
+        "#57a2c4",
+        "#3a76a8",
+        "#2a5288",
+        "#1c3563",
+        "#0d1730"
+      ],
+      "tint": "#4a6ea8",
+      "catches": [
+        "pike",
+        "mackerel",
+        "jelly",
+        "eel",
+        "lantern",
+        "boot",
+        "tire",
+        "chest"
+      ]
+    },
+    {
+      "id": "abyss",
+      "name": {
+        "ru": "Глубоководный разлом",
+        "en": "The Rift"
+      },
+      "note": {
+        "ru": "Темнота, светятся чужие глаза",
+        "en": "Darkness, and eyes that glow"
+      },
+      "maxDepth": 250,
+      "unlock": {
+        "type": "money",
+        "value": 3000
+      },
+      "decor": {
+        "pier": false,
+        "shore": false,
+        "shelf": false
+      },
+      "sky": [
+        "#1d3f5c",
+        "#325a76",
+        "#587f95"
+      ],
+      "water": [
+        "#12707f",
+        "#0a5470",
+        "#063d5e",
+        "#04294a",
+        "#031c36",
+        "#021024",
+        "#01060f"
+      ],
+      "tint": "#060428",
+      "catches": [
+        "eel",
+        "angler",
+        "jelly",
+        "lantern",
+        "chest",
+        "tire"
+      ]
+    }
+  ]
+}

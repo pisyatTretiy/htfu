@@ -34,6 +34,22 @@ describe('миграции сейва', () => {
     expect(save.quests).toEqual({ index: 0, progress: 0 });
   });
 
+  it('сейв второй версии получает локацию, не теряя заданий', () => {
+    const v2 = {
+      version: 2,
+      updatedAt: 9,
+      money: 400,
+      upgrades: { line: 1 },
+      album: { pike: 2 },
+      quests: { index: 3, progress: 1 },
+    };
+    const save = migrate(v2 as never);
+    expect(save.version).toBe(SAVE_VERSION);
+    expect(save.zone).toBe('dock');
+    expect(save.quests).toEqual({ index: 3, progress: 1 });
+    expect(save.money).toBe(400);
+  });
+
   it('не ломает сейв из будущей версии — игрок мог откатиться', () => {
     const future = { ...emptySave(), version: SAVE_VERSION + 5, money: 99 };
     const save = migrate(future);

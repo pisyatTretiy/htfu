@@ -9,6 +9,7 @@ import { GameUi } from '../ui/GameUi';
 import { Progression, type BranchId } from '../meta/Progression';
 import { Album } from '../meta/Album';
 import { Quests } from '../meta/Quests';
+import { Zones, zoneCatchIds } from '../meta/Zones';
 import { SaveService, emptySave, type GameSave } from '../services/SaveService';
 import { i18n } from '../services/I18n';
 import { AudioService } from '../services/AudioService';
@@ -18,6 +19,7 @@ export type DebugSnapshot = FishingScene['debugSnapshot'] & {
   money: number;
   upgrades: Record<string, number>;
   shopOpen: boolean;
+  zone: string;
   platform: string;
   lastReward: number;
 };
@@ -50,6 +52,7 @@ export class App {
   private readonly progression = new Progression();
   private readonly album = new Album();
   private readonly quests = new Quests();
+  private readonly zones = new Zones();
   private readonly audio = new AudioService();
   private readonly save: SaveService;
   private readonly ads: AdManager;
@@ -94,15 +97,20 @@ export class App {
     this.scene = new FishingScene(this.quality, {
       toast: (text) => showToast(text),
       sfx: (name) => this.audio.play(name),
+      zoneCatches: () => zoneCatchIds(this.zones.current),
+      zoneDepth: () => this.zones.current.maxDepth,
       effects: () => this.progression.effects,
       onCatch: (entry, reward) => this.collect(entry, reward),
     });
     this.pixi.stage.addChild(this.scene.root);
     this.resize();
 
+    this.scene.environment.applyZone(this.zones.current);
+
     this.ui = new GameUi(
       {
         buy: (id) => this.buy(id),
+        travel: (id) => void this.travel(id),
         shopToggled: (open) => {
           this.scene.paused = open;
           // Разметка геймплея: пока открыт магазин, это уже не игра.
@@ -144,6 +152,7 @@ export class App {
         money: this.state.money,
         upgrades: this.progression.serialize(),
         shopOpen: this.ui.isShopOpen,
+        zone: this.zones.current.id,
         platform: this.platform.name,
         lastReward: this.lastReward,
       };
@@ -160,6 +169,7 @@ export class App {
     this.progression.restore(this.state.upgrades as Record<BranchId, number>);
     this.album.restore(this.state.album);
     this.quests.restore(this.state.quests);
+    this.zones.restore(this.state.zone);
   }
 
   /** Улов зачтён: деньги, альбом, сохранение. */
@@ -214,10 +224,30 @@ export class App {
     this.persist();
   }
 
+  /** Переезд в другую локацию: между сессиями — законное место для рекламы. */
+  private async travel(id: string): Promise<void> {
+    const zone = this.zones.all.find((entry) => entry.id === id);
+    if (!zone || zone.id === this.zones.current.id) return;
+    if (!this.zones.travelTo(id, this.unlockContext)) return;
+
+    this.ui.toggle(null);
+    await this.ads.interstitial();
+
+    this.scene.resetToSurface();
+    this.scene.environment.applyZone(zone);
+    showToast(i18n.pick(zone.name));
+    this.persist();
+  }
+
+  private get unlockContext(): { money: number; questsDone: number } {
+    return { money: this.state.money, questsDone: this.quests.completedCount };
+  }
+
   private persist(): void {
     this.state.upgrades = this.progression.serialize();
     this.state.album = this.album.serialize();
     this.state.quests = this.quests.serialize();
+    this.state.zone = this.zones.serialize();
     this.save.save(this.state);
     this.renderUi();
   }
@@ -228,6 +258,8 @@ export class App {
       progression: this.progression,
       album: this.album,
       quests: this.quests,
+      zones: this.zones,
+      unlock: this.unlockContext,
       canShop: this.scene.state === 'idle',
     });
   }

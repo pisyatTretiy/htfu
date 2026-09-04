@@ -240,6 +240,186 @@
         "outline": "#2e1608"
       },
       "mischief": "none"
+    },
+    {
+      "id": "mackerel",
+      "name": {
+        "ru": "Скумбрия",
+        "en": "Mackerel"
+      },
+      "kind": "fish",
+      "weight": 22,
+      "depth": [
+        0,
+        80
+      ],
+      "price": 34,
+      "fight": {
+        "stamina": 1,
+        "drain": 0.42,
+        "pull": 0.36,
+        "burst": 1.6,
+        "rhythm": 1.3,
+        "recover": 0.07
+      },
+      "body": {
+        "length": 128,
+        "wave": 3.8,
+        "amp": 0.17,
+        "fill": "#7fd4e8",
+        "outline": "#194a5c"
+      },
+      "mischief": "flop"
+    },
+    {
+      "id": "jelly",
+      "name": {
+        "ru": "Медуза",
+        "en": "Jellyfish"
+      },
+      "kind": "fish",
+      "weight": 16,
+      "depth": [
+        20,
+        130
+      ],
+      "price": 52,
+      "fight": {
+        "stamina": 1,
+        "drain": 0.36,
+        "pull": 0.3,
+        "burst": 2.4,
+        "rhythm": 0.3,
+        "recover": 0.09
+      },
+      "body": {
+        "length": 112,
+        "wave": 1.6,
+        "amp": 0.24,
+        "fill": "#d69bf0",
+        "outline": "#4a2260"
+      },
+      "mischief": "grab"
+    },
+    {
+      "id": "eel",
+      "name": {
+        "ru": "Угорь",
+        "en": "Eel"
+      },
+      "kind": "fish",
+      "weight": 18,
+      "depth": [
+        45,
+        170
+      ],
+      "price": 96,
+      "fight": {
+        "stamina": 1,
+        "drain": 0.3,
+        "pull": 0.44,
+        "burst": 2.0,
+        "rhythm": 0.9,
+        "recover": 0.12
+      },
+      "body": {
+        "length": 196,
+        "wave": 5.2,
+        "amp": 0.22,
+        "fill": "#5c8f4a",
+        "outline": "#1d3315"
+      },
+      "mischief": "grab"
+    },
+    {
+      "id": "angler",
+      "name": {
+        "ru": "Морской чёрт",
+        "en": "Anglerfish"
+      },
+      "kind": "fish",
+      "weight": 20,
+      "depth": [
+        95,
+        250
+      ],
+      "price": 180,
+      "fight": {
+        "stamina": 1,
+        "drain": 0.3,
+        "pull": 0.5,
+        "burst": 2.6,
+        "rhythm": 0.55,
+        "recover": 0.13
+      },
+      "body": {
+        "length": 184,
+        "wave": 2.2,
+        "amp": 0.12,
+        "fill": "#b0563f",
+        "outline": "#3a140c"
+      },
+      "mischief": "flop"
+    },
+    {
+      "id": "tire",
+      "name": {
+        "ru": "Покрышка",
+        "en": "Old tyre"
+      },
+      "kind": "junk",
+      "weight": 7,
+      "depth": [
+        0,
+        160
+      ],
+      "price": 6,
+      "fight": {
+        "stamina": 1,
+        "drain": 0.9,
+        "pull": 0.1,
+        "burst": 1.1,
+        "rhythm": 0.2,
+        "recover": 0.02
+      },
+      "body": {
+        "length": 104,
+        "wave": 0.3,
+        "amp": 0.02,
+        "fill": "#3f4448",
+        "outline": "#16191b"
+      },
+      "mischief": "none"
+    },
+    {
+      "id": "chest",
+      "name": {
+        "ru": "Сундук",
+        "en": "Chest"
+      },
+      "kind": "junk",
+      "weight": 3,
+      "depth": [
+        60,
+        250
+      ],
+      "price": 140,
+      "fight": {
+        "stamina": 1,
+        "drain": 0.7,
+        "pull": 0.14,
+        "burst": 1.2,
+        "rhythm": 0.25,
+        "recover": 0.03
+      },
+      "body": {
+        "length": 112,
+        "wave": 0.2,
+        "amp": 0.02,
+        "fill": "#b8813c",
+        "outline": "#4a2a10"
+      },
+      "mischief": "none"
     }
   ]
 }

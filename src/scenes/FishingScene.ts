@@ -11,7 +11,7 @@ import { rollCatch } from '../gameplay/CatchPool';
 import { entryName } from '../content/catalog';
 import { lineTexture, radialTexture } from '../fx/textures';
 import { Rng } from '../core/Rng';
-import { clamp, damp, metersToPx, MAX_DEPTH_M } from '../core/world';
+import { clamp, damp, metersToPx } from '../core/world';
 import type { CatchEntry } from '../content/types';
 import type { QualityProfile } from '../core/Quality';
 import type { Effects } from '../meta/Progression';
@@ -43,6 +43,10 @@ export type CastState =
  */
 export interface SceneHooks {
   toast(text: string): void;
+  /** Виды, которые водятся в текущей локации. */
+  zoneCatches(): readonly string[];
+  /** Предел глубины локации: глубже не пускает не леска, а дно. */
+  zoneDepth(): number;
   /** Звук события. Сцена не знает, чем он воспроизводится. */
   sfx(name: 'cast' | 'splash' | 'bite' | 'snap' | 'bounce'): void;
   /** Эффекты прокачки читаются каждый кадр: снасть меняется прямо в магазине. */
@@ -53,6 +57,11 @@ export interface SceneHooks {
 
 export class FishingScene {
   readonly root = new Container();
+
+  /** Доступ к воде нужен, чтобы перекрасить сцену при смене локации. */
+  get environment(): WaterScene {
+    return this.water;
+  }
 
   state: CastState = 'idle';
   trickShot = false;
@@ -165,10 +174,20 @@ export class FishingScene {
     if (this.state === 'flying' || this.state === 'sinking') this.state = 'reeling';
   }
 
+  /** Свободный осмотр колесом, пока снасть в покое. */
   freeLook(meters: number): void {
     if (this.state === 'idle') {
-      this.cameraDepth = clamp(this.cameraDepth + meters, 0, MAX_DEPTH_M);
+      this.cameraDepth = clamp(this.cameraDepth + meters, 0, this.hooks.zoneDepth());
     }
+  }
+
+  /** Смена локации: снасть в покой, камера на поверхность. */
+  resetToSurface(): void {
+    this.clearMischief();
+    this.dropHooked();
+    this.rest();
+    this.cameraDepth = 0;
+    this.trickStreak = 0;
   }
 
   // --- симуляция ------------------------------------------------------------
@@ -254,7 +273,7 @@ export class FishingScene {
         dt,
         { x: this.rod.tipX, y: this.rod.tipY },
         this.hook,
-        metersToPx(this.hooks.effects().maxLineM),
+        metersToPx(Math.min(this.hooks.effects().maxLineM, this.hooks.zoneDepth())),
       );
     }
 
@@ -263,7 +282,7 @@ export class FishingScene {
 
   /** Клёв гарантирован, пока крючок в воде — находка оригинала (docs/01). */
   private bite(): void {
-    const entry = rollCatch(this.hook.depthMeters, this.rng);
+    const entry = rollCatch(this.hook.depthMeters, this.rng, this.hooks.zoneCatches());
     const { reelPower, lineStrength } = this.hooks.effects();
     this.hookedEntry = entry;
     this.fight = new FightSystem(entry, this.rng.int(1, 1 << 20), { reelPower, lineStrength });
@@ -402,7 +421,10 @@ export class FishingScene {
   }
 
   private applyLineLimit(): void {
-    const maxLength = metersToPx(this.hooks.effects().maxLineM);
+    // Что короче — размотанная леска или дно локации.
+    const maxLength = metersToPx(
+      Math.min(this.hooks.effects().maxLineM, this.hooks.zoneDepth()),
+    );
     const dx = this.hook.x - this.rod.tipX;
     const dy = this.hook.y - this.rod.tipY;
     const distance = Math.hypot(dx, dy);
@@ -524,7 +546,7 @@ export class FishingScene {
     const rows: [string, string][] = [
       ['состояние', this.state],
       ['глубина', `${this.hook.depthMeters.toFixed(1)} м`],
-      ['леска', `${this.hooks.effects().maxLineM} м`],
+      ['предел', `${Math.min(this.hooks.effects().maxLineM, this.hooks.zoneDepth())} м`],
     ];
     if (this.fight && this.state === 'fighting') {
       rows.push(['на крючке', entryName(this.hookedEntry ?? { name: { ru: '—' } } as never)]);

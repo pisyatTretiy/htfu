@@ -24,8 +24,9 @@ function pickWeighted(pool: CatchEntry[], rng: Rng): CatchEntry | null {
   return pool[pool.length - 1] ?? null;
 }
 
-function atDepth(depthMeters: number): CatchEntry[] {
-  return CATCHES.filter(
+function atDepth(depthMeters: number, allowed?: readonly string[]): CatchEntry[] {
+  const pool = allowed ? CATCHES.filter((entry) => allowed.includes(entry.id)) : CATCHES;
+  return pool.filter(
     (entry) => depthMeters >= entry.depth[0] && depthMeters <= entry.depth[1],
   );
 }
@@ -34,9 +35,13 @@ function atDepth(depthMeters: number): CatchEntry[] {
  * Что клюнет. Клёв гарантирован, пока крючок в воде — находка оригинала:
  * игрок никогда не ждёт поплавка (docs/01, § «Кор-луп»).
  */
-export function rollCatch(depthMeters: number, rng: Rng): CatchEntry {
-  const available = atDepth(depthMeters);
-  const pool = available.length > 0 ? available : CATCHES;
+export function rollCatch(
+  depthMeters: number,
+  rng: Rng,
+  allowed?: readonly string[],
+): CatchEntry {
+  const available = atDepth(depthMeters, allowed);
+  const pool = available.length > 0 ? available : atDepth(depthMeters);
   const wantJunk = rng.next() < JUNK_SHARE;
 
   const primary = pool.filter((entry) => (entry.kind === 'junk') === wantJunk);
@@ -48,6 +53,6 @@ export function rollCatch(depthMeters: number, rng: Rng): CatchEntry {
 }
 
 /** Виды, доступные на глубине — используется тестами баланса. */
-export function poolAt(depthMeters: number): CatchEntry[] {
-  return atDepth(depthMeters);
+export function poolAt(depthMeters: number, allowed?: readonly string[]): CatchEntry[] {
+  return atDepth(depthMeters, allowed);
 }

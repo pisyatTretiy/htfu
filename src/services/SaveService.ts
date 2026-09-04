@@ -2,7 +2,7 @@ import type { IPlatform, SaveData } from '../platform';
 
 const KEY = 'htfu.save';
 /** Текущая версия схемы. Растёт вместе с миграциями. */
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 /** Лимит площадки: setData — 100 запросов за 5 минут. Дебаунс держит запас. */
 const CLOUD_DEBOUNCE_MS = 10000;
 
@@ -13,6 +13,7 @@ export interface GameSave extends SaveData {
   upgrades: Record<string, number>;
   album: Record<string, number>;
   quests: { index: number; progress: number };
+  zone: string;
 }
 
 export function emptySave(): GameSave {
@@ -23,6 +24,7 @@ export function emptySave(): GameSave {
     upgrades: {},
     album: {},
     quests: { index: 0, progress: 0 },
+    zone: 'dock',
   };
 }
 
@@ -38,6 +40,8 @@ const MIGRATIONS: Record<number, Migration> = {
   // v2 добавила цепочку заданий. Старые игроки начинают её с начала —
   // прогресс по деньгам и альбому при этом не трогается.
   1: (data) => ({ ...data, quests: { index: 0, progress: 0 }, version: 2 }),
+  // v3 добавила локации. Все существующие игроки стоят у причала.
+  2: (data) => ({ ...data, zone: 'dock', version: 3 }),
 };
 
 export function migrate(raw: Partial<GameSave> | null): GameSave {
