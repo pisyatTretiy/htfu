@@ -70,6 +70,16 @@
     #ui .btn:focus-visible { outline: 3px solid #4fd6b4; outline-offset: 2px; }
     #ui .topbar .btn { margin-left: auto; }
 
+    #ui .offer {
+      position: absolute; left: 50%; bottom: 68px; transform: translateX(-50%);
+      background: #4fd6b4; border-color: #06403a; box-shadow: 0 3px 0 #06403a;
+      color: #04231f; font-size: 14px; padding: 10px 20px;
+      animation: pop .2s ease-out;
+    }
+    #ui .offer[hidden] { display: none !important; }
+    @keyframes pop { from { transform: translate(-50%, 8px); opacity: 0 } to { transform: translate(-50%, 0); opacity: 1 } }
+    @media (prefers-reduced-motion: reduce) { #ui .offer { animation: none } }
+
     #ui .shop {
       pointer-events: auto; position: absolute; inset: auto 8px 62px 8px;
       max-width: 460px; margin: 0 auto; max-height: 70vh; overflow-y: auto;
@@ -135,6 +145,16 @@
     #ui .btn:disabled { opacity: .45; cursor: default; }
     #ui .btn:focus-visible { outline: 3px solid #4fd6b4; outline-offset: 2px; }
     #ui .topbar .btn { margin-left: auto; }
+
+    #ui .offer {
+      position: absolute; left: 50%; bottom: 68px; transform: translateX(-50%);
+      background: #4fd6b4; border-color: #06403a; box-shadow: 0 3px 0 #06403a;
+      color: #04231f; font-size: 14px; padding: 10px 20px;
+      animation: pop .2s ease-out;
+    }
+    #ui .offer[hidden] { display: none !important; }
+    @keyframes pop { from { transform: translate(-50%, 8px); opacity: 0 } to { transform: translate(-50%, 0); opacity: 1 } }
+    @media (prefers-reduced-motion: reduce) { #ui .offer { animation: none } }
 
     #ui .shop {
       pointer-events: auto; position: absolute; inset: auto 8px 62px 8px;

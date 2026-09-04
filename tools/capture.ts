@@ -29,6 +29,8 @@ interface Snapshot {
   onHook: string;
   upgrades?: Record<string, number>;
   shopOpen?: boolean;
+  platform?: string;
+  lastReward?: number;
 }
 
 const EMPTY: Snapshot = {
@@ -180,6 +182,26 @@ async function main(): Promise<void> {
 
   await page.keyboard.press('KeyL');
   await page.waitForTimeout(500);
+
+  // --- rewarded: добровольный бонус за просмотр ---
+  // Ловим до первой награды и проверяем, что кнопка «Удвоить» появляется и
+  // деньги после неё растут ровно на величину награды.
+  const beforeOffer = await snapshot(page);
+  const offer = page.locator('#ui-offer');
+  await offer.waitFor({ state: 'visible', timeout: 60000 }).catch(() => undefined);
+  if (await offer.isVisible()) {
+    await page.screenshot({ path: `${OUT}/8-offer.png` });
+    const reward = beforeOffer.lastReward ?? 0;
+    const moneyBefore = (await snapshot(page)).money;
+    await offer.click();
+    await page.waitForTimeout(900);
+    const moneyAfter = (await snapshot(page)).money;
+    if (reward > 0 && moneyAfter < moneyBefore + reward) {
+      throw new Error(`Награда за ролик не начислена: ${moneyBefore} → ${moneyAfter}`);
+    }
+  } else {
+    console.warn('⚠ Кнопка «Удвоить» не появилась за отведённое время');
+  }
 
   // --- магазин: покупка и то, что она переживает перезагрузку ---
   const beforeShop = await snapshot(page);

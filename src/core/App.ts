@@ -8,11 +8,15 @@ import { Progression, type BranchId } from '../meta/Progression';
 import { Album } from '../meta/Album';
 import { SaveService, emptySave, type GameSave } from '../services/SaveService';
 import { i18n } from '../services/I18n';
+import { AudioService } from '../services/AudioService';
+import { AdManager } from '../services/AdManager';
 
 export type DebugSnapshot = FishingScene['debugSnapshot'] & {
   money: number;
   upgrades: Record<string, number>;
   shopOpen: boolean;
+  platform: string;
+  lastReward: number;
 };
 
 declare global {
@@ -42,11 +46,28 @@ export class App {
 
   private readonly progression = new Progression();
   private readonly album = new Album();
+  private readonly audio = new AudioService();
   private readonly save: SaveService;
+  private readonly ads: AdManager;
   private state: GameSave = emptySave();
+  /** Награда за последний улов — её и удваивает ролик. */
+  private lastReward = 0;
 
   constructor(private readonly platform: IPlatform) {
     this.save = new SaveService(platform);
+    this.ads = new AdManager(platform, {
+      pause: () => {
+        this.scene.paused = true;
+        this.audio.setMuted(true);
+        this.platform.gameplayStop();
+      },
+      resume: () => {
+        this.audio.setMuted(false);
+        this.platform.gameplayStart();
+        this.scene.paused = this.ui.isShopOpen;
+      },
+      flush: () => this.save.flush(),
+    });
   }
 
   async start(): Promise<void> {
@@ -68,6 +89,7 @@ export class App {
 
     this.scene = new FishingScene(this.quality, {
       toast: (text) => showToast(text),
+      sfx: (name) => this.audio.play(name),
       effects: () => this.progression.effects,
       onCatch: (entry, reward) => this.collect(entry.id, reward),
     });
@@ -110,6 +132,8 @@ export class App {
         money: this.state.money,
         upgrades: this.progression.serialize(),
         shopOpen: this.ui.isShopOpen,
+        platform: this.platform.name,
+        lastReward: this.lastReward,
       };
     });
 
@@ -128,7 +152,23 @@ export class App {
   /** Улов зачтён: деньги, альбом, сохранение. */
   private collect(entryId: string, reward: number): void {
     this.state.money += reward;
+    this.lastReward = reward;
+    this.audio.play('coin');
     if (this.album.record(entryId)) showToast('Новый вид в альбоме!');
+    this.persist();
+
+    // Добровольный бонус: без просмотра игрок ничего не теряет.
+    if (reward > 0 && !this.platform.isTV()) {
+      this.ui.offerReward(`Удвоить ×2 · ${reward} ₽`, 6, () => void this.doubleReward(reward));
+    }
+  }
+
+  private async doubleReward(reward: number): Promise<void> {
+    const watched = await this.ads.rewarded('double_catch');
+    if (!watched) return;
+    this.state.money += reward;
+    this.audio.play('coin');
+    showToast(`Улов удвоен! +${reward} ₽`);
     this.persist();
   }
 
@@ -192,6 +232,8 @@ export class App {
     let down = false;
 
     canvas.addEventListener('pointerdown', (event) => {
+      // Браузеры не дают звук до первого жеста — включаем контекст здесь.
+      this.audio.unlock();
       down = true;
       moved = false;
       pressedAt = performance.now();
@@ -222,6 +264,7 @@ export class App {
     // Клавиатура нужна десктопу; стрелки и OK — ещё и пульту ТВ.
     let spaceHeld = false;
     addEventListener('keydown', (event) => {
+      this.audio.unlock();
       if (event.code === 'Space' && !spaceHeld) {
         spaceHeld = true;
         this.scene.pressStart(this.pixi.screen.width * 0.26, this.pixi.screen.height * 0.42);

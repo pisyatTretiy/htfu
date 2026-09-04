@@ -28,9 +28,11 @@ export class GameUi {
   private readonly albumEl: HTMLElement;
   private readonly openButton: HTMLButtonElement;
   private readonly shop: HTMLElement;
+  private readonly offer: HTMLButtonElement;
   private readonly rows = new Map<BranchId, HTMLElement>();
 
   private open = false;
+  private offerTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(
     private readonly callbacks: UiCallbacks,
@@ -46,6 +48,7 @@ export class GameUi {
         <div class="stat" id="ui-album"></div>
         <button class="btn" id="ui-shop-open">${i18n.t('shop.open')}</button>
       </div>
+      <button class="btn offer" id="ui-offer" hidden></button>
       <div class="shop" id="ui-shop" hidden>
         <div class="shop-head">
           <span>${i18n.t('shop.title')}</span>
@@ -58,6 +61,7 @@ export class GameUi {
     this.albumEl = must(document.getElementById('ui-album'));
     this.openButton = must(document.getElementById('ui-shop-open')) as HTMLButtonElement;
     this.shop = must(document.getElementById('ui-shop'));
+    this.offer = must(document.getElementById('ui-offer')) as HTMLButtonElement;
 
     const list = must(document.getElementById('ui-shop-list'));
     for (const branch of progression.branches) {
@@ -87,6 +91,30 @@ export class GameUi {
     addEventListener('keydown', (event) => {
       if ((event.key === 'Escape' || event.key === 'GoBack') && this.open) this.toggle(false);
     });
+  }
+
+  /**
+   * Предложение посмотреть ролик за награду. Всегда добровольное и всегда
+   * сверх обычного прохождения — требование модерации (docs/02, § 2.4).
+   */
+  offerReward(label: string, seconds: number, accept: () => void): void {
+    this.hideOffer();
+    this.offer.textContent = label;
+    this.offer.hidden = false;
+    this.offer.onclick = () => {
+      this.hideOffer();
+      accept();
+    };
+    this.offerTimer = setTimeout(() => this.hideOffer(), seconds * 1000);
+  }
+
+  hideOffer(): void {
+    if (this.offerTimer) {
+      clearTimeout(this.offerTimer);
+      this.offerTimer = null;
+    }
+    this.offer.hidden = true;
+    this.offer.onclick = null;
   }
 
   get isShopOpen(): boolean {

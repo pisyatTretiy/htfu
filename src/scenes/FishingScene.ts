@@ -42,6 +42,8 @@ export type CastState =
  */
 export interface SceneHooks {
   toast(text: string): void;
+  /** Звук события. Сцена не знает, чем он воспроизводится. */
+  sfx(name: 'cast' | 'splash' | 'bite' | 'snap' | 'bounce'): void;
   /** Эффекты прокачки читаются каждый кадр: снасть меняется прямо в магазине. */
   effects(): Effects;
   /** Улов зачтён: деньги, альбом и сохранение — забота вызывающего. */
@@ -129,7 +131,10 @@ export class FishingScene {
     }
     if (this.state === 'onboard' && this.mischief) {
       const world = this.water.screenToWorld(screenX, screenY);
-      if (this.mischief.tap(world.x, world.y)) this.shake = Math.max(this.shake, 5);
+      if (this.mischief.tap(world.x, world.y)) {
+        this.shake = Math.max(this.shake, 5);
+        this.hooks.sfx('bounce');
+      }
     }
   }
 
@@ -138,6 +143,7 @@ export class FishingScene {
       this.trickShot = this.meter.release();
       this.trickStreak = this.trickShot ? this.trickStreak + 1 : 0;
       this.hook.cast(this.meter.value);
+      this.hooks.sfx('cast');
       this.state = 'flying';
       if (this.trickShot) {
         this.hooks.toast(this.trickStreak > 1 ? `Трюк-шот ×${this.trickStreak}` : 'Трюк-шот!');
@@ -212,6 +218,7 @@ export class FishingScene {
           this.submergedFor = 0;
           this.biteAt = this.rng.range(BITE_MIN, BITE_MAX);
           this.spawnSplash();
+          this.hooks.sfx('splash');
         }
         this.applyLineLimit();
         if (this.state === 'sinking') {
@@ -265,6 +272,7 @@ export class FishingScene {
     this.bitePointY = this.hook.y;
     this.state = 'fighting';
     this.shake = 7;
+    this.hooks.sfx('bite');
     this.hooks.toast('Клюёт!');
   }
 
@@ -300,6 +308,7 @@ export class FishingScene {
 
     if (outcome === 'snapped' || outcome === 'escaped') {
       this.hooks.toast(outcome === 'snapped' ? 'Леска лопнула!' : 'Сорвалась!');
+      this.hooks.sfx('snap');
       this.hitstop = 0.12;
       this.shake = outcome === 'snapped' ? 14 : 8;
       this.dropHooked();
