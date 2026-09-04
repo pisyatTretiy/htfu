@@ -216,18 +216,21 @@ async function main(): Promise<void> {
   // --- rewarded: добровольный бонус за просмотр ---
   // Ловим до первой награды и проверяем, что кнопка «Удвоить» появляется и
   // деньги после неё растут ровно на величину награды.
-  const beforeOffer = await snapshot(page);
   const offer = page.locator('#ui-offer');
   await offer.waitFor({ state: 'visible', timeout: 60000 }).catch(() => undefined);
   if (await offer.isVisible()) {
     await page.screenshot({ path: `${OUT}/8-offer.png` });
-    const reward = beforeOffer.lastReward ?? 0;
-    const moneyBefore = (await snapshot(page)).money;
+    // Снимок берём в момент показа кнопки: до него lastReward — от прошлого улова.
+    const atOffer = await snapshot(page);
+    const reward = atOffer.lastReward ?? 0;
+    const moneyBefore = atOffer.money;
     await offer.click();
-    await page.waitForTimeout(900);
+    await page.waitForTimeout(700);
     const moneyAfter = (await snapshot(page)).money;
     if (reward > 0 && moneyAfter < moneyBefore + reward) {
-      throw new Error(`Награда за ролик не начислена: ${moneyBefore} → ${moneyAfter}`);
+      throw new Error(
+        `Награда за ролик не начислена: ${moneyBefore} → ${moneyAfter}, обещали +${reward}`,
+      );
     }
   } else {
     console.warn('⚠ Кнопка «Удвоить» не появилась за отведённое время');

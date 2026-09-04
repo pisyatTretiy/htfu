@@ -234,9 +234,10 @@ export class App {
     this.persist();
 
     // Добровольный бонус: без просмотра игрок ничего не теряет.
-    if (reward > 0 && !this.platform.isTV()) {
-      this.ui.offerReward(i18n.t('offer.double', { reward }), 6, () =>
-        void this.doubleReward(reward),
+    // Удваиваем ровно ту сумму, которую игрок получил и видит на кнопке.
+    if (total > 0 && !this.platform.isTV()) {
+      this.ui.offerReward(i18n.t('offer.double', { reward: total }), 6, () =>
+        void this.doubleReward(total),
       );
     }
   }

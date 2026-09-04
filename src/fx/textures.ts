@@ -338,6 +338,80 @@ export function junkTexture(
         ctx.arc(ox + w * 0.26, oy + h * 0.72, w * 0.1, 0, Math.PI * 2);
         break;
       }
+      case 'tire': {
+        // Кольцо: внешний круг по часовой, внутренний против — получается дырка.
+        ctx.beginPath();
+        ctx.arc(ox + w * 0.5, oy + h * 0.5, w * 0.42, 0, Math.PI * 2);
+        ctx.arc(ox + w * 0.5, oy + h * 0.5, w * 0.2, 0, Math.PI * 2, true);
+        break;
+      }
+      case 'chest': {
+        ctx.beginPath();
+        ctx.rect(ox + w * 0.12, oy + h * 0.42, w * 0.76, h * 0.44);
+        ctx.moveTo(ox + w * 0.12, oy + h * 0.42);
+        ctx.quadraticCurveTo(ox + w * 0.5, oy + h * 0.08, ox + w * 0.88, oy + h * 0.42);
+        ctx.closePath();
+        ctx.moveTo(ox + w * 0.44, oy + h * 0.5);
+        ctx.rect(ox + w * 0.44, oy + h * 0.5, w * 0.12, h * 0.16);
+        break;
+      }
+      case 'can': {
+        ctx.beginPath();
+        ctx.rect(ox + w * 0.3, oy + h * 0.24, w * 0.4, h * 0.6);
+        ctx.moveTo(ox + w * 0.3, oy + h * 0.24);
+        ctx.ellipse(ox + w * 0.5, oy + h * 0.24, w * 0.2, h * 0.08, 0, 0, Math.PI * 2);
+        break;
+      }
+      case 'bottle': {
+        ctx.beginPath();
+        ctx.rect(ox + w * 0.42, oy + h * 0.1, w * 0.16, h * 0.24);
+        ctx.moveTo(ox + w * 0.3, oy + h * 0.34);
+        ctx.quadraticCurveTo(ox + w * 0.28, oy + h * 0.44, ox + w * 0.28, oy + h * 0.86);
+        ctx.lineTo(ox + w * 0.72, oy + h * 0.86);
+        ctx.quadraticCurveTo(ox + w * 0.72, oy + h * 0.44, ox + w * 0.7, oy + h * 0.34);
+        ctx.closePath();
+        break;
+      }
+      case 'anchor': {
+        ctx.beginPath();
+        ctx.rect(ox + w * 0.45, oy + h * 0.2, w * 0.1, h * 0.6);
+        ctx.moveTo(ox + w * 0.25, oy + h * 0.36);
+        ctx.rect(ox + w * 0.25, oy + h * 0.32, w * 0.5, h * 0.08);
+        ctx.moveTo(ox + w * 0.14, oy + h * 0.62);
+        ctx.quadraticCurveTo(ox + w * 0.5, oy + h * 0.98, ox + w * 0.86, oy + h * 0.62);
+        ctx.lineTo(ox + w * 0.74, oy + h * 0.6);
+        ctx.quadraticCurveTo(ox + w * 0.5, oy + h * 0.82, ox + w * 0.26, oy + h * 0.6);
+        ctx.closePath();
+        ctx.moveTo(ox + w * 0.5, oy + h * 0.1);
+        ctx.arc(ox + w * 0.5, oy + h * 0.16, w * 0.1, 0, Math.PI * 2);
+        break;
+      }
+      case 'umbrella': {
+        ctx.beginPath();
+        ctx.moveTo(ox + w * 0.08, oy + h * 0.52);
+        ctx.quadraticCurveTo(ox + w * 0.5, oy + h * 0.02, ox + w * 0.92, oy + h * 0.52);
+        ctx.closePath();
+        ctx.moveTo(ox + w * 0.46, oy + h * 0.52);
+        ctx.rect(ox + w * 0.46, oy + h * 0.52, w * 0.08, h * 0.34);
+        ctx.moveTo(ox + w * 0.34, oy + h * 0.86);
+        ctx.quadraticCurveTo(ox + w * 0.46, oy + h * 0.96, ox + w * 0.5, oy + h * 0.82);
+        ctx.closePath();
+        break;
+      }
+      case 'phone': {
+        ctx.beginPath();
+        ctx.roundRect(ox + w * 0.32, oy + h * 0.12, w * 0.36, h * 0.76, w * 0.06);
+        break;
+      }
+      case 'fridge': {
+        ctx.beginPath();
+        ctx.rect(ox + w * 0.26, oy + h * 0.06, w * 0.48, h * 0.88);
+        ctx.moveTo(ox + w * 0.26, oy + h * 0.36);
+        ctx.rect(ox + w * 0.26, oy + h * 0.34, w * 0.48, h * 0.04);
+        ctx.moveTo(ox + w * 0.64, oy + h * 0.2);
+        ctx.rect(ox + w * 0.64, oy + h * 0.18, w * 0.05, h * 0.12);
+        break;
+      }
       default: {
         // Сапог: голенище плюс ступня.
         ctx.beginPath();

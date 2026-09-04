@@ -1,5 +1,5 @@
 {
-  "$comment": "Пул заброса. Баланс правится здесь, а не в коде — docs/04, § 4.2. Доля мусора держится в коридоре 20-30% по правилу ADR-0003. Ориентир по бою: при ритме «тянуть 0.3 с / отпускать 0.2 с» окунь вытаскивается, щука рвёт леску — нужен ритм точнее.",
+  "$comment": "Пул заброса: 40 видов рыбы и 12 предметов мусора. Выносливость каждого вида рассчитана так, чтобы вменяемый ритм вытаскивал, а зажатый палец рвал леску — это закреплено тестами баланса.",
   "entries": [
     {
       "id": "perch",
@@ -16,7 +16,7 @@
       "price": 14,
       "fight": {
         "stamina": 1,
-        "drain": 0.5,
+        "drain": 0.151,
         "pull": 0.34,
         "burst": 1.2,
         "rhythm": 1.0,
@@ -32,34 +32,184 @@
       "mischief": "flop"
     },
     {
-      "id": "pike",
+      "id": "roach",
       "name": {
-        "ru": "Щука",
-        "en": "Pike"
+        "ru": "Плотва",
+        "en": "Roach"
       },
       "kind": "fish",
-      "weight": 15,
+      "weight": 24,
       "depth": [
-        18,
-        90
+        0,
+        40
       ],
-      "price": 46,
+      "price": 11,
       "fight": {
         "stamina": 1,
-        "drain": 0.32,
-        "pull": 0.4,
-        "burst": 2.2,
-        "rhythm": 0.62,
-        "recover": 0.1
+        "drain": 0.116,
+        "pull": 0.28,
+        "burst": 1.2,
+        "rhythm": 1.2,
+        "recover": 0.05
       },
       "body": {
-        "length": 168,
-        "wave": 2.6,
-        "amp": 0.11,
-        "fill": "#63c96f",
-        "outline": "#1b4a24"
+        "length": 96,
+        "wave": 3.6,
+        "amp": 0.16,
+        "fill": "#8fd0e0",
+        "outline": "#22505e"
+      },
+      "mischief": "flop"
+    },
+    {
+      "id": "bleak",
+      "name": {
+        "ru": "Уклейка",
+        "en": "Bleak"
+      },
+      "kind": "fish",
+      "weight": 22,
+      "depth": [
+        0,
+        30
+      ],
+      "price": 8,
+      "fight": {
+        "stamina": 1,
+        "drain": 0.112,
+        "pull": 0.24,
+        "burst": 1.15,
+        "rhythm": 1.6,
+        "recover": 0.04
+      },
+      "body": {
+        "length": 78,
+        "wave": 4.2,
+        "amp": 0.18,
+        "fill": "#d8ecf2",
+        "outline": "#3a5c66"
+      },
+      "mischief": "flop"
+    },
+    {
+      "id": "ruff",
+      "name": {
+        "ru": "Ёрш",
+        "en": "Ruff"
+      },
+      "kind": "fish",
+      "weight": 20,
+      "depth": [
+        0,
+        45
+      ],
+      "price": 18,
+      "fight": {
+        "stamina": 1,
+        "drain": 0.154,
+        "pull": 0.32,
+        "burst": 1.5,
+        "rhythm": 0.9,
+        "recover": 0.06
+      },
+      "body": {
+        "length": 88,
+        "wave": 3.0,
+        "amp": 0.14,
+        "fill": "#7a8f4a",
+        "outline": "#2e3a16"
       },
       "mischief": "grab"
+    },
+    {
+      "id": "crucian",
+      "name": {
+        "ru": "Карась",
+        "en": "Crucian"
+      },
+      "kind": "fish",
+      "weight": 20,
+      "depth": [
+        3,
+        45
+      ],
+      "price": 22,
+      "fight": {
+        "stamina": 1,
+        "drain": 0.144,
+        "pull": 0.3,
+        "burst": 1.3,
+        "rhythm": 0.8,
+        "recover": 0.06
+      },
+      "body": {
+        "length": 116,
+        "wave": 2.8,
+        "amp": 0.13,
+        "fill": "#e0b64a",
+        "outline": "#5c3f0f"
+      },
+      "mischief": "flop"
+    },
+    {
+      "id": "gudgeon",
+      "name": {
+        "ru": "Пескарь",
+        "en": "Gudgeon"
+      },
+      "kind": "fish",
+      "weight": 22,
+      "depth": [
+        0,
+        35
+      ],
+      "price": 9,
+      "fight": {
+        "stamina": 1,
+        "drain": 0.11,
+        "pull": 0.22,
+        "burst": 1.2,
+        "rhythm": 1.4,
+        "recover": 0.04
+      },
+      "body": {
+        "length": 74,
+        "wave": 3.8,
+        "amp": 0.17,
+        "fill": "#c2a87c",
+        "outline": "#4a3a1e"
+      },
+      "mischief": "flop"
+    },
+    {
+      "id": "rudd",
+      "name": {
+        "ru": "Краснопёрка",
+        "en": "Rudd"
+      },
+      "kind": "fish",
+      "weight": 18,
+      "depth": [
+        2,
+        45
+      ],
+      "price": 26,
+      "fight": {
+        "stamina": 1,
+        "drain": 0.161,
+        "pull": 0.36,
+        "burst": 1.4,
+        "rhythm": 1.1,
+        "recover": 0.06
+      },
+      "body": {
+        "length": 104,
+        "wave": 3.2,
+        "amp": 0.15,
+        "fill": "#e07a5a",
+        "outline": "#5c2418"
+      },
+      "mischief": "flop"
     },
     {
       "id": "crab",
@@ -68,15 +218,15 @@
         "en": "Sleepy crab"
       },
       "kind": "fish",
-      "weight": 12,
+      "weight": 14,
       "depth": [
-        6,
-        60
+        0,
+        65
       ],
       "price": 28,
       "fight": {
         "stamina": 1,
-        "drain": 0.5,
+        "drain": 0.156,
         "pull": 0.3,
         "burst": 3.0,
         "rhythm": 0.4,
@@ -90,156 +240,6 @@
         "outline": "#5c1d0c"
       },
       "mischief": "steal"
-    },
-    {
-      "id": "lantern",
-      "name": {
-        "ru": "Фонарная рыба",
-        "en": "Lanternfish"
-      },
-      "kind": "fish",
-      "weight": 9,
-      "depth": [
-        40,
-        250
-      ],
-      "price": 88,
-      "fight": {
-        "stamina": 1,
-        "drain": 0.3,
-        "pull": 0.38,
-        "burst": 2.0,
-        "rhythm": 0.8,
-        "recover": 0.11
-      },
-      "body": {
-        "length": 140,
-        "wave": 3.9,
-        "amp": 0.19,
-        "fill": "#ffd166",
-        "outline": "#6b4a05"
-      },
-      "mischief": "flop"
-    },
-    {
-      "id": "boot",
-      "name": {
-        "ru": "Сапог",
-        "en": "Boot"
-      },
-      "kind": "junk",
-      "weight": 12,
-      "depth": [
-        0,
-        250
-      ],
-      "price": 2,
-      "fight": {
-        "stamina": 1,
-        "drain": 1.1,
-        "pull": 0.06,
-        "burst": 1.1,
-        "rhythm": 0.2,
-        "recover": 0.02
-      },
-      "body": {
-        "length": 92,
-        "wave": 0.4,
-        "amp": 0.03,
-        "fill": "#8b5a3c",
-        "outline": "#3a1f10"
-      },
-      "mischief": "none"
-    },
-    {
-      "id": "kettle",
-      "name": {
-        "ru": "Чайник",
-        "en": "Kettle"
-      },
-      "kind": "junk",
-      "weight": 8,
-      "depth": [
-        0,
-        250
-      ],
-      "price": 5,
-      "fight": {
-        "stamina": 1,
-        "drain": 1.05,
-        "pull": 0.07,
-        "burst": 1.1,
-        "rhythm": 0.25,
-        "recover": 0.02
-      },
-      "body": {
-        "length": 88,
-        "wave": 0.3,
-        "amp": 0.02,
-        "fill": "#b8c4c9",
-        "outline": "#374a50"
-      },
-      "mischief": "none"
-    },
-    {
-      "id": "cone",
-      "name": {
-        "ru": "Дорожный конус",
-        "en": "Traffic cone"
-      },
-      "kind": "junk",
-      "weight": 6,
-      "depth": [
-        0,
-        120
-      ],
-      "price": 4,
-      "fight": {
-        "stamina": 1,
-        "drain": 1.1,
-        "pull": 0.06,
-        "burst": 1.1,
-        "rhythm": 0.22,
-        "recover": 0.02
-      },
-      "body": {
-        "length": 96,
-        "wave": 0.3,
-        "amp": 0.02,
-        "fill": "#ff8a3d",
-        "outline": "#5c2a08"
-      },
-      "mischief": "none"
-    },
-    {
-      "id": "rod",
-      "name": {
-        "ru": "Чужая удочка",
-        "en": "Someone's rod"
-      },
-      "kind": "junk",
-      "weight": 4,
-      "depth": [
-        0,
-        160
-      ],
-      "price": 18,
-      "fight": {
-        "stamina": 1,
-        "drain": 0.95,
-        "pull": 0.09,
-        "burst": 1.2,
-        "rhythm": 0.3,
-        "recover": 0.03
-      },
-      "body": {
-        "length": 150,
-        "wave": 0.6,
-        "amp": 0.04,
-        "fill": "#7a4a2a",
-        "outline": "#2e1608"
-      },
-      "mischief": "none"
     },
     {
       "id": "mackerel",
@@ -256,7 +256,7 @@
       "price": 34,
       "fight": {
         "stamina": 1,
-        "drain": 0.42,
+        "drain": 0.195,
         "pull": 0.36,
         "burst": 1.6,
         "rhythm": 1.3,
@@ -272,6 +272,186 @@
       "mischief": "flop"
     },
     {
+      "id": "pike",
+      "name": {
+        "ru": "Щука",
+        "en": "Pike"
+      },
+      "kind": "fish",
+      "weight": 18,
+      "depth": [
+        15,
+        95
+      ],
+      "price": 46,
+      "fight": {
+        "stamina": 1,
+        "drain": 0.331,
+        "pull": 0.4,
+        "burst": 2.2,
+        "rhythm": 0.62,
+        "recover": 0.1
+      },
+      "body": {
+        "length": 168,
+        "wave": 2.6,
+        "amp": 0.11,
+        "fill": "#63c96f",
+        "outline": "#1b4a24"
+      },
+      "mischief": "grab"
+    },
+    {
+      "id": "herring",
+      "name": {
+        "ru": "Сельдь",
+        "en": "Herring"
+      },
+      "kind": "fish",
+      "weight": 20,
+      "depth": [
+        5,
+        70
+      ],
+      "price": 24,
+      "fight": {
+        "stamina": 1,
+        "drain": 0.149,
+        "pull": 0.3,
+        "burst": 1.5,
+        "rhythm": 1.5,
+        "recover": 0.06
+      },
+      "body": {
+        "length": 102,
+        "wave": 4.0,
+        "amp": 0.18,
+        "fill": "#b8d6e0",
+        "outline": "#2e4a56"
+      },
+      "mischief": "flop"
+    },
+    {
+      "id": "mullet",
+      "name": {
+        "ru": "Кефаль",
+        "en": "Mullet"
+      },
+      "kind": "fish",
+      "weight": 18,
+      "depth": [
+        4,
+        75
+      ],
+      "price": 38,
+      "fight": {
+        "stamina": 1,
+        "drain": 0.193,
+        "pull": 0.34,
+        "burst": 1.7,
+        "rhythm": 1.2,
+        "recover": 0.07
+      },
+      "body": {
+        "length": 134,
+        "wave": 3.4,
+        "amp": 0.15,
+        "fill": "#9fb8c4",
+        "outline": "#33454e"
+      },
+      "mischief": "flop"
+    },
+    {
+      "id": "garfish",
+      "name": {
+        "ru": "Сарган",
+        "en": "Garfish"
+      },
+      "kind": "fish",
+      "weight": 14,
+      "depth": [
+        8,
+        85
+      ],
+      "price": 52,
+      "fight": {
+        "stamina": 1,
+        "drain": 0.259,
+        "pull": 0.42,
+        "burst": 1.9,
+        "rhythm": 1.0,
+        "recover": 0.08
+      },
+      "body": {
+        "length": 182,
+        "wave": 4.6,
+        "amp": 0.2,
+        "fill": "#7fd08a",
+        "outline": "#224a2c"
+      },
+      "mischief": "grab"
+    },
+    {
+      "id": "seabass",
+      "name": {
+        "ru": "Лаврак",
+        "en": "Sea bass"
+      },
+      "kind": "fish",
+      "weight": 14,
+      "depth": [
+        10,
+        90
+      ],
+      "price": 64,
+      "fight": {
+        "stamina": 1,
+        "drain": 0.305,
+        "pull": 0.44,
+        "burst": 2.0,
+        "rhythm": 0.9,
+        "recover": 0.09
+      },
+      "body": {
+        "length": 152,
+        "wave": 3.0,
+        "amp": 0.13,
+        "fill": "#c4d2d8",
+        "outline": "#3a4a52"
+      },
+      "mischief": "flop"
+    },
+    {
+      "id": "starfish",
+      "name": {
+        "ru": "Морская звезда",
+        "en": "Starfish"
+      },
+      "kind": "fish",
+      "weight": 12,
+      "depth": [
+        2,
+        60
+      ],
+      "price": 30,
+      "fight": {
+        "stamina": 1,
+        "drain": 0.14,
+        "pull": 0.26,
+        "burst": 2.8,
+        "rhythm": 0.35,
+        "recover": 0.05
+      },
+      "body": {
+        "length": 92,
+        "wave": 0.8,
+        "amp": 0.05,
+        "fill": "#ff9f6b",
+        "outline": "#63290f"
+      },
+      "mischief": "steal"
+    },
+    {
       "id": "jelly",
       "name": {
         "ru": "Медуза",
@@ -280,13 +460,13 @@
       "kind": "fish",
       "weight": 16,
       "depth": [
-        20,
+        10,
         130
       ],
       "price": 52,
       "fight": {
         "stamina": 1,
-        "drain": 0.36,
+        "drain": 0.258,
         "pull": 0.3,
         "burst": 2.4,
         "rhythm": 0.3,
@@ -316,7 +496,7 @@
       "price": 96,
       "fight": {
         "stamina": 1,
-        "drain": 0.3,
+        "drain": 0.407,
         "pull": 0.44,
         "burst": 2.0,
         "rhythm": 0.9,
@@ -332,13 +512,463 @@
       "mischief": "grab"
     },
     {
+      "id": "octopus",
+      "name": {
+        "ru": "Осьминог",
+        "en": "Octopus"
+      },
+      "kind": "fish",
+      "weight": 14,
+      "depth": [
+        35,
+        150
+      ],
+      "price": 118,
+      "fight": {
+        "stamina": 1,
+        "drain": 0.353,
+        "pull": 0.4,
+        "burst": 2.6,
+        "rhythm": 0.5,
+        "recover": 0.1
+      },
+      "body": {
+        "length": 168,
+        "wave": 2.2,
+        "amp": 0.18,
+        "fill": "#a05a8c",
+        "outline": "#3a1a30"
+      },
+      "mischief": "steal"
+    },
+    {
+      "id": "grouper",
+      "name": {
+        "ru": "Групер",
+        "en": "Grouper"
+      },
+      "kind": "fish",
+      "weight": 14,
+      "depth": [
+        30,
+        140
+      ],
+      "price": 104,
+      "fight": {
+        "stamina": 1,
+        "drain": 0.336,
+        "pull": 0.46,
+        "burst": 1.8,
+        "rhythm": 0.7,
+        "recover": 0.1
+      },
+      "body": {
+        "length": 186,
+        "wave": 2.4,
+        "amp": 0.12,
+        "fill": "#8a6a4a",
+        "outline": "#33261a"
+      },
+      "mischief": "flop"
+    },
+    {
+      "id": "moray",
+      "name": {
+        "ru": "Мурена",
+        "en": "Moray"
+      },
+      "kind": "fish",
+      "weight": 12,
+      "depth": [
+        40,
+        160
+      ],
+      "price": 126,
+      "fight": {
+        "stamina": 1,
+        "drain": 0.417,
+        "pull": 0.48,
+        "burst": 2.3,
+        "rhythm": 1.0,
+        "recover": 0.11
+      },
+      "body": {
+        "length": 204,
+        "wave": 4.8,
+        "amp": 0.2,
+        "fill": "#6a7a3a",
+        "outline": "#242a12"
+      },
+      "mischief": "grab"
+    },
+    {
+      "id": "scorpionfish",
+      "name": {
+        "ru": "Скорпена",
+        "en": "Scorpionfish"
+      },
+      "kind": "fish",
+      "weight": 14,
+      "depth": [
+        25,
+        130
+      ],
+      "price": 88,
+      "fight": {
+        "stamina": 1,
+        "drain": 0.323,
+        "pull": 0.42,
+        "burst": 2.5,
+        "rhythm": 0.8,
+        "recover": 0.09
+      },
+      "body": {
+        "length": 124,
+        "wave": 2.6,
+        "amp": 0.14,
+        "fill": "#c4563a",
+        "outline": "#3f1810"
+      },
+      "mischief": "grab"
+    },
+    {
+      "id": "lionfish",
+      "name": {
+        "ru": "Крылатка",
+        "en": "Lionfish"
+      },
+      "kind": "fish",
+      "weight": 12,
+      "depth": [
+        20,
+        120
+      ],
+      "price": 96,
+      "fight": {
+        "stamina": 1,
+        "drain": 0.323,
+        "pull": 0.4,
+        "burst": 2.7,
+        "rhythm": 0.9,
+        "recover": 0.09
+      },
+      "body": {
+        "length": 132,
+        "wave": 3.0,
+        "amp": 0.19,
+        "fill": "#e08a4a",
+        "outline": "#4a2410"
+      },
+      "mischief": "grab"
+    },
+    {
+      "id": "pufferfish",
+      "name": {
+        "ru": "Рыба-шар",
+        "en": "Pufferfish"
+      },
+      "kind": "fish",
+      "weight": 14,
+      "depth": [
+        15,
+        110
+      ],
+      "price": 78,
+      "fight": {
+        "stamina": 1,
+        "drain": 0.28,
+        "pull": 0.36,
+        "burst": 3.0,
+        "rhythm": 0.6,
+        "recover": 0.08
+      },
+      "body": {
+        "length": 118,
+        "wave": 1.4,
+        "amp": 0.09,
+        "fill": "#e0c46a",
+        "outline": "#4a3a10"
+      },
+      "mischief": "flop"
+    },
+    {
+      "id": "wrasse",
+      "name": {
+        "ru": "Губан",
+        "en": "Wrasse"
+      },
+      "kind": "fish",
+      "weight": 16,
+      "depth": [
+        12,
+        100
+      ],
+      "price": 62,
+      "fight": {
+        "stamina": 1,
+        "drain": 0.228,
+        "pull": 0.34,
+        "burst": 1.9,
+        "rhythm": 1.3,
+        "recover": 0.08
+      },
+      "body": {
+        "length": 110,
+        "wave": 3.6,
+        "amp": 0.16,
+        "fill": "#4ab8a0",
+        "outline": "#123f38"
+      },
+      "mischief": "flop"
+    },
+    {
+      "id": "cod",
+      "name": {
+        "ru": "Треска",
+        "en": "Cod"
+      },
+      "kind": "fish",
+      "weight": 18,
+      "depth": [
+        20,
+        150
+      ],
+      "price": 92,
+      "fight": {
+        "stamina": 1,
+        "drain": 0.311,
+        "pull": 0.42,
+        "burst": 1.7,
+        "rhythm": 0.8,
+        "recover": 0.1
+      },
+      "body": {
+        "length": 168,
+        "wave": 2.8,
+        "amp": 0.13,
+        "fill": "#b0bfa8",
+        "outline": "#3a4436"
+      },
+      "mischief": "flop"
+    },
+    {
+      "id": "halibut",
+      "name": {
+        "ru": "Палтус",
+        "en": "Halibut"
+      },
+      "kind": "fish",
+      "weight": 12,
+      "depth": [
+        60,
+        190
+      ],
+      "price": 168,
+      "fight": {
+        "stamina": 1,
+        "drain": 0.434,
+        "pull": 0.5,
+        "burst": 1.9,
+        "rhythm": 0.6,
+        "recover": 0.12
+      },
+      "body": {
+        "length": 214,
+        "wave": 1.8,
+        "amp": 0.1,
+        "fill": "#7a8894",
+        "outline": "#2a3138"
+      },
+      "mischief": "flop"
+    },
+    {
+      "id": "navaga",
+      "name": {
+        "ru": "Навага",
+        "en": "Navaga"
+      },
+      "kind": "fish",
+      "weight": 18,
+      "depth": [
+        15,
+        130
+      ],
+      "price": 74,
+      "fight": {
+        "stamina": 1,
+        "drain": 0.223,
+        "pull": 0.36,
+        "burst": 1.6,
+        "rhythm": 1.1,
+        "recover": 0.08
+      },
+      "body": {
+        "length": 124,
+        "wave": 3.2,
+        "amp": 0.15,
+        "fill": "#cfdde4",
+        "outline": "#3f4c54"
+      },
+      "mischief": "flop"
+    },
+    {
+      "id": "burbot",
+      "name": {
+        "ru": "Налим",
+        "en": "Burbot"
+      },
+      "kind": "fish",
+      "weight": 14,
+      "depth": [
+        40,
+        180
+      ],
+      "price": 134,
+      "fight": {
+        "stamina": 1,
+        "drain": 0.391,
+        "pull": 0.46,
+        "burst": 2.1,
+        "rhythm": 0.7,
+        "recover": 0.11
+      },
+      "body": {
+        "length": 192,
+        "wave": 4.2,
+        "amp": 0.19,
+        "fill": "#6a5a3a",
+        "outline": "#261f12"
+      },
+      "mischief": "grab"
+    },
+    {
+      "id": "char",
+      "name": {
+        "ru": "Голец",
+        "en": "Arctic char"
+      },
+      "kind": "fish",
+      "weight": 16,
+      "depth": [
+        10,
+        140
+      ],
+      "price": 86,
+      "fight": {
+        "stamina": 1,
+        "drain": 0.278,
+        "pull": 0.38,
+        "burst": 2.0,
+        "rhythm": 1.2,
+        "recover": 0.09
+      },
+      "body": {
+        "length": 142,
+        "wave": 3.4,
+        "amp": 0.16,
+        "fill": "#e07a8a",
+        "outline": "#4a1c26"
+      },
+      "mischief": "flop"
+    },
+    {
+      "id": "smelt",
+      "name": {
+        "ru": "Корюшка",
+        "en": "Smelt"
+      },
+      "kind": "fish",
+      "weight": 20,
+      "depth": [
+        5,
+        90
+      ],
+      "price": 42,
+      "fight": {
+        "stamina": 1,
+        "drain": 0.144,
+        "pull": 0.28,
+        "burst": 1.5,
+        "rhythm": 1.7,
+        "recover": 0.06
+      },
+      "body": {
+        "length": 88,
+        "wave": 4.4,
+        "amp": 0.19,
+        "fill": "#dfeef2",
+        "outline": "#43565e"
+      },
+      "mischief": "flop"
+    },
+    {
+      "id": "icefish",
+      "name": {
+        "ru": "Ледяная рыба",
+        "en": "Icefish"
+      },
+      "kind": "fish",
+      "weight": 10,
+      "depth": [
+        70,
+        190
+      ],
+      "price": 186,
+      "fight": {
+        "stamina": 1,
+        "drain": 0.472,
+        "pull": 0.52,
+        "burst": 2.2,
+        "rhythm": 1.0,
+        "recover": 0.12
+      },
+      "body": {
+        "length": 158,
+        "wave": 3.0,
+        "amp": 0.17,
+        "fill": "#c8eef8",
+        "outline": "#3a5a68"
+      },
+      "mischief": "flop"
+    },
+    {
+      "id": "whitefish",
+      "name": {
+        "ru": "Сиг",
+        "en": "Whitefish"
+      },
+      "kind": "fish",
+      "weight": 16,
+      "depth": [
+        25,
+        160
+      ],
+      "price": 108,
+      "fight": {
+        "stamina": 1,
+        "drain": 0.308,
+        "pull": 0.4,
+        "burst": 1.8,
+        "rhythm": 1.0,
+        "recover": 0.1
+      },
+      "body": {
+        "length": 150,
+        "wave": 3.2,
+        "amp": 0.15,
+        "fill": "#b8c8d0",
+        "outline": "#36444c"
+      },
+      "mischief": "flop"
+    },
+    {
       "id": "angler",
       "name": {
         "ru": "Морской чёрт",
         "en": "Anglerfish"
       },
       "kind": "fish",
-      "weight": 20,
+      "weight": 18,
       "depth": [
         95,
         250
@@ -346,7 +976,7 @@
       "price": 180,
       "fight": {
         "stamina": 1,
-        "drain": 0.3,
+        "drain": 0.535,
         "pull": 0.5,
         "burst": 2.6,
         "rhythm": 0.55,
@@ -362,24 +992,354 @@
       "mischief": "flop"
     },
     {
+      "id": "lantern",
+      "name": {
+        "ru": "Фонарная рыба",
+        "en": "Lanternfish"
+      },
+      "kind": "fish",
+      "weight": 18,
+      "depth": [
+        35,
+        250
+      ],
+      "price": 88,
+      "fight": {
+        "stamina": 1,
+        "drain": 0.34,
+        "pull": 0.38,
+        "burst": 2.0,
+        "rhythm": 0.8,
+        "recover": 0.11
+      },
+      "body": {
+        "length": 140,
+        "wave": 3.9,
+        "amp": 0.19,
+        "fill": "#ffd166",
+        "outline": "#6b4a05"
+      },
+      "mischief": "flop"
+    },
+    {
+      "id": "viperfish",
+      "name": {
+        "ru": "Рыба-гадюка",
+        "en": "Viperfish"
+      },
+      "kind": "fish",
+      "weight": 12,
+      "depth": [
+        110,
+        250
+      ],
+      "price": 236,
+      "fight": {
+        "stamina": 1,
+        "drain": 0.585,
+        "pull": 0.54,
+        "burst": 2.8,
+        "rhythm": 1.1,
+        "recover": 0.13
+      },
+      "body": {
+        "length": 176,
+        "wave": 4.0,
+        "amp": 0.2,
+        "fill": "#4a5a7a",
+        "outline": "#141a2a"
+      },
+      "mischief": "grab"
+    },
+    {
+      "id": "gulper",
+      "name": {
+        "ru": "Мешкорот",
+        "en": "Gulper eel"
+      },
+      "kind": "fish",
+      "weight": 10,
+      "depth": [
+        130,
+        250
+      ],
+      "price": 268,
+      "fight": {
+        "stamina": 1,
+        "drain": 0.603,
+        "pull": 0.56,
+        "burst": 2.4,
+        "rhythm": 0.6,
+        "recover": 0.14
+      },
+      "body": {
+        "length": 224,
+        "wave": 3.4,
+        "amp": 0.22,
+        "fill": "#3a2a4a",
+        "outline": "#120c18"
+      },
+      "mischief": "grab"
+    },
+    {
+      "id": "oarfish",
+      "name": {
+        "ru": "Сельдяной король",
+        "en": "Oarfish"
+      },
+      "kind": "fish",
+      "weight": 8,
+      "depth": [
+        100,
+        250
+      ],
+      "price": 320,
+      "fight": {
+        "stamina": 1,
+        "drain": 0.572,
+        "pull": 0.58,
+        "burst": 2.0,
+        "rhythm": 0.5,
+        "recover": 0.14
+      },
+      "body": {
+        "length": 280,
+        "wave": 5.6,
+        "amp": 0.24,
+        "fill": "#c8d4dc",
+        "outline": "#3a444c"
+      },
+      "mischief": "flop"
+    },
+    {
+      "id": "hatchetfish",
+      "name": {
+        "ru": "Топорик",
+        "en": "Hatchetfish"
+      },
+      "kind": "fish",
+      "weight": 14,
+      "depth": [
+        80,
+        220
+      ],
+      "price": 152,
+      "fight": {
+        "stamina": 1,
+        "drain": 0.407,
+        "pull": 0.44,
+        "burst": 2.5,
+        "rhythm": 1.4,
+        "recover": 0.11
+      },
+      "body": {
+        "length": 104,
+        "wave": 2.4,
+        "amp": 0.14,
+        "fill": "#dfe8ee",
+        "outline": "#42505a"
+      },
+      "mischief": "flop"
+    },
+    {
+      "id": "tripodfish",
+      "name": {
+        "ru": "Тренога",
+        "en": "Tripod fish"
+      },
+      "kind": "fish",
+      "weight": 10,
+      "depth": [
+        150,
+        250
+      ],
+      "price": 288,
+      "fight": {
+        "stamina": 1,
+        "drain": 0.512,
+        "pull": 0.52,
+        "burst": 2.2,
+        "rhythm": 0.4,
+        "recover": 0.13
+      },
+      "body": {
+        "length": 146,
+        "wave": 1.8,
+        "amp": 0.1,
+        "fill": "#e0d8c0",
+        "outline": "#4a4030"
+      },
+      "mischief": "flop"
+    },
+    {
+      "id": "vampsquid",
+      "name": {
+        "ru": "Адский кальмар",
+        "en": "Vampire squid"
+      },
+      "kind": "fish",
+      "weight": 8,
+      "depth": [
+        120,
+        250
+      ],
+      "price": 340,
+      "fight": {
+        "stamina": 1,
+        "drain": 0.722,
+        "pull": 0.6,
+        "burst": 3.0,
+        "rhythm": 0.7,
+        "recover": 0.15
+      },
+      "body": {
+        "length": 196,
+        "wave": 2.6,
+        "amp": 0.2,
+        "fill": "#7a2a3a",
+        "outline": "#280c12"
+      },
+      "mischief": "steal"
+    },
+    {
+      "id": "boot",
+      "name": {
+        "ru": "Сапог",
+        "en": "Boot"
+      },
+      "kind": "junk",
+      "weight": 8,
+      "depth": [
+        0,
+        250
+      ],
+      "price": 2,
+      "fight": {
+        "stamina": 1,
+        "drain": 1.0,
+        "pull": 0.08,
+        "burst": 1.1,
+        "rhythm": 0.22,
+        "recover": 0.02
+      },
+      "body": {
+        "length": 92,
+        "wave": 0.3,
+        "amp": 0.02,
+        "fill": "#8b5a3c",
+        "outline": "#3a1f10"
+      },
+      "mischief": "none"
+    },
+    {
+      "id": "kettle",
+      "name": {
+        "ru": "Чайник",
+        "en": "Kettle"
+      },
+      "kind": "junk",
+      "weight": 6,
+      "depth": [
+        0,
+        250
+      ],
+      "price": 5,
+      "fight": {
+        "stamina": 1,
+        "drain": 1.0,
+        "pull": 0.08,
+        "burst": 1.1,
+        "rhythm": 0.22,
+        "recover": 0.02
+      },
+      "body": {
+        "length": 88,
+        "wave": 0.3,
+        "amp": 0.02,
+        "fill": "#b8c4c9",
+        "outline": "#374a50"
+      },
+      "mischief": "none"
+    },
+    {
+      "id": "cone",
+      "name": {
+        "ru": "Дорожный конус",
+        "en": "Traffic cone"
+      },
+      "kind": "junk",
+      "weight": 5,
+      "depth": [
+        0,
+        120
+      ],
+      "price": 4,
+      "fight": {
+        "stamina": 1,
+        "drain": 1.0,
+        "pull": 0.08,
+        "burst": 1.1,
+        "rhythm": 0.22,
+        "recover": 0.02
+      },
+      "body": {
+        "length": 96,
+        "wave": 0.3,
+        "amp": 0.02,
+        "fill": "#ff8a3d",
+        "outline": "#5c2a08"
+      },
+      "mischief": "none"
+    },
+    {
+      "id": "rod",
+      "name": {
+        "ru": "Чужая удочка",
+        "en": "Someone's rod"
+      },
+      "kind": "junk",
+      "weight": 4,
+      "depth": [
+        0,
+        160
+      ],
+      "price": 18,
+      "fight": {
+        "stamina": 1,
+        "drain": 1.0,
+        "pull": 0.08,
+        "burst": 1.1,
+        "rhythm": 0.22,
+        "recover": 0.02
+      },
+      "body": {
+        "length": 150,
+        "wave": 0.3,
+        "amp": 0.02,
+        "fill": "#7a4a2a",
+        "outline": "#2e1608"
+      },
+      "mischief": "none"
+    },
+    {
       "id": "tire",
       "name": {
         "ru": "Покрышка",
         "en": "Old tyre"
       },
       "kind": "junk",
-      "weight": 7,
+      "weight": 6,
       "depth": [
         0,
-        160
+        200
       ],
       "price": 6,
       "fight": {
         "stamina": 1,
-        "drain": 0.9,
-        "pull": 0.1,
+        "drain": 1.0,
+        "pull": 0.08,
         "burst": 1.1,
-        "rhythm": 0.2,
+        "rhythm": 0.22,
         "recover": 0.02
       },
       "body": {
@@ -406,18 +1366,198 @@
       "price": 140,
       "fight": {
         "stamina": 1,
-        "drain": 0.7,
-        "pull": 0.14,
-        "burst": 1.2,
-        "rhythm": 0.25,
-        "recover": 0.03
+        "drain": 1.0,
+        "pull": 0.08,
+        "burst": 1.1,
+        "rhythm": 0.22,
+        "recover": 0.02
       },
       "body": {
         "length": 112,
-        "wave": 0.2,
+        "wave": 0.3,
         "amp": 0.02,
         "fill": "#b8813c",
         "outline": "#4a2a10"
+      },
+      "mischief": "none"
+    },
+    {
+      "id": "can",
+      "name": {
+        "ru": "Банка",
+        "en": "Tin can"
+      },
+      "kind": "junk",
+      "weight": 7,
+      "depth": [
+        0,
+        140
+      ],
+      "price": 3,
+      "fight": {
+        "stamina": 1,
+        "drain": 1.0,
+        "pull": 0.08,
+        "burst": 1.1,
+        "rhythm": 0.22,
+        "recover": 0.02
+      },
+      "body": {
+        "length": 72,
+        "wave": 0.3,
+        "amp": 0.02,
+        "fill": "#9fb0b8",
+        "outline": "#333f45"
+      },
+      "mischief": "none"
+    },
+    {
+      "id": "bottle",
+      "name": {
+        "ru": "Бутылка с запиской",
+        "en": "Message in a bottle"
+      },
+      "kind": "junk",
+      "weight": 4,
+      "depth": [
+        0,
+        180
+      ],
+      "price": 24,
+      "fight": {
+        "stamina": 1,
+        "drain": 1.0,
+        "pull": 0.08,
+        "burst": 1.1,
+        "rhythm": 0.22,
+        "recover": 0.02
+      },
+      "body": {
+        "length": 84,
+        "wave": 0.3,
+        "amp": 0.02,
+        "fill": "#8fd0a8",
+        "outline": "#274a38"
+      },
+      "mischief": "none"
+    },
+    {
+      "id": "anchor",
+      "name": {
+        "ru": "Якорь",
+        "en": "Anchor"
+      },
+      "kind": "junk",
+      "weight": 4,
+      "depth": [
+        40,
+        250
+      ],
+      "price": 46,
+      "fight": {
+        "stamina": 1,
+        "drain": 1.0,
+        "pull": 0.08,
+        "burst": 1.1,
+        "rhythm": 0.22,
+        "recover": 0.02
+      },
+      "body": {
+        "length": 128,
+        "wave": 0.3,
+        "amp": 0.02,
+        "fill": "#5a6670",
+        "outline": "#1e262c"
+      },
+      "mischief": "none"
+    },
+    {
+      "id": "umbrella",
+      "name": {
+        "ru": "Зонт",
+        "en": "Umbrella"
+      },
+      "kind": "junk",
+      "weight": 5,
+      "depth": [
+        0,
+        120
+      ],
+      "price": 9,
+      "fight": {
+        "stamina": 1,
+        "drain": 1.0,
+        "pull": 0.08,
+        "burst": 1.1,
+        "rhythm": 0.22,
+        "recover": 0.02
+      },
+      "body": {
+        "length": 116,
+        "wave": 0.3,
+        "amp": 0.02,
+        "fill": "#c4566a",
+        "outline": "#40161f"
+      },
+      "mischief": "none"
+    },
+    {
+      "id": "phone",
+      "name": {
+        "ru": "Телефон",
+        "en": "Phone"
+      },
+      "kind": "junk",
+      "weight": 5,
+      "depth": [
+        0,
+        160
+      ],
+      "price": 14,
+      "fight": {
+        "stamina": 1,
+        "drain": 1.0,
+        "pull": 0.08,
+        "burst": 1.1,
+        "rhythm": 0.22,
+        "recover": 0.02
+      },
+      "body": {
+        "length": 68,
+        "wave": 0.3,
+        "amp": 0.02,
+        "fill": "#2e3a44",
+        "outline": "#0e1418"
+      },
+      "mischief": "none"
+    },
+    {
+      "id": "fridge",
+      "name": {
+        "ru": "Холодильник",
+        "en": "Fridge"
+      },
+      "kind": "junk",
+      "weight": 3,
+      "depth": [
+        80,
+        250
+      ],
+      "price": 62,
+      "fight": {
+        "stamina": 1,
+        "drain": 1.0,
+        "pull": 0.08,
+        "burst": 1.1,
+        "rhythm": 0.22,
+        "recover": 0.02
+      },
+      "body": {
+        "length": 140,
+        "wave": 0.3,
+        "amp": 0.02,
+        "fill": "#e4e8ea",
+        "outline": "#4a5257"
       },
       "mischief": "none"
     }

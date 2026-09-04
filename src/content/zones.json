@@ -38,12 +38,23 @@
       "tint": "#2a2f7a",
       "catches": [
         "perch",
+        "roach",
+        "bleak",
+        "ruff",
+        "crucian",
+        "gudgeon",
+        "rudd",
         "crab",
-        "mackerel",
         "boot",
         "kettle",
         "cone",
-        "rod"
+        "rod",
+        "tire",
+        "can",
+        "bottle",
+        "anchor",
+        "umbrella",
+        "phone"
       ]
     },
     {
@@ -83,14 +94,26 @@
       ],
       "tint": "#141d4e",
       "catches": [
-        "perch",
-        "pike",
-        "crab",
         "mackerel",
+        "pike",
+        "herring",
+        "mullet",
+        "garfish",
+        "seabass",
+        "starfish",
         "jelly",
         "boot",
+        "kettle",
+        "cone",
+        "rod",
         "tire",
-        "rod"
+        "chest",
+        "can",
+        "bottle",
+        "anchor",
+        "umbrella",
+        "phone",
+        "fridge"
       ]
     },
     {
@@ -130,14 +153,26 @@
       ],
       "tint": "#0c2a2a",
       "catches": [
-        "pike",
-        "jelly",
         "eel",
-        "mackerel",
+        "octopus",
+        "grouper",
+        "moray",
+        "scorpionfish",
+        "lionfish",
+        "pufferfish",
+        "wrasse",
         "boot",
         "kettle",
+        "cone",
+        "rod",
         "tire",
-        "chest"
+        "chest",
+        "can",
+        "bottle",
+        "anchor",
+        "umbrella",
+        "phone",
+        "fridge"
       ]
     },
     {
@@ -177,14 +212,26 @@
       ],
       "tint": "#4a6ea8",
       "catches": [
-        "pike",
-        "mackerel",
-        "jelly",
-        "eel",
-        "lantern",
+        "cod",
+        "halibut",
+        "navaga",
+        "burbot",
+        "char",
+        "smelt",
+        "icefish",
+        "whitefish",
         "boot",
+        "kettle",
+        "cone",
+        "rod",
         "tire",
-        "chest"
+        "chest",
+        "can",
+        "bottle",
+        "anchor",
+        "umbrella",
+        "phone",
+        "fridge"
       ]
     },
     {
@@ -224,12 +271,26 @@
       ],
       "tint": "#060428",
       "catches": [
-        "eel",
         "angler",
-        "jelly",
         "lantern",
+        "viperfish",
+        "gulper",
+        "oarfish",
+        "hatchetfish",
+        "tripodfish",
+        "vampsquid",
+        "boot",
+        "kettle",
+        "cone",
+        "rod",
+        "tire",
         "chest",
-        "tire"
+        "can",
+        "bottle",
+        "anchor",
+        "umbrella",
+        "phone",
+        "fridge"
       ]
     }
   ]
