@@ -119,6 +119,20 @@
       border-radius: 12px; padding: 9px 11px; display: flex; flex-direction: column; gap: 2px;
     }
     #ui .album-item.unknown { opacity: .45 }
+    #ui .album-bonus {
+      grid-column: 1 / -1; font-size: 11.5px; color: #4fd6b4;
+      background: rgba(79,214,180,.1); border: 1px solid rgba(79,214,180,.3);
+      border-radius: 10px; padding: 7px 10px; font-variant-numeric: tabular-nums;
+    }
+    #ui .album-slots { display: flex; gap: 4px; margin-top: 4px }
+    #ui .slot {
+      width: 10px; height: 10px; border-radius: 50%;
+      border: 1.5px solid rgba(255,255,255,.25); background: transparent;
+    }
+    #ui .slot.has.common { background: #cfe4e2; border-color: #cfe4e2 }
+    #ui .slot.has.rare { background: #9fe8ff; border-color: #9fe8ff }
+    #ui .slot.has.gold { background: #ffd85c; border-color: #ffd85c }
+    #ui .album-item.complete { border-color: rgba(255,216,92,.55) }
     #ui .album-section {
       grid-column: 1 / -1; font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase;
       color: #ffd166; margin-top: 4px;
@@ -229,6 +243,20 @@
       border-radius: 12px; padding: 9px 11px; display: flex; flex-direction: column; gap: 2px;
     }
     #ui .album-item.unknown { opacity: .45 }
+    #ui .album-bonus {
+      grid-column: 1 / -1; font-size: 11.5px; color: #4fd6b4;
+      background: rgba(79,214,180,.1); border: 1px solid rgba(79,214,180,.3);
+      border-radius: 10px; padding: 7px 10px; font-variant-numeric: tabular-nums;
+    }
+    #ui .album-slots { display: flex; gap: 4px; margin-top: 4px }
+    #ui .slot {
+      width: 10px; height: 10px; border-radius: 50%;
+      border: 1.5px solid rgba(255,255,255,.25); background: transparent;
+    }
+    #ui .slot.has.common { background: #cfe4e2; border-color: #cfe4e2 }
+    #ui .slot.has.rare { background: #9fe8ff; border-color: #9fe8ff }
+    #ui .slot.has.gold { background: #ffd85c; border-color: #ffd85c }
+    #ui .album-item.complete { border-color: rgba(255,216,92,.55) }
     #ui .album-section {
       grid-column: 1 / -1; font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase;
       color: #ffd166; margin-top: 4px;

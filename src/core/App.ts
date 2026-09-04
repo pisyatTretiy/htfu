@@ -3,6 +3,8 @@ import { resolveQuality, type QualityProfile } from './Quality';
 import type { IPlatform } from '../platform';
 import { FishingScene } from '../scenes/FishingScene';
 import type { CatchEntry, FightPhase } from '../content/types';
+import type { Rarity } from '../gameplay/Rarity';
+import type { Effects } from '../meta/Progression';
 import type { Quest } from '../meta/Quests';
 import { PerfHud } from '../debug/PerfHud';
 import { GameUi } from '../ui/GameUi';
@@ -108,8 +110,8 @@ export class App {
         this.bosses.escaped(this.zones.current.id);
         this.persist();
       },
-      effects: () => this.progression.effects,
-      onCatch: (entry, reward) => this.collect(entry, reward),
+      effects: () => this.effects,
+      onCatch: (entry, reward, rarity) => this.collect(entry, reward, rarity),
     });
     this.pixi.stage.addChild(this.scene.root);
     this.resize();
@@ -199,19 +201,33 @@ export class App {
 
     this.bosses.defeat(bossId);
     this.state.money += boss.reward;
-    this.album.record(bossId);
+    this.album.record(bossId, 'common');
     showToast(
       i18n.t('toast.boss', { name: i18n.pick(boss.name), trophy: i18n.pick(boss.trophy) }),
     );
     this.persist();
   }
 
-  private collect(entry: CatchEntry, reward: number): void {
-    this.state.money += reward;
+  /** Эффекты снасти плюс постоянные бонусы за заполнение альбома. */
+  private get effects(): Effects {
+    const base = this.progression.effects;
+    return { ...base, lineStrength: base.lineStrength * this.album.lineStrengthMultiplier };
+  }
+
+  private collect(entry: CatchEntry, reward: number, rarity: Rarity): void {
+    // Бонусы альбома множат награду: собранная коллекция должна ощущаться.
+    const total = Math.round(
+      reward * this.album.priceMultiplier * this.album.priceMultiplierFor(entry.id),
+    );
+    this.state.money += total;
     this.bosses.countCatch(this.zones.current.id);
-    this.lastReward = reward;
+    this.lastReward = total;
     this.audio.play('coin');
-    if (this.album.record(entry.id)) showToast(i18n.t('toast.newSpecies'));
+
+    const record = this.album.record(entry.id, rarity);
+    if (record.speciesCompleted) showToast(i18n.t('toast.speciesDone', { name: i18n.pick(entry.name) }));
+    else if (record.firstEver) showToast(i18n.t('toast.newSpecies'));
+    else if (record.firstVariant) showToast(i18n.t('toast.newVariant'));
 
     const finished = this.quests.onCatch(entry);
     if (finished) this.completeQuest(finished);

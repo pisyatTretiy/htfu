@@ -1,5 +1,6 @@
 import { i18n } from '../services/I18n';
 import { CATCH_ENTRIES, entryName } from '../content/catalog';
+import { RARITIES } from '../gameplay/Rarity';
 import type { BranchId, Progression } from '../meta/Progression';
 import type { Album } from '../meta/Album';
 import type { Quests } from '../meta/Quests';
@@ -284,18 +285,33 @@ export class GameUi {
         </div>`;
     }).join('');
 
-    this.albumList.innerHTML = CATCH_ENTRIES.map((entry) => {
-      const count = state.album.countOf(entry.id);
-      const kind = i18n.t(`album.kind.${entry.kind}`);
-      const title = count > 0 ? entryName(entry) : '???';
-      const note =
-        count > 0 ? i18n.t('album.times', { count }) : i18n.t('album.unknown');
-      return `
-        <div class="album-item${count > 0 ? '' : ' unknown'}">
-          <div class="album-name">${title}</div>
-          <div class="album-meta">${kind} · ${note}</div>
-        </div>`;
-    }).join('');
+    const bonus = `
+      <div class="album-bonus">${i18n.t('album.bonus', {
+        percent: state.album.fillPercent.toFixed(0),
+        price: Math.round((state.album.priceMultiplier - 1) * 100),
+        line: Math.round((state.album.lineStrengthMultiplier - 1) * 100),
+      })}</div>`;
+
+    this.albumList.innerHTML =
+      bonus +
+      CATCH_ENTRIES.map((entry) => {
+        const count = state.album.countOf(entry.id);
+        const complete = state.album.isComplete(entry.id);
+        const title = count > 0 ? entryName(entry) : '???';
+        // Три слота вариантов: игрок сразу видит, чего не хватает до бонуса.
+        const slots = RARITIES.map((rarity) => {
+          const has = state.album.hasVariant(entry.id, rarity);
+          return `<span class="slot ${rarity}${has ? ' has' : ''}"></span>`;
+        }).join('');
+        const note =
+          count > 0 ? i18n.t('album.times', { count }) : i18n.t('album.unknown');
+        return `
+          <div class="album-item${count > 0 ? '' : ' unknown'}${complete ? ' complete' : ''}">
+            <div class="album-name">${title}</div>
+            <div class="album-meta">${i18n.t(`album.kind.${entry.kind}`)} · ${note}</div>
+            <div class="album-slots">${slots}</div>
+          </div>`;
+      }).join('');
 
     this.albumList.insertAdjacentHTML(
       'beforeend',

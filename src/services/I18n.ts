@@ -33,6 +33,9 @@ const STRINGS: Record<string, Localized> = {
   'quest.done': { ru: 'Все задания причала выполнены', en: 'All dock quests done' },
   'quest.reward': { ru: 'Задание выполнено: {title} · +{reward} ₽', en: 'Quest complete: {title} · +{reward} ₽' },
   'toast.newSpecies': { ru: 'Новый вид в альбоме!', en: 'New species in the album!' },
+  'toast.newVariant': { ru: 'Новый вариант в альбоме!', en: 'New variant in the album!' },
+  'toast.speciesDone': { ru: '{name}: все варианты собраны! +25 % к цене', en: '{name}: all variants collected! +25% price' },
+  'album.bonus': { ru: 'Собрано {percent} % · цена +{price} % · леска +{line} %', en: 'Filled {percent}% · price +{price}% · line +{line}%' },
   'toast.doubled': { ru: 'Улов удвоен! +{reward} ₽', en: 'Catch doubled! +{reward} ₽' },
   'offer.double': { ru: 'Удвоить ×2 · {reward} ₽', en: 'Double ×2 · {reward} ₽' },
 };

@@ -8,6 +8,7 @@ import { FightSystem } from '../gameplay/FightSystem';
 import { CatchView } from '../gameplay/CatchView';
 import { MischiefAct, type Area } from '../gameplay/Mischief';
 import { rollCatch } from '../gameplay/CatchPool';
+import { rarityPrice, rarityTint, rollRarity, type Rarity } from '../gameplay/Rarity';
 import { entryName } from '../content/catalog';
 import { lineTexture, radialTexture } from '../fx/textures';
 import { Rng } from '../core/Rng';
@@ -58,7 +59,7 @@ export interface SceneHooks {
   /** Эффекты прокачки читаются каждый кадр: снасть меняется прямо в магазине. */
   effects(): Effects;
   /** Улов зачтён: деньги, альбом и сохранение — забота вызывающего. */
-  onCatch(entry: CatchEntry, reward: number): void;
+  onCatch(entry: CatchEntry, reward: number, rarity: Rarity): void;
 }
 
 export class FishingScene {
@@ -87,6 +88,7 @@ export class FishingScene {
 
   private fight: FightSystem | null = null;
   private isBossFight = false;
+  private rarity: Rarity = 'common';
   private hooked: CatchView | null = null;
   private hookedEntry: CatchEntry | null = null;
   private mischief: MischiefAct | null = null;
@@ -295,6 +297,8 @@ export class FishingScene {
     const { reelPower, lineStrength } = this.hooks.effects();
     this.hookedEntry = entry;
     this.isBossFight = boss !== null;
+    // Босс всегда «обычный»: он и так уникален, редкость его только запутала бы.
+    this.rarity = boss ? 'common' : rollRarity(this.rng);
     this.fight = new FightSystem(
       entry,
       this.rng.int(1, 1 << 20),
@@ -302,6 +306,7 @@ export class FishingScene {
       boss ? { phases: boss.phases } : {},
     );
     this.hooked = new CatchView(entry);
+    this.hooked.view.tint = rarityTint(this.rarity);
     this.water.gameplay.addChildAt(this.hooked.view, 0);
     this.bitePointX = this.hook.x;
     this.bitePointY = this.hook.y;
@@ -387,9 +392,9 @@ export class FishingScene {
 
     // Мусор не буянит: его просто сдают и смеются над тем, что вытащили.
     if (entry.mischief === 'none') {
-      const reward = fight.reward(this.trickShot);
-      this.hooks.onCatch(entry, reward);
-      this.hooks.toast(`${entryName(entry)}! +${reward} ₽`);
+      const reward = this.rewardFor(fight);
+      this.hooks.onCatch(entry, reward, this.rarity);
+      this.hooks.toast(`${this.label(entry)}! +${reward} ₽`);
       this.rest();
       return;
     }
@@ -399,10 +404,11 @@ export class FishingScene {
       this.rng.int(1, 1 << 20),
       this.hooks.effects().subdueSeconds,
     );
+    this.mischief.view.tint = rarityTint(this.rarity);
     this.water.gameplay.addChild(this.mischief.view);
     this.mischief.start(this.boatArea());
     this.state = 'onboard';
-    this.hooks.toast(`${entryName(entry)} в лодке!`);
+    this.hooks.toast(`${this.label(entry)} в лодке!`);
   }
 
   private stepMischief(dt: number): void {
@@ -418,9 +424,9 @@ export class FishingScene {
     }
 
     if (result === 'subdued') {
-      const reward = Math.max(1, Math.round(fight.reward(this.trickShot) * (1 - act.damage)));
-      this.hooks.onCatch(entry, reward);
-      this.hooks.toast(`${entryName(entry)} усмирён! +${reward} ₽`);
+      const reward = Math.max(1, Math.round(this.rewardFor(fight) * (1 - act.damage)));
+      this.hooks.onCatch(entry, reward, this.rarity);
+      this.hooks.toast(`${this.label(entry)} усмирён! +${reward} ₽`);
       this.clearMischief();
       this.rest();
     } else if (result === 'escaped') {
@@ -429,6 +435,19 @@ export class FishingScene {
       this.clearMischief();
       this.rest();
     }
+  }
+
+  /** Цена с учётом варианта: редкий дороже, золотой намного дороже. */
+  private rewardFor(fight: FightSystem): number {
+    return Math.max(1, Math.round(fight.reward(this.trickShot) * rarityPrice(this.rarity)));
+  }
+
+  /** Имя с пометкой варианта — игрок должен видеть, что попалось редкое. */
+  private label(entry: CatchEntry): string {
+    const name = entryName(entry);
+    if (this.rarity === 'gold') return `Золотой ${name.toLowerCase()}`;
+    if (this.rarity === 'rare') return `Редкий ${name.toLowerCase()}`;
+    return name;
   }
 
   private boatArea(): Area {
@@ -567,6 +586,7 @@ export class FishingScene {
     patience: number;
     depth: number;
     onHook: string;
+    rarity: Rarity;
   } {
     return {
       state: this.state,
@@ -575,6 +595,7 @@ export class FishingScene {
       stamina: this.fight?.stamina ?? 1,
       patience: this.mischief?.patience ?? (this.fight?.patienceLeft ?? 1),
       onHook: this.hookedEntry ? entryName(this.hookedEntry) : '',
+      rarity: this.rarity,
     };
   }
 

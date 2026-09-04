@@ -2,7 +2,7 @@ import type { IPlatform, SaveData } from '../platform';
 
 const KEY = 'htfu.save';
 /** Текущая версия схемы. Растёт вместе с миграциями. */
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 5;
 /** Лимит площадки: setData — 100 запросов за 5 минут. Дебаунс держит запас. */
 const CLOUD_DEBOUNCE_MS = 10000;
 
@@ -11,7 +11,7 @@ export interface GameSave extends SaveData {
   updatedAt: number;
   money: number;
   upgrades: Record<string, number>;
-  album: Record<string, number>;
+  album: Record<string, Record<string, number>>;
   quests: { index: number; progress: number };
   zone: string;
   bosses: { trophies: string[]; catches: Record<string, number> };
@@ -46,6 +46,9 @@ const MIGRATIONS: Record<number, Migration> = {
   2: (data) => ({ ...data, zone: 'dock', version: 3 }),
   // v4 добавила боссов. Никто из старых игроков их ещё не побеждал.
   3: (data) => ({ ...data, bosses: { trophies: [], catches: {} }, version: 4 }),
+  // v5 добавила варианты редкости. Всё пойманное раньше считается обычным —
+  // разбор старого формата живёт в Album.restore.
+  4: (data) => ({ ...data, version: 5 }),
 };
 
 export function migrate(raw: Partial<GameSave> | null): GameSave {
@@ -141,13 +144,19 @@ export class SaveService {
   }
 }
 
+/** Конфликт альбома разрешаем в пользу игрока: берём максимум по каждому варианту. */
 function mergeCounts(
-  a: Record<string, number>,
-  b: Record<string, number>,
-): Record<string, number> {
-  const result = { ...a };
-  for (const [id, count] of Object.entries(b)) {
-    result[id] = Math.max(result[id] ?? 0, count);
+  a: Record<string, Record<string, number>>,
+  b: Record<string, Record<string, number>>,
+): Record<string, Record<string, number>> {
+  const result: Record<string, Record<string, number>> = { ...a };
+  for (const [id, counts] of Object.entries(b)) {
+    const existing = result[id] ?? {};
+    const merged: Record<string, number> = { ...existing };
+    for (const [rarity, count] of Object.entries(counts ?? {})) {
+      merged[rarity] = Math.max(merged[rarity] ?? 0, count);
+    }
+    result[id] = merged;
   }
   return result;
 }

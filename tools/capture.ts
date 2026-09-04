@@ -125,7 +125,14 @@ async function main(): Promise<void> {
           updatedAt: Date.now(),
           money: 400,
           upgrades: {},
-          album: {},
+          // Часть альбома уже собрана: так на кадре видно и слоты вариантов,
+          // и ненулевой бонус за заполнение.
+          album: {
+            perch: { common: 4, rare: 1, gold: 1 },
+            crab: { common: 2, rare: 1 },
+            boot: { common: 3 },
+            kettle: { common: 1 },
+          },
           quests: { index: 2, progress: 0 },
           zone: 'dock',
           bosses: { trophies: [], catches: { dock: 4 } },
