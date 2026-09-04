@@ -206,6 +206,15 @@ async function main(): Promise<void> {
   // --- магазин: покупка и то, что она переживает перезагрузку ---
   const beforeShop = await snapshot(page);
   await waitForState(page, ['idle'], 30000);
+  // Свободный осмотр вниз: проверяем, как выглядит глубина под отмелью.
+  await waitForState(page, ['idle'], 30000);
+  await page.mouse.move(VIEWPORT.width / 2, VIEWPORT.height / 2);
+  await page.mouse.wheel(0, 2600);
+  await page.waitForTimeout(1400);
+  await page.screenshot({ path: `${OUT}/8b-deep.png` });
+  await page.mouse.wheel(0, -2600);
+  await page.waitForTimeout(1200);
+
   // Альбом: пойманные виды раскрыты, остальные скрыты за «???».
   await page.click('#ui-album-open');
   await page.waitForTimeout(300);

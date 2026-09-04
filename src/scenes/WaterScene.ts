@@ -9,6 +9,13 @@ import {
 import { Rng } from '../core/Rng';
 import type { QualityProfile } from '../core/Quality';
 import {
+  cloudTexture,
+  pierTexture,
+  seagullTexture,
+  shelfTexture,
+  shoreTexture,
+} from '../fx/decor';
+import {
   bubbleTexture,
   cartoonFishTexture,
   causticsTexture,
@@ -48,6 +55,14 @@ interface Ray {
   xRatio: number;
 }
 
+interface Drifter {
+  sprite: Sprite;
+  speed: number;
+  /** Доля высоты неба, на которой висит объект. */
+  yRatio: number;
+  phase: number;
+}
+
 interface BackgroundFish {
   sprite: Sprite;
   depthPx: number;
@@ -85,10 +100,14 @@ export class WaterScene {
   private readonly rays: Ray[] = [];
   private readonly motes: Mote[] = [];
   private readonly bgFish: BackgroundFish[] = [];
+  private readonly drifters: Drifter[] = [];
 
   private readonly skySprite: Sprite;
   private readonly sunSprite: Sprite;
   private readonly waterSprite: Sprite;
+  private readonly pier: Sprite;
+  private readonly shore: Sprite;
+  private readonly shelf: Sprite;
   private readonly caustics: TilingSprite;
   private readonly tint: Sprite;
   private readonly displacement: Sprite | null = null;
@@ -115,6 +134,36 @@ export class WaterScene {
     this.sunSprite.blendMode = 'add';
     this.sky.addChild(this.skySprite, this.sunSprite);
 
+    // --- декор локации: причал, берег с сараем механика, облака, чайки ---
+    this.shore = new Sprite(shoreTexture(280, 130));
+    this.shore.anchor.set(0.5, 1);
+    this.sky.addChild(this.shore);
+
+    for (let i = 0; i < 3; i++) {
+      const cloud = new Sprite(cloudTexture(rng.int(150, 250), 60 + i));
+      cloud.anchor.set(0.5);
+      cloud.alpha = 0.9;
+      this.sky.addChild(cloud);
+      this.drifters.push({
+        sprite: cloud,
+        speed: rng.range(4, 11),
+        yRatio: rng.range(0.18, 0.5),
+        phase: rng.range(0, Math.PI * 2),
+      });
+    }
+
+    for (let i = 0; i < 2; i++) {
+      const gull = new Sprite(seagullTexture(rng.int(34, 52)));
+      gull.anchor.set(0.5);
+      this.sky.addChild(gull);
+      this.drifters.push({
+        sprite: gull,
+        speed: rng.range(22, 38) * (i === 0 ? 1 : -1),
+        yRatio: rng.range(0.12, 0.34),
+        phase: rng.range(0, Math.PI * 2),
+      });
+    }
+
     // --- вода: одна градиентная колонна на всю глубину мира ---
     this.waterSprite = new Sprite(
       gradientTexture([
@@ -128,6 +177,16 @@ export class WaterScene {
       ]),
     );
     this.column.addChild(this.waterSprite);
+
+    // Отмель под причалом: локация читается мелководьем с обрывом на глубину.
+    this.shelf = new Sprite(shelfTexture(660, 340));
+    this.shelf.anchor.set(0, 1);
+    this.column.addChild(this.shelf);
+
+    // Причал у левого края: он же ориентир, где стоит лодка.
+    this.pier = new Sprite(pierTexture(360, 230));
+    this.pier.anchor.set(1, 0);
+    this.column.addChild(this.pier);
 
     // --- параллакс: дальние силуэты, средние скалы, ближние водоросли ---
     const far = this.makeLayer(0.55);
@@ -150,10 +209,16 @@ export class WaterScene {
       this.placed.push({ sprite: rock, xRatio: rng.range(-0.1, 0.85) });
     }
 
-    for (let i = 0; i < 9; i++) {
-      const kelp = new Sprite(kelpTexture(rng.int(240, 480), 300 + i, i % 2 === 0 ? '#3ec55d' : '#2fae7d'));
+    for (let i = 0; i < 12; i++) {
+      // Короче и темнее, чем в первой версии: длинные яркие ленты читались
+      // как зелёные столбы на переднем плане и перетягивали внимание.
+      const kelp = new Sprite(
+        kelpTexture(rng.int(120, 250), 300 + i, i % 2 === 0 ? '#2f9c4c' : '#268a63'),
+      );
       kelp.anchor.set(0.5, 1);
-      kelp.y = (12 + i * 26 + rng.range(-5, 5)) * PX_PER_M;
+      kelp.alpha = 0.9;
+      // Водоросли живут на свету: глубже отмели их не бывает.
+      kelp.y = (8 + i * 5 + rng.range(-3, 3)) * PX_PER_M;
       near.view.addChild(kelp);
       this.placed.push({ sprite: kelp, xRatio: rng.range(0, 1) });
     }
@@ -269,6 +334,10 @@ export class WaterScene {
       if (fish.sprite.x === 0) fish.sprite.x = Math.random() * width;
     }
 
+    for (const drifter of this.drifters) {
+      if (drifter.sprite.x === 0) drifter.sprite.x = Math.random() * width;
+    }
+
     for (const ray of this.rays) {
       ray.sprite.x = ray.xRatio * width;
       ray.sprite.height = height * 1.6;
@@ -276,6 +345,17 @@ export class WaterScene {
 
     this.tint.width = width;
     this.tint.height = height;
+
+    // Причал прижат к левому краю, настил — на уровне воды.
+    this.pier.x = Math.min(width * 0.42, 210);
+    this.pier.y = -44;
+    this.shore.x = width * 0.82;
+    this.shore.y = 2;
+    this.shore.scale.set(Math.min(1, width / 480));
+
+    this.shelf.x = -20;
+    this.shelf.y = 26 * PX_PER_M;
+    this.shelf.width = Math.max(width * 1.4, 520);
   }
 
   /** Глубина камеры в метрах. Считается снаружи — сценой рыбалки. */
@@ -330,6 +410,7 @@ export class WaterScene {
     this.godrayHolder.visible = light > 0.01;
 
     this.updateMotes(dt);
+    this.updateDrifters(dt);
     this.updateBackgroundFish(dt);
     this.drawWave(light);
 
@@ -347,6 +428,22 @@ export class WaterScene {
       }
       mote.sprite.x = mote.x * this.width + Math.sin(this.time * 0.6 + mote.speed) * 6;
       mote.sprite.y = mote.y * this.height;
+    }
+  }
+
+  /** Облака и чайки: медленный дрейф поперёк неба с лёгким покачиванием. */
+  private updateDrifters(dt: number): void {
+    const margin = 200;
+    for (const drifter of this.drifters) {
+      drifter.sprite.x += drifter.speed * dt;
+      if (drifter.speed > 0 && drifter.sprite.x > this.width + margin) {
+        drifter.sprite.x = -margin;
+      }
+      if (drifter.speed < 0 && drifter.sprite.x < -margin) {
+        drifter.sprite.x = this.width + margin;
+      }
+      drifter.sprite.y =
+        -this.height * drifter.yRatio + Math.sin(this.time * 0.7 + drifter.phase) * 7;
     }
   }
 

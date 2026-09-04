@@ -28,9 +28,12 @@ function fadeBottom(
 ): void {
   const from = height * (1 - portion);
   const grad = ctx.createLinearGradient(0, from, 0, height);
-  grad.addColorStop(0, 'rgba(0,0,0,1)');
-  grad.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.globalCompositeOperation = 'destination-in';
+  // destination-out стирает там, где рисует: прозрачный сверху — фигура цела,
+  // непрозрачный снизу — край растворяется. С destination-in исчезала бы вся
+  // часть фигуры выше прямоугольника.
+  grad.addColorStop(0, 'rgba(0,0,0,0)');
+  grad.addColorStop(1, 'rgba(0,0,0,1)');
+  ctx.globalCompositeOperation = 'destination-out';
   ctx.fillStyle = grad;
   ctx.fillRect(0, from, width, height - from);
   ctx.globalCompositeOperation = 'source-over';
