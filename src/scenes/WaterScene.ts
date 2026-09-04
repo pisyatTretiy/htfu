@@ -9,6 +9,8 @@ import {
 import { Rng } from '../core/Rng';
 import type { QualityProfile } from '../core/Quality';
 import {
+  bubbleTexture,
+  cartoonFishTexture,
   causticsTexture,
   godrayTexture,
   gradientTexture,
@@ -46,6 +48,14 @@ interface Ray {
   xRatio: number;
 }
 
+interface BackgroundFish {
+  sprite: Sprite;
+  depthPx: number;
+  speed: number;
+  phase: number;
+  scale: number;
+}
+
 /**
  * День 1 спайка: вертикальный разрез воды.
  *
@@ -74,6 +84,7 @@ export class WaterScene {
   private readonly placed: Placed[] = [];
   private readonly rays: Ray[] = [];
   private readonly motes: Mote[] = [];
+  private readonly bgFish: BackgroundFish[] = [];
 
   private readonly skySprite: Sprite;
   private readonly sunSprite: Sprite;
@@ -94,9 +105,9 @@ export class WaterScene {
     // --- небо над водой ---
     this.skySprite = new Sprite(
       gradientTexture([
-        { at: 0, color: '#8fd3e8' },
-        { at: 0.62, color: '#bfe6ec' },
-        { at: 1, color: '#dcf1ee' },
+        { at: 0, color: '#4fc9f5' },
+        { at: 0.62, color: '#9fe6fb' },
+        { at: 1, color: '#dff8ff' },
       ]),
     );
     this.sunSprite = new Sprite(radialTexture(512, 'rgba(255,247,205,0.8)', 2.2));
@@ -107,12 +118,13 @@ export class WaterScene {
     // --- вода: одна градиентная колонна на всю глубину мира ---
     this.waterSprite = new Sprite(
       gradientTexture([
-        { at: 0, color: '#2ea7a0' },
-        { at: 0.06, color: '#17888a' },
-        { at: 0.16, color: '#0e5f6b' },
-        { at: 0.36, color: '#093a49' },
-        { at: 0.64, color: '#051d29' },
-        { at: 1, color: '#010a10' },
+        { at: 0, color: '#4ae6d2' },
+        { at: 0.08, color: '#1ecbd0' },
+        { at: 0.2, color: '#0fa2c8' },
+        { at: 0.38, color: '#0c73b6' },
+        { at: 0.58, color: '#134a9c' },
+        { at: 0.8, color: '#1b2c78' },
+        { at: 1, color: '#191047' },
       ]),
     );
     this.column.addChild(this.waterSprite);
@@ -123,27 +135,50 @@ export class WaterScene {
     const near = this.makeLayer(1.18);
 
     for (let i = 0; i < 7; i++) {
-      const rock = new Sprite(rockTexture(rng.int(420, 900), rng.int(180, 340), 100 + i, '#04222c'));
-      rock.alpha = 0.55;
+      const rock = new Sprite(rockTexture(rng.int(460, 920), rng.int(190, 330), 100 + i, '#1180ad', '#075273'));
+      rock.alpha = 0.7;
       rock.y = (18 + i * 32 + rng.range(-6, 6)) * PX_PER_M;
       far.view.addChild(rock);
       this.placed.push({ sprite: rock, xRatio: rng.range(-0.15, 0.75) });
     }
 
     for (let i = 0; i < 6; i++) {
-      const rock = new Sprite(rockTexture(rng.int(260, 560), rng.int(140, 280), 200 + i, '#021620'));
-      rock.alpha = 0.8;
+      const rock = new Sprite(rockTexture(rng.int(300, 600), rng.int(150, 290), 200 + i, '#0a5580', '#03334f'));
+      rock.alpha = 0.92;
       rock.y = (30 + i * 38 + rng.range(-8, 8)) * PX_PER_M;
       mid.view.addChild(rock);
       this.placed.push({ sprite: rock, xRatio: rng.range(-0.1, 0.85) });
     }
 
     for (let i = 0; i < 9; i++) {
-      const kelp = new Sprite(kelpTexture(rng.int(220, 460), 300 + i, '#010e14'));
+      const kelp = new Sprite(kelpTexture(rng.int(240, 480), 300 + i, i % 2 === 0 ? '#3ec55d' : '#2fae7d'));
       kelp.anchor.set(0.5, 1);
       kelp.y = (12 + i * 26 + rng.range(-5, 5)) * PX_PER_M;
       near.view.addChild(kelp);
       this.placed.push({ sprite: kelp, xRatio: rng.range(0, 1) });
+    }
+
+    // --- фоновая рыба: гротескные силуэты, плывут поперёк экрана ---
+    const fishLayers: [ParallaxLayer, string, string, number][] = [
+      [far, '#1180ad', '#075273', 0.55],
+      [mid, '#0a5580', '#03334f', 0.85],
+    ];
+    for (let i = 0; i < 11; i++) {
+      const layer = fishLayers[i % fishLayers.length];
+      if (!layer) continue;
+      const [target, fill, outline, alpha] = layer;
+      const scale = rng.range(0.5, 1.1);
+      const sprite = new Sprite(cartoonFishTexture(rng.int(90, 190), 400 + i, fill, outline));
+      sprite.anchor.set(0.5);
+      sprite.alpha = alpha;
+      target.view.addChild(sprite);
+      this.bgFish.push({
+        sprite,
+        depthPx: (8 + i * 21 + rng.range(-6, 6)) * PX_PER_M,
+        speed: rng.range(10, 34) * (rng.next() > 0.5 ? 1 : -1),
+        phase: rng.range(0, Math.PI * 2),
+        scale,
+      });
     }
 
     // --- каустики: бесшовный аддитивный тайл, скроллится по времени ---
@@ -172,27 +207,26 @@ export class WaterScene {
       const sprite = new Sprite(rayTexture);
       sprite.anchor.set(0.5, 0);
       sprite.blendMode = 'add';
-      sprite.scale.x = rng.range(0.35, 0.8);
+      sprite.scale.x = rng.range(0.5, 1.05);
       this.godrayHolder.addChild(sprite);
       this.rays.push({ sprite, phase: rng.range(0, Math.PI * 2), xRatio: rng.range(0.1, 0.9) });
     }
 
-    // --- взвесь в воде: экранный слой, поднимается навстречу погружению ---
-    const moteTexture = radialTexture(32, 'rgba(210,255,250,0.9)', 2);
+    // --- пузыри: экранный слой, поднимаются навстречу погружению ---
+    const bubble = bubbleTexture(48);
     for (let i = 0; i < quality.motes; i++) {
-      const sprite = new Sprite(moteTexture);
+      const sprite = new Sprite(bubble);
       sprite.anchor.set(0.5);
-      sprite.blendMode = 'add';
-      sprite.alpha = rng.range(0.06, 0.3);
-      sprite.scale.set(rng.range(0.08, 0.28));
+      sprite.alpha = rng.range(0.25, 0.7);
+      sprite.scale.set(rng.range(0.12, 0.42));
       this.moteHolder.addChild(sprite);
-      this.motes.push({ sprite, x: rng.next(), y: rng.next(), speed: rng.range(4, 16) });
+      this.motes.push({ sprite, x: rng.next(), y: rng.next(), speed: rng.range(14, 44) });
     }
 
     // --- тон глубины: экранный спрайт вместо полноэкранного фильтра ---
     this.tint = new Sprite(Texture.WHITE);
     this.tint.blendMode = 'multiply';
-    this.tint.tint = 0x0a2a3a;
+    this.tint.tint = 0x2a2f7a;
     this.tint.alpha = 0;
 
     // Порядок: небо → вода → дальние → средние → каустики → лучи → ближние →
@@ -230,6 +264,10 @@ export class WaterScene {
     }
 
     for (const { sprite, xRatio } of this.placed) sprite.x = xRatio * width;
+
+    for (const fish of this.bgFish) {
+      if (fish.sprite.x === 0) fish.sprite.x = Math.random() * width;
+    }
 
     for (const ray of this.rays) {
       ray.sprite.x = ray.xRatio * width;
@@ -272,7 +310,7 @@ export class WaterScene {
 
     this.caustics.tilePosition.x = Math.sin(this.time * 0.22) * 60 + this.time * 9;
     this.caustics.tilePosition.y = this.time * 5;
-    this.caustics.alpha = 0.55 * lightEase;
+    this.caustics.alpha = 0.8 * lightEase;
     this.causticsHolder.visible = light > 0.01;
 
     if (this.displacement) {
@@ -282,15 +320,16 @@ export class WaterScene {
 
     for (const ray of this.rays) {
       ray.sprite.rotation = Math.sin(this.time * 0.18 + ray.phase) * 0.06 - 0.03;
-      ray.sprite.alpha = (0.16 + 0.12 * Math.sin(this.time * 0.5 + ray.phase)) * lightEase;
+      ray.sprite.alpha = (0.26 + 0.14 * Math.sin(this.time * 0.5 + ray.phase)) * lightEase;
     }
     this.godrayHolder.visible = light > 0.01;
 
     this.updateMotes(dt);
+    this.updateBackgroundFish(dt);
     this.drawWave(light);
 
-    const deep = clamp((this.depth - 22) / (MAX_DEPTH_M - 22), 0, 1);
-    this.tint.alpha = deep * 0.78;
+    const deep = clamp((this.depth - 30) / (MAX_DEPTH_M - 30), 0, 1);
+    this.tint.alpha = deep * 0.42;
   }
 
   private updateMotes(dt: number): void {
@@ -303,6 +342,24 @@ export class WaterScene {
       }
       mote.sprite.x = mote.x * this.width + Math.sin(this.time * 0.6 + mote.speed) * 6;
       mote.sprite.y = mote.y * this.height;
+    }
+  }
+
+  /** Фоновая рыба плывёт поперёк, слегка покачиваясь и сплющиваясь на ходу. */
+  private updateBackgroundFish(dt: number): void {
+    const margin = 160;
+    for (const fish of this.bgFish) {
+      fish.sprite.x += fish.speed * dt;
+      if (fish.speed > 0 && fish.sprite.x > this.width + margin) fish.sprite.x = -margin;
+      if (fish.speed < 0 && fish.sprite.x < -margin) fish.sprite.x = this.width + margin;
+
+      fish.sprite.y = fish.depthPx + Math.sin(this.time * 1.4 + fish.phase) * 9;
+      // Сплющивание на ходу: дешёвая мультяшная жизнь без единой кости.
+      const squash = 1 + Math.sin(this.time * 5 + fish.phase) * 0.07;
+      fish.sprite.scale.set(
+        fish.scale * (fish.speed > 0 ? -1 : 1) * (2 - squash),
+        fish.scale * squash,
+      );
     }
   }
 

@@ -36,11 +36,11 @@ export class Hook {
 
   constructor() {
     const body = new Graphics();
-    body.circle(0, 0, 4.5).fill({ color: 0x1a2b30 });
-    body.circle(-1.2, -1.2, 1.6).fill({ color: 0x9fd8cf, alpha: 0.8 });
+    body.circle(0, 0, 6).fill({ color: 0xff5f4d }).stroke({ width: 2.5, color: 0x5c1408 });
+    body.circle(-1.8, -1.8, 2).fill({ color: 0xffe9df, alpha: 0.9 });
     // Жало крючка — короткая дуга под грузилом.
-    body.moveTo(0, 4).lineTo(0, 10).stroke({ width: 1.6, color: 0xb9cfd2 });
-    body.arc(-3, 10, 3, 0, Math.PI).stroke({ width: 1.6, color: 0xb9cfd2 });
+    body.moveTo(0, 5).lineTo(0, 12).stroke({ width: 2.4, color: 0xe8f4f6 });
+    body.arc(-3.5, 12, 3.5, 0, Math.PI).stroke({ width: 2.4, color: 0xe8f4f6 });
     this.view.addChild(body);
   }
 

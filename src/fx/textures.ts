@@ -128,59 +128,149 @@ export function godrayTexture(width = 96, height = 512): Texture {
   return Texture.from(el);
 }
 
-/** Силуэт скалы: рваный контур, заливка одним цветом — один draw call. */
-export function rockTexture(width: number, height: number, seed: number, color = '#000000'): Texture {
-  const [el, ctx] = canvas(width, height);
+/**
+ * Силуэт скалы: круглые валуны с толстым контуром. Комедийный регистр —
+ * никаких рваных реалистичных обводов, только пузатые формы (ADR-0003).
+ */
+export function rockTexture(
+  width: number,
+  height: number,
+  seed: number,
+  fill = '#0b5f8c',
+  outline = '#052f4a',
+): Texture {
+  const pad = 10;
+  const [el, ctx] = canvas(width, height + pad);
   const rng = new Rng(seed);
-  const steps = rng.int(5, 9);
+  const lumps = rng.int(3, 5);
 
+  // Все валуны опираются на нижний край текстуры: ни одного вертикального
+  // среза, иначе на месте границы виден прямоугольник.
+  const base = height + pad;
   ctx.beginPath();
-  ctx.moveTo(0, height);
-  let x = 0;
-  // Края гряды опускаются к низу текстуры: иначе на месте её границы виден
-  // вертикальный срез, и силуэт читается как прямоугольник.
-  let y = height * 0.98;
-  ctx.lineTo(x, y);
-  for (let i = 0; i < steps; i++) {
-    const nx = ((i + 1) / steps) * width;
-    const edge = i === steps - 1;
-    const ny = edge ? height * 0.98 : height * rng.range(0.18, 0.7);
-    const cx = (x + nx) / 2 + rng.range(-width * 0.06, width * 0.06);
-    const cy = Math.min(y, ny) - rng.range(height * 0.05, height * 0.22);
-    ctx.quadraticCurveTo(cx, cy, nx, ny);
-    x = nx;
-    y = ny;
+  ctx.moveTo(0, base);
+  for (let i = 0; i < lumps; i++) {
+    const from = (i / lumps) * width;
+    const to = ((i + 1) / lumps) * width;
+    const top = height * rng.range(0.16, 0.55);
+    ctx.bezierCurveTo(from + (to - from) * 0.12, top, to - (to - from) * 0.12, top, to, base);
   }
-  ctx.lineTo(width, height);
   ctx.closePath();
-  ctx.fillStyle = color;
+
+  ctx.fillStyle = fill;
   ctx.fill();
-  fadeBottom(ctx, width, height, 0.45);
+  ctx.lineWidth = Math.max(4, width * 0.012);
+  ctx.strokeStyle = outline;
+  ctx.lineJoin = 'round';
+  ctx.stroke();
+
+  fadeBottom(ctx, width, height + pad, 0.26);
   return Texture.from(el);
 }
 
-/** Прядь водорослей — вертикальная волнистая лента. */
-export function kelpTexture(height: number, seed: number, color = '#000000'): Texture {
-  const width = Math.max(24, Math.round(height * 0.16));
+/** Прядь водорослей: яркая лента с тёмным контуром. */
+export function kelpTexture(height: number, seed: number, fill = '#3ec55d'): Texture {
+  const width = Math.max(34, Math.round(height * 0.22));
   const [el, ctx] = canvas(width, height);
   const rng = new Rng(seed);
-  const sway = rng.range(width * 0.18, width * 0.34);
+  const sway = rng.range(width * 0.16, width * 0.3);
   const phase = rng.range(0, Math.PI * 2);
-  const thickness = rng.range(width * 0.1, width * 0.2);
+  const thickness = rng.range(width * 0.16, width * 0.26);
+
+  const trace = (): void => {
+    ctx.beginPath();
+    for (let i = 0; i <= 24; i++) {
+      const t = i / 24;
+      const px = width / 2 + Math.sin(phase + t * 4.2) * sway * t;
+      const py = height - t * height;
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
+  };
+
+  ctx.lineCap = 'round';
+  trace();
+  ctx.strokeStyle = '#0b3a22';
+  ctx.lineWidth = thickness + 7;
+  ctx.stroke();
+  trace();
+  ctx.strokeStyle = fill;
+  ctx.lineWidth = thickness;
+  ctx.stroke();
+
+  fadeBottom(ctx, width, height, 0.14);
+  return Texture.from(el);
+}
+
+/** Пузырь: кольцо с бликом. Мультяшная взвесь вместо «морского снега». */
+export function bubbleTexture(size = 48): Texture {
+  const [el, ctx] = canvas(size, size);
+  const r = size / 2 - 4;
+  ctx.beginPath();
+  ctx.arc(size / 2, size / 2, r, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(190, 250, 255, 0.22)';
+  ctx.fill();
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = 'rgba(232, 255, 255, 0.85)';
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(size / 2 - r * 0.35, size / 2 - r * 0.35, r * 0.22, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.95)';
+  ctx.fill();
+  return Texture.from(el);
+}
+
+/**
+ * Гротескный силуэт рыбы для фона: огромная голова, куцый хвост, выпученный
+ * глаз. Пропорции намеренно неправильные — это и есть регистр (ADR-0003).
+ */
+export function cartoonFishTexture(
+  width: number,
+  seed: number,
+  fill = '#0d6ea3',
+  outline = '#04304c',
+): Texture {
+  const rng = new Rng(seed);
+  const height = Math.round(width * rng.range(0.5, 0.78));
+  const pad = 8;
+  const [el, ctx] = canvas(width + pad * 2, height + pad * 2);
+  const cx = pad + width * 0.42;
+  const cy = pad + height / 2;
+  const bodyW = width * 0.44;
+  const bodyH = height * rng.range(0.34, 0.48);
 
   ctx.beginPath();
-  for (let i = 0; i <= 24; i++) {
-    const t = i / 24;
-    const px = width / 2 + Math.sin(phase + t * 4.2) * sway * t;
-    const py = height - t * height;
-    if (i === 0) ctx.moveTo(px, py);
-    else ctx.lineTo(px, py);
-  }
-  ctx.strokeStyle = color;
-  ctx.lineWidth = thickness;
-  ctx.lineCap = 'round';
+  // Тело — пузатый эллипс, смещённый к морде.
+  ctx.ellipse(cx, cy, bodyW, bodyH, 0, 0, Math.PI * 2);
+  ctx.closePath();
+  // Хвост — треугольник, вдвое мельче головы.
+  ctx.moveTo(cx + bodyW * 0.7, cy);
+  ctx.lineTo(pad + width, cy - height * rng.range(0.2, 0.34));
+  ctx.lineTo(pad + width, cy + height * rng.range(0.2, 0.34));
+  ctx.closePath();
+
+  ctx.fillStyle = fill;
+  ctx.fill();
+  ctx.lineWidth = Math.max(3.5, width * 0.022);
+  ctx.strokeStyle = outline;
+  ctx.lineJoin = 'round';
   ctx.stroke();
-  fadeBottom(ctx, width, height, 0.3);
+
+  // Глаз — крупный, ближе к морде, чем анатомически положено.
+  const eyeX = cx - bodyW * 0.52;
+  const eyeR = Math.max(4, bodyH * 0.3);
+  ctx.beginPath();
+  ctx.arc(eyeX, cy - bodyH * 0.22, eyeR, 0, Math.PI * 2);
+  ctx.fillStyle = '#f4ffff';
+  ctx.fill();
+  ctx.lineWidth = Math.max(2.5, width * 0.014);
+  ctx.strokeStyle = outline;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(eyeX - eyeR * 0.2, cy - bodyH * 0.22, eyeR * 0.45, 0, Math.PI * 2);
+  ctx.fillStyle = outline;
+  ctx.fill();
+
   return Texture.from(el);
 }
 

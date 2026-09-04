@@ -31,16 +31,28 @@ export class Rod {
     const g = this.hull;
     g.clear();
     // Корпус: простой силуэт, арт появится в фазе 2.
-    g.moveTo(-46, 0)
-      .quadraticCurveTo(-40, 15, -22, 17)
-      .lineTo(24, 17)
-      .quadraticCurveTo(44, 14, 50, 0)
+    g.moveTo(-48, -2)
+      .quadraticCurveTo(-44, 18, -20, 21)
+      .lineTo(26, 21)
+      .quadraticCurveTo(48, 16, 54, -2)
       .closePath()
-      .fill({ color: 0x1d3b44 });
-    g.moveTo(-46, 0).lineTo(50, 0).stroke({ width: 2, color: 0x2f5f66 });
-    // Рыбак — условная фигура, чтобы читался масштаб.
-    g.circle(-6, -20, 6).fill({ color: 0x24454d });
-    g.moveTo(-6, -14).lineTo(-6, -2).stroke({ width: 8, color: 0x24454d });
+      .fill({ color: 0xf2884a })
+      .stroke({ width: 4, color: 0x5a2a14, join: 'round' });
+    // Полоса по борту — читаемый акцент на маленьком экране.
+    g.moveTo(-42, 6).lineTo(48, 6).stroke({ width: 5, color: 0xffd166 });
+
+    // Рыбак: круглая голова, пузатое туловище, всё с толстым контуром.
+    g.ellipse(-8, -8, 11, 13)
+      .fill({ color: 0x2f9bd6 })
+      .stroke({ width: 3.5, color: 0x143a5c });
+    g.circle(-8, -26, 9.5)
+      .fill({ color: 0xffd9a8 })
+      .stroke({ width: 3.5, color: 0x5a2a14 });
+    // Панама.
+    g.ellipse(-8, -33, 15, 4.5)
+      .fill({ color: 0xffd166 })
+      .stroke({ width: 3, color: 0x5a2a14 });
+    g.circle(-4.5, -27, 1.6).fill({ color: 0x143a5c });
   }
 
   /**
@@ -88,6 +100,6 @@ export class Rod {
         this.tipX - this.view.x,
         this.tipY - this.view.y,
       )
-      .stroke({ width: 3, color: 0x0f2429, alpha: 0.95, cap: 'round' });
+      .stroke({ width: 4.5, color: 0x3d1f10, alpha: 1, cap: 'round' });
   }
 }
