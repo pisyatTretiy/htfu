@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#04141a">
+  <title>Клёв! Остров рыбака</title>
+  <!--
+    Яндекс SDK подключается ТОЛЬКО в собранном билде: на localhost /sdk.js отдаёт 404.
+    Приложение само определяет наличие window.YaGames и падает на LocalPlatform.
+    <script src="/sdk.js"></script>
+  -->
+  <style>
+    html, body {
+      margin: 0; padding: 0; height: 100%;
+      overflow: hidden; overscroll-behavior: none;
+      background: #04141a; color: #d8e8e6;
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #app { position: fixed; inset: 0; touch-action: none; }
+    #app canvas { display: block; width: 100%; height: 100%; }
+
+    #boot {
+      position: fixed; inset: 0; display: grid; place-content: center; gap: 10px;
+      justify-items: center; background: #04141a; z-index: 20; transition: opacity .25s;
+    }
+    #boot.hidden { opacity: 0; pointer-events: none; }
+    #boot .t { font-size: 13px; letter-spacing: .18em; text-transform: uppercase; color: #4a6f72; }
+    #boot .b { width: 160px; height: 3px; background: #0e2a30; border-radius: 2px; overflow: hidden; }
+    #boot .b i { display: block; height: 100%; width: 30%; background: #3fb8a6; animation: sweep 1.1s ease-in-out infinite; }
+    @keyframes sweep { 0% { transform: translateX(-110%) } 100% { transform: translateX(360%) } }
+
+    #hud {
+      position: fixed; top: 8px; left: 8px; z-index: 10;
+      font-size: 11px; line-height: 1.55; color: #9fc4c0;
+      background: rgba(4, 20, 26, .74); border: 1px solid #17383d; border-radius: 5px;
+      padding: 8px 10px; min-width: 168px; pointer-events: auto; cursor: pointer;
+      backdrop-filter: blur(3px); user-select: none;
+    }
+    #hud[hidden] { display: none !important; }
+    #hud b { color: #eaf5f3; font-weight: 500; float: right; margin-left: 12px; font-variant-numeric: tabular-nums; }
+    #hud .ok b { color: #4fd6b4 } #hud .bad b { color: #ff8a63 }
+    #hud hr { border: 0; border-top: 1px solid #17383d; margin: 6px 0 }
+    #hud .hint { color: #4a6f72; font-size: 10px; letter-spacing: .04em }
+
+    @media (prefers-reduced-motion: reduce) { #boot .b i { animation: none; width: 100% } }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <div id="boot"><div class="t">Клёв!</div><div class="b"><i></i></div></div>
+  <div id="hud" hidden></div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
