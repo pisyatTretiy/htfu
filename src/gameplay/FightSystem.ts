@@ -1,6 +1,6 @@
 import { clamp } from '../core/world';
 import { Rng } from '../core/Rng';
-import type { CatchEntry } from '../content/types';
+import type { CatchEntry, FightPhase } from '../content/types';
 
 /** Базовый порог обрыва. Прокачка удилища его поднимает. */
 const BASE_BREAK_AT = 1;
@@ -13,8 +13,15 @@ const RELAX = 0.62;
  * можно просто не тянуть, и рыба будет висеть на крючке бесконечно.
  */
 const PATIENCE = 28;
+/** У боссов бой длиннее по замыслу, поэтому и терпения больше. */
+const BOSS_PATIENCE = 70;
 
 export type FightOutcome = 'fighting' | 'landed' | 'snapped' | 'escaped';
+
+export interface FightSetup {
+  /** Фазы боя: на порогах усталости меняются рывки. Только у боссов. */
+  phases?: FightPhase[];
+}
 
 export interface FightModifiers {
   /** Множитель к тому, как быстро рыба выдыхается (катушка). */
@@ -46,8 +53,8 @@ export class FightSystem {
   surge = 0;
 
   /** Сколько терпения улова осталось, 0..1. */
-  get patience(): number {
-    return clamp(1 - this.time / PATIENCE, 0, 1);
+  get patienceLeft(): number {
+    return clamp(1 - this.time / this.patience, 0, 1);
   }
 
   private time = 0;
@@ -55,16 +62,57 @@ export class FightSystem {
 
   private readonly breakAt: number;
   private readonly reelPower: number;
+  private readonly phases: FightPhase[];
+  private readonly patience: number;
+
+  /** Номер текущей фазы боя. У обычной рыбы всегда 0. */
+  phase = 0;
+  /** Взводится на переходе между фазами: сцена превращает это в тряску и звук. */
+  phaseJustChanged = false;
 
   constructor(
     private readonly entry: CatchEntry,
     seed: number,
     modifiers: FightModifiers = NO_MODIFIERS,
+    setup: FightSetup = {},
   ) {
     this.rng = new Rng(seed);
     this.stamina = entry.fight.stamina;
     this.breakAt = BASE_BREAK_AT * modifiers.lineStrength;
     this.reelPower = modifiers.reelPower;
+    this.phases = setup.phases ?? [];
+    this.patience = this.phases.length > 0 ? BOSS_PATIENCE : PATIENCE;
+  }
+
+  get isBoss(): boolean {
+    return this.phases.length > 0;
+  }
+
+  /** Параметры текущей фазы: у босса они меняются по ходу боя. */
+  private get params(): {
+    drain: number;
+    pull: number;
+    burst: number;
+    rhythm: number;
+    recover: number;
+  } {
+    const phase = this.phases[this.phase];
+    return phase ?? this.entry.fight;
+  }
+
+  private updatePhase(): void {
+    if (this.phases.length === 0) return;
+    let next = this.phase;
+    for (let i = this.phases.length - 1; i >= 0; i--) {
+      if (this.stamina <= (this.phases[i]?.from ?? 1)) {
+        next = i;
+        break;
+      }
+    }
+    if (next !== this.phase) {
+      this.phase = next;
+      this.phaseJustChanged = true;
+    }
   }
 
   /** Натяжение в долях от порога обрыва — именно это рисует полоска. */
@@ -80,7 +128,8 @@ export class FightSystem {
     if (this.outcome !== 'fighting') return this.outcome;
 
     this.time += dt;
-    const { drain, pull, burst, rhythm, recover } = this.entry.fight;
+    this.updatePhase();
+    const { drain, pull, burst, rhythm, recover } = this.params;
 
     // Рывки: пила по фазе даёт резкий бросок и медленный откат — рыба дёргает,
     // а не тянет ровно. Уставшая рыба дёргает слабее.
@@ -103,7 +152,7 @@ export class FightSystem {
       this.outcome = 'snapped';
     } else if (this.stamina <= 0) {
       this.outcome = 'landed';
-    } else if (this.time >= PATIENCE) {
+    } else if (this.time >= this.patience) {
       this.outcome = 'escaped';
     }
     return this.outcome;

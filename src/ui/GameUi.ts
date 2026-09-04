@@ -4,6 +4,7 @@ import type { BranchId, Progression } from '../meta/Progression';
 import type { Album } from '../meta/Album';
 import type { Quests } from '../meta/Quests';
 import type { UnlockContext, Zones } from '../meta/Zones';
+import { BOSSES, type Bosses } from '../meta/Bosses';
 
 export interface UiCallbacks {
   buy(id: BranchId): void;
@@ -18,6 +19,7 @@ export interface UiState {
   album: Album;
   quests: Quests;
   zones: Zones;
+  bosses: Bosses;
   unlock: UnlockContext;
   /** Панели открываются только в покое: в бою они прятали бы происходящее. */
   canShop: boolean;
@@ -244,10 +246,7 @@ export class GameUi {
       .map((zone) => {
         const unlocked = state.zones.isUnlocked(zone, state.unlock);
         const here = zone.id === current.id;
-        const requirement =
-          zone.unlock.type === 'quests'
-            ? i18n.t('map.needQuests', { value: zone.unlock.value })
-            : i18n.t('map.needMoney', { value: zone.unlock.value });
+        const requirement = describeUnlock(zone.unlock);
         const action = here
           ? `<span class="zone-here">${i18n.t('map.here')}</span>`
           : unlocked
@@ -274,6 +273,17 @@ export class GameUi {
   }
 
   private renderAlbum(state: UiState): void {
+    // Трофеи стоят отдельным блоком: их не путают с обычным уловом и не
+    // продают вместе с ним — главная путаница игроков в оригинале (docs/01).
+    const trophies = BOSSES.map((boss) => {
+      const taken = state.bosses.isDefeated(boss.id);
+      return `
+        <div class="album-item trophy${taken ? '' : ' unknown'}">
+          <div class="album-name">${taken ? i18n.pick(boss.trophy) : '???'}</div>
+          <div class="album-meta">${taken ? i18n.pick(boss.name) : i18n.t('album.noTrophy')}</div>
+        </div>`;
+    }).join('');
+
     this.albumList.innerHTML = CATCH_ENTRIES.map((entry) => {
       const count = state.album.countOf(entry.id);
       const kind = i18n.t(`album.kind.${entry.kind}`);
@@ -286,7 +296,22 @@ export class GameUi {
           <div class="album-meta">${kind} · ${note}</div>
         </div>`;
     }).join('');
+
+    this.albumList.insertAdjacentHTML(
+      'beforeend',
+      `<div class="album-section">${i18n.t('album.trophies')}</div>${trophies}`,
+    );
   }
+}
+
+/** Человеческое описание условия открытия локации. */
+function describeUnlock(unlock: { type: string; value: number; boss?: string }): string {
+  if (unlock.type === 'boss') {
+    const boss = BOSSES.find((entry) => entry.id === unlock.boss);
+    return i18n.t('map.needBoss', { name: boss ? i18n.pick(boss.name) : '?' });
+  }
+  if (unlock.type === 'quests') return i18n.t('map.needQuests', { value: unlock.value });
+  return i18n.t('map.needMoney', { value: unlock.value });
 }
 
 function must<T extends Element | HTMLElement | null>(node: T): HTMLElement {

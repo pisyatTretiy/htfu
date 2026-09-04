@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Zones, zoneCatchIds, ZONES } from './Zones';
+import { BOSSES } from './Bosses';
 import { poolAt } from '../gameplay/CatchPool';
 import { rollCatch } from '../gameplay/CatchPool';
 import { Rng } from '../core/Rng';
@@ -7,7 +8,7 @@ import { Rng } from '../core/Rng';
 describe('локации', () => {
   it('первая локация открыта сразу, остальные — нет', () => {
     const zones = new Zones();
-    const fresh = { money: 0, questsDone: 0 };
+    const fresh = { money: 0, questsDone: 0, trophies: [] };
     expect(zones.isUnlocked(ZONES[0]!, fresh)).toBe(true);
     for (const zone of ZONES.slice(1)) {
       expect(zones.isUnlocked(zone, fresh), zone.id).toBe(false);
@@ -61,13 +62,24 @@ describe('локации', () => {
     }
   });
 
-  it('в закрытую локацию не переехать, в открытую — можно', () => {
+  it('локации открываются трофеями боссов по цепочке', () => {
     const zones = new Zones();
-    expect(zones.travelTo('abyss', { money: 0, questsDone: 0 })).toBe(false);
+    const nothing = { money: 999999, questsDone: 99, trophies: [] as string[] };
+
+    // Ни деньги, ни задания не открывают локацию: нужен трофей.
+    expect(zones.travelTo('bay', nothing)).toBe(false);
     expect(zones.current.id).toBe('dock');
 
-    expect(zones.travelTo('bay', { money: 0, questsDone: 5 })).toBe(true);
+    expect(zones.travelTo('bay', { ...nothing, trophies: ['boss_som'] })).toBe(true);
     expect(zones.current.id).toBe('bay');
+    expect(zones.travelTo('wreck', { ...nothing, trophies: ['boss_som'] })).toBe(false);
+  });
+
+  it('у каждой закрытой локации есть свой босс-ключ', () => {
+    for (const zone of ZONES.slice(1)) {
+      expect(zone.unlock.type, zone.id).toBe('boss');
+      expect(BOSSES.some((boss) => boss.id === zone.unlock.boss), zone.id).toBe(true);
+    }
   });
 
   it('битый сейв с несуществующей локацией не ломает игру', () => {

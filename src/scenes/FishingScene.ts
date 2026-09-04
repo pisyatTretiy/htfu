@@ -12,7 +12,7 @@ import { entryName } from '../content/catalog';
 import { lineTexture, radialTexture } from '../fx/textures';
 import { Rng } from '../core/Rng';
 import { clamp, damp, metersToPx } from '../core/world';
-import type { CatchEntry } from '../content/types';
+import type { CatchEntry, FightPhase } from '../content/types';
 import type { QualityProfile } from '../core/Quality';
 import type { Effects } from '../meta/Progression';
 
@@ -45,10 +45,16 @@ export interface SceneHooks {
   toast(text: string): void;
   /** Виды, которые водятся в текущей локации. */
   zoneCatches(): readonly string[];
+  /** Босс, если пришло его время. Возвращает пару «вид + фазы боя». */
+  bossBite(): { entry: CatchEntry; phases: FightPhase[]; taunt: string } | null;
+  /** Босс побеждён: трофей, награда и открытие следующей локации. */
+  onBoss(entryId: string): void;
+  /** Босс сорвался. */
+  onBossEscaped(): void;
   /** Предел глубины локации: глубже не пускает не леска, а дно. */
   zoneDepth(): number;
   /** Звук события. Сцена не знает, чем он воспроизводится. */
-  sfx(name: 'cast' | 'splash' | 'bite' | 'snap' | 'bounce'): void;
+  sfx(name: 'cast' | 'splash' | 'bite' | 'snap' | 'bounce' | 'coin'): void;
   /** Эффекты прокачки читаются каждый кадр: снасть меняется прямо в магазине. */
   effects(): Effects;
   /** Улов зачтён: деньги, альбом и сохранение — забота вызывающего. */
@@ -80,6 +86,7 @@ export class FishingScene {
   private readonly rng = new Rng(Date.now() & 0xffff);
 
   private fight: FightSystem | null = null;
+  private isBossFight = false;
   private hooked: CatchView | null = null;
   private hookedEntry: CatchEntry | null = null;
   private mischief: MischiefAct | null = null;
@@ -185,6 +192,7 @@ export class FishingScene {
   resetToSurface(): void {
     this.clearMischief();
     this.dropHooked();
+    this.isBossFight = false;
     this.rest();
     this.cameraDepth = 0;
     this.trickStreak = 0;
@@ -282,18 +290,25 @@ export class FishingScene {
 
   /** Клёв гарантирован, пока крючок в воде — находка оригинала (docs/01). */
   private bite(): void {
-    const entry = rollCatch(this.hook.depthMeters, this.rng, this.hooks.zoneCatches());
+    const boss = this.hooks.bossBite();
+    const entry = boss?.entry ?? rollCatch(this.hook.depthMeters, this.rng, this.hooks.zoneCatches());
     const { reelPower, lineStrength } = this.hooks.effects();
     this.hookedEntry = entry;
-    this.fight = new FightSystem(entry, this.rng.int(1, 1 << 20), { reelPower, lineStrength });
+    this.isBossFight = boss !== null;
+    this.fight = new FightSystem(
+      entry,
+      this.rng.int(1, 1 << 20),
+      { reelPower, lineStrength },
+      boss ? { phases: boss.phases } : {},
+    );
     this.hooked = new CatchView(entry);
     this.water.gameplay.addChildAt(this.hooked.view, 0);
     this.bitePointX = this.hook.x;
     this.bitePointY = this.hook.y;
     this.state = 'fighting';
-    this.shake = 7;
+    this.shake = boss ? 16 : 7;
     this.hooks.sfx('bite');
-    this.hooks.toast('Клюёт!');
+    this.hooks.toast(boss ? boss.taunt : 'Клюёт!');
   }
 
   private stepFight(dt: number): void {
@@ -324,13 +339,23 @@ export class FishingScene {
     }
 
     this.line.view.tint = tensionTint(fight.tensionRatio);
-    this.shake = Math.max(this.shake, fight.surge * 4.5);
+    this.shake = Math.max(this.shake, fight.surge * (this.isBossFight ? 7 : 4.5));
+
+    // Смена фазы у босса: правила боя поменялись, и это должно быть слышно.
+    if (fight.phaseJustChanged) {
+      fight.phaseJustChanged = false;
+      this.shake = 18;
+      this.hitstop = 0.09;
+      this.hooks.sfx('snap');
+      this.hooks.toast(`Он разозлился! Фаза ${fight.phase + 1}`);
+    }
 
     if (outcome === 'snapped' || outcome === 'escaped') {
       this.hooks.toast(outcome === 'snapped' ? 'Леска лопнула!' : 'Сорвалась!');
       this.hooks.sfx('snap');
       this.hitstop = 0.12;
       this.shake = outcome === 'snapped' ? 14 : 8;
+      if (this.isBossFight) this.hooks.onBossEscaped();
       this.dropHooked();
       this.state = 'reeling';
     } else if (outcome === 'landed') {
@@ -345,6 +370,17 @@ export class FishingScene {
     this.dropHooked();
     this.line.view.tint = 0xffffff;
     if (!entry || !fight) {
+      this.rest();
+      return;
+    }
+
+    // Босс не буянит в лодке: его вытаскивают как трофей, и это отдельный
+    // предмет, который не уходит вместе с обычным уловом (docs/01).
+    if (this.isBossFight) {
+      this.shake = 20;
+      this.hooks.sfx('coin');
+      this.hooks.onBoss(entry.id);
+      this.isBossFight = false;
       this.rest();
       return;
     }
@@ -537,7 +573,7 @@ export class FishingScene {
       depth: this.hook.depthMeters,
       tension: this.fight?.tensionRatio ?? 0,
       stamina: this.fight?.stamina ?? 1,
-      patience: this.mischief?.patience ?? (this.fight?.patience ?? 1),
+      patience: this.mischief?.patience ?? (this.fight?.patienceLeft ?? 1),
       onHook: this.hookedEntry ? entryName(this.hookedEntry) : '',
     };
   }
@@ -549,10 +585,14 @@ export class FishingScene {
       ['предел', `${Math.min(this.hooks.effects().maxLineM, this.hooks.zoneDepth())} м`],
     ];
     if (this.fight && this.state === 'fighting') {
-      rows.push(['на крючке', entryName(this.hookedEntry ?? { name: { ru: '—' } } as never)]);
+      rows.push([
+        this.isBossFight ? 'БОСС' : 'на крючке',
+        entryName(this.hookedEntry ?? ({ name: { ru: '—' } } as never)),
+      ]);
+      if (this.isBossFight) rows.push(['фаза', String(this.fight.phase + 1)]);
       rows.push(['натяжение', this.fight.tensionRatio.toFixed(2)]);
       rows.push(['силы рыбы', this.fight.stamina.toFixed(2)]);
-      rows.push(['терпение', this.fight.patience.toFixed(2)]);
+      rows.push(['терпение', this.fight.patienceLeft.toFixed(2)]);
     } else if (this.mischief) {
       rows.push(['в лодке', this.hookedEntry ? entryName(this.hookedEntry) : '—']);
       rows.push(['усмирение', `${Math.round(this.mischief.progress * 100)} %`]);

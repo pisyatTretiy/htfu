@@ -7,6 +7,16 @@ export type CatchKind = 'fish' | 'junk';
 /** Что вытащенное вытворяет в лодке (ADR-0003, носитель № 2). */
 export type Mischief = 'flop' | 'grab' | 'steal' | 'none';
 
+export interface FightPhase {
+  /** Фаза включается, когда запас сил падает до этого значения. */
+  from: number;
+  drain: number;
+  pull: number;
+  burst: number;
+  rhythm: number;
+  recover: number;
+}
+
 export interface FightParams {
   /** Запас сил, всегда 1 — множители веса и размера идут отдельно. */
   stamina: number;
@@ -49,4 +59,27 @@ export interface CatchEntry {
 
 export interface CatchTable {
   entries: CatchEntry[];
+}
+
+/**
+ * Босс локации. Бой идёт фазами, трофей отделён от обычного улова: в
+ * оригинале путаница между трофеем и «мясом» стоила игрокам часов
+ * (docs/01, § «Гейтинг прогресса»).
+ */
+export interface BossEntry {
+  id: string;
+  zone: string;
+  name: Localized;
+  trophy: Localized;
+  /** Реплика перед боем: игрок должен понять, что это не обычная рыба. */
+  taunt: Localized;
+  /** Сколько уловов в локации нужно сделать, прежде чем босс клюнет. */
+  requiresCatches: number;
+  reward: number;
+  body: BodyParams;
+  phases: FightPhase[];
+}
+
+export interface BossTable {
+  bosses: BossEntry[];
 }

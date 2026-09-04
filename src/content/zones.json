@@ -1,5 +1,5 @@
 {
-  "$comment": "Локации архипелага. Палитра, декор, пул и условие открытия — данные: добавить локацию значит дописать сюда объект, а не трогать сцену.",
+  "$comment": "Локации архипелага. Палитра, декор, пул и условие открытия — данные. Гейт — победа над боссом предыдущей локации (docs/03, § 3.5).",
   "zones": [
     {
       "id": "dock",
@@ -58,8 +58,9 @@
       },
       "maxDepth": 90,
       "unlock": {
-        "type": "quests",
-        "value": 2
+        "type": "boss",
+        "value": 0,
+        "boss": "boss_som"
       },
       "decor": {
         "pier": false,
@@ -104,8 +105,9 @@
       },
       "maxDepth": 140,
       "unlock": {
-        "type": "quests",
-        "value": 4
+        "type": "boss",
+        "value": 0,
+        "boss": "boss_crab"
       },
       "decor": {
         "pier": false,
@@ -150,8 +152,9 @@
       },
       "maxDepth": 190,
       "unlock": {
-        "type": "money",
-        "value": 1200
+        "type": "boss",
+        "value": 0,
+        "boss": "boss_squid"
       },
       "decor": {
         "pier": false,
@@ -196,8 +199,9 @@
       },
       "maxDepth": 250,
       "unlock": {
-        "type": "money",
-        "value": 3000
+        "type": "boss",
+        "value": 0,
+        "boss": "boss_pike"
       },
       "decor": {
         "pier": false,

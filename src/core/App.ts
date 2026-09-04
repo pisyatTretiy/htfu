@@ -2,7 +2,7 @@ import { Application, Container } from 'pixi.js';
 import { resolveQuality, type QualityProfile } from './Quality';
 import type { IPlatform } from '../platform';
 import { FishingScene } from '../scenes/FishingScene';
-import type { CatchEntry } from '../content/types';
+import type { CatchEntry, FightPhase } from '../content/types';
 import type { Quest } from '../meta/Quests';
 import { PerfHud } from '../debug/PerfHud';
 import { GameUi } from '../ui/GameUi';
@@ -10,6 +10,7 @@ import { Progression, type BranchId } from '../meta/Progression';
 import { Album } from '../meta/Album';
 import { Quests } from '../meta/Quests';
 import { Zones, zoneCatchIds } from '../meta/Zones';
+import { Bosses, bossAsCatch } from '../meta/Bosses';
 import { SaveService, emptySave, type GameSave } from '../services/SaveService';
 import { i18n } from '../services/I18n';
 import { AudioService } from '../services/AudioService';
@@ -20,6 +21,7 @@ export type DebugSnapshot = FishingScene['debugSnapshot'] & {
   upgrades: Record<string, number>;
   shopOpen: boolean;
   zone: string;
+  trophies: number;
   platform: string;
   lastReward: number;
 };
@@ -53,6 +55,7 @@ export class App {
   private readonly album = new Album();
   private readonly quests = new Quests();
   private readonly zones = new Zones();
+  private readonly bosses = new Bosses();
   private readonly audio = new AudioService();
   private readonly save: SaveService;
   private readonly ads: AdManager;
@@ -99,6 +102,12 @@ export class App {
       sfx: (name) => this.audio.play(name),
       zoneCatches: () => zoneCatchIds(this.zones.current),
       zoneDepth: () => this.zones.current.maxDepth,
+      bossBite: () => this.rollBoss(),
+      onBoss: (id) => this.defeatBoss(id),
+      onBossEscaped: () => {
+        this.bosses.escaped(this.zones.current.id);
+        this.persist();
+      },
       effects: () => this.progression.effects,
       onCatch: (entry, reward) => this.collect(entry, reward),
     });
@@ -153,6 +162,7 @@ export class App {
         upgrades: this.progression.serialize(),
         shopOpen: this.ui.isShopOpen,
         zone: this.zones.current.id,
+        trophies: this.bosses.trophyCount,
         platform: this.platform.name,
         lastReward: this.lastReward,
       };
@@ -170,11 +180,35 @@ export class App {
     this.album.restore(this.state.album);
     this.quests.restore(this.state.quests);
     this.zones.restore(this.state.zone);
+    this.bosses.restore(this.state.bosses);
   }
 
   /** Улов зачтён: деньги, альбом, сохранение. */
+  /** Босс клюёт, когда игрок наловил своё в локации, и ровно один раз. */
+  private rollBoss(): { entry: CatchEntry; phases: FightPhase[]; taunt: string } | null {
+    const zone = this.zones.current;
+    if (!this.bosses.isReady(zone.id)) return null;
+    const boss = this.bosses.bossOf(zone.id);
+    if (!boss) return null;
+    return { entry: bossAsCatch(boss), phases: boss.phases, taunt: i18n.pick(boss.taunt) };
+  }
+
+  private defeatBoss(bossId: string): void {
+    const boss = this.bosses.bossOf(this.zones.current.id);
+    if (!boss || boss.id !== bossId) return;
+
+    this.bosses.defeat(bossId);
+    this.state.money += boss.reward;
+    this.album.record(bossId);
+    showToast(
+      i18n.t('toast.boss', { name: i18n.pick(boss.name), trophy: i18n.pick(boss.trophy) }),
+    );
+    this.persist();
+  }
+
   private collect(entry: CatchEntry, reward: number): void {
     this.state.money += reward;
+    this.bosses.countCatch(this.zones.current.id);
     this.lastReward = reward;
     this.audio.play('coin');
     if (this.album.record(entry.id)) showToast(i18n.t('toast.newSpecies'));
@@ -239,8 +273,12 @@ export class App {
     this.persist();
   }
 
-  private get unlockContext(): { money: number; questsDone: number } {
-    return { money: this.state.money, questsDone: this.quests.completedCount };
+  private get unlockContext(): { money: number; questsDone: number; trophies: string[] } {
+    return {
+      money: this.state.money,
+      questsDone: this.quests.completedCount,
+      trophies: this.bosses.serialize().trophies,
+    };
   }
 
   private persist(): void {
@@ -248,6 +286,7 @@ export class App {
     this.state.album = this.album.serialize();
     this.state.quests = this.quests.serialize();
     this.state.zone = this.zones.serialize();
+    this.state.bosses = this.bosses.serialize();
     this.save.save(this.state);
     this.renderUi();
   }
@@ -259,6 +298,7 @@ export class App {
       album: this.album,
       quests: this.quests,
       zones: this.zones,
+      bosses: this.bosses,
       unlock: this.unlockContext,
       canShop: this.scene.state === 'idle',
     });

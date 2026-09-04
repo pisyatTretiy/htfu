@@ -30,6 +30,7 @@ interface Snapshot {
   upgrades?: Record<string, number>;
   shopOpen?: boolean;
   zone?: string;
+  trophies?: number;
   platform?: string;
   lastReward?: number;
 }
@@ -117,16 +118,17 @@ async function main(): Promise<void> {
     if (!localStorage.getItem('htfu.save')) {
       localStorage.setItem(
         'htfu.save',
-        // Два закрытых задания открывают вторую локацию: иначе переезд
-        // не на что проверять, а копить их прогоном слишком долго.
+        // Босс причала уже «созрел»: следующий клёв будет им. Иначе на
+        // прогон пришлось бы наловить четыре улова только ради боя.
         JSON.stringify({
-          version: 3,
+          version: 4,
           updatedAt: Date.now(),
           money: 400,
           upgrades: {},
           album: {},
           quests: { index: 2, progress: 0 },
           zone: 'dock',
+          bosses: { trophies: [], catches: { dock: 4 } },
         }),
       );
     }
@@ -158,8 +160,18 @@ async function main(): Promise<void> {
   await page.waitForTimeout(500);
   await page.screenshot({ path: `${OUT}/5-fighting.png` });
 
+  // Первый бой — босс локации: он должен закончиться трофеем.
+  const bossResult = await fightOnce(page);
+  await page.waitForTimeout(600);
+  await page.screenshot({ path: `${OUT}/5b-boss.png` });
+  const afterBoss = await snapshot(page);
+  if ((afterBoss.trophies ?? 0) < 1) {
+    throw new Error(`Босс не побеждён (состояние ${bossResult}), трофеев ${afterBoss.trophies}`);
+  }
+  console.log(`Босс повержен, трофеев: ${afterBoss.trophies}`);
+
   // Ловим, пока не вытащим что-нибудь буянящее: мусор не буянит, это норма.
-  let landed = await fightOnce(page);
+  let landed = await readState(page);
   const deadline = Date.now() + 90000;
   while (landed !== 'onboard' && Date.now() < deadline) {
     const state = await readState(page);

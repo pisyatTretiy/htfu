@@ -9,8 +9,10 @@ export interface ZoneDecor {
 }
 
 export interface ZoneUnlock {
-  type: 'start' | 'quests' | 'money';
+  type: 'start' | 'quests' | 'money' | 'boss';
   value: number;
+  /** Для типа boss: какого босса нужно победить. */
+  boss?: string;
 }
 
 export interface Zone {
@@ -32,6 +34,7 @@ export const ZONES = (zones as unknown as { zones: Zone[] }).zones;
 export interface UnlockContext {
   money: number;
   questsDone: number;
+  trophies: string[];
 }
 
 /**
@@ -59,6 +62,8 @@ export class Zones {
         return context.questsDone >= zone.unlock.value;
       case 'money':
         return context.money >= zone.unlock.value;
+      case 'boss':
+        return zone.unlock.boss ? context.trophies.includes(zone.unlock.boss) : false;
       default:
         return false;
     }
