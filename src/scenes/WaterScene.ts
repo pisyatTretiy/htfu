@@ -17,13 +17,9 @@ import {
   rockTexture,
 } from '../fx/textures';
 
-/** Пикселей на метр глубины: 250 м мира = 6500 px. */
-const PX_PER_M = 26;
-const MAX_DEPTH_M = 250;
-const WORLD_H = MAX_DEPTH_M * PX_PER_M;
+import { clamp, LIGHT_DEPTH_M, MAX_DEPTH_M, PX_PER_M } from '../core/world';
 
-/** Глубже этого света уже нет: гаснут и каустики, и лучи. */
-const LIGHT_DEPTH_M = 55;
+const WORLD_H = MAX_DEPTH_M * PX_PER_M;
 
 interface ParallaxLayer {
   view: Container;
@@ -60,7 +56,10 @@ interface Ray {
 export class WaterScene {
   readonly root = new Container();
 
-  /** Текущая глубина камеры в метрах. */
+  /** Слой игровых объектов: лодка, удилище, леска, крючок. Едет с камерой. */
+  readonly gameplay = new Container();
+
+  /** Текущая глубина камеры в метрах. Задаётся снаружи. */
   depth = 0;
 
   private readonly world = new Container();
@@ -86,7 +85,8 @@ export class WaterScene {
   private width = 1;
   private height = 1;
   private time = 0;
-  private velocity = 0;
+  private lastDepth = 0;
+  private depthSpeed = 0;
 
   constructor(private readonly quality: QualityProfile) {
     const rng = new Rng(20260904);
@@ -109,9 +109,9 @@ export class WaterScene {
       gradientTexture([
         { at: 0, color: '#2ea7a0' },
         { at: 0.06, color: '#17888a' },
-        { at: 0.22, color: '#0e5f6b' },
-        { at: 0.5, color: '#093a49' },
-        { at: 0.78, color: '#051d29' },
+        { at: 0.16, color: '#0e5f6b' },
+        { at: 0.36, color: '#093a49' },
+        { at: 0.64, color: '#051d29' },
         { at: 1, color: '#010a10' },
       ]),
     );
@@ -199,6 +199,7 @@ export class WaterScene {
     // поверхность. Экранные слои (взвесь, тон) идут поверх мира.
     this.world.addChild(this.sky, this.column, far.view, mid.view);
     this.world.addChild(this.causticsHolder, this.godrayHolder, near.view, this.wave);
+    this.world.addChild(this.gameplay);
     this.root.addChild(this.world, this.moteHolder, this.tint);
   }
 
@@ -239,9 +240,16 @@ export class WaterScene {
     this.tint.height = height;
   }
 
-  /** Импульс погружения от ввода: колесо, перетаскивание, стрелки. */
-  addDepth(meters: number): void {
-    this.velocity += meters;
+  /** Глубина камеры в метрах. Считается снаружи — сценой рыбалки. */
+  setDepth(meters: number): void {
+    this.depth = clamp(meters, 0, MAX_DEPTH_M);
+  }
+
+  /** Уровень воды в точке x с учётом волны — на нём качается лодка. */
+  surfaceHeightAt(x: number): number {
+    return (
+      Math.sin(x * 0.012 + this.time * 1.6) * 5 + Math.sin(x * 0.031 - this.time * 2.3) * 2.5
+    );
   }
 
   update(deltaMs: number): void {
@@ -249,9 +257,8 @@ export class WaterScene {
     const dt = Math.min(deltaMs, 100) / 1000;
     this.time += dt;
 
-    this.depth = clamp(this.depth + this.velocity * dt, 0, MAX_DEPTH_M);
-    this.velocity *= Math.pow(0.02, dt);
-    if (Math.abs(this.velocity) < 0.4) this.velocity = 0;
+    this.depthSpeed = dt > 0 ? Math.abs(this.depth - this.lastDepth) / dt : 0;
+    this.lastDepth = this.depth;
 
     const depthPx = this.depth * PX_PER_M;
     this.world.y = this.height * 0.42 - depthPx;
@@ -287,7 +294,7 @@ export class WaterScene {
   }
 
   private updateMotes(dt: number): void {
-    const drift = 6 + Math.abs(this.velocity) * 1.4;
+    const drift = 6 + this.depthSpeed * 1.4;
     for (const mote of this.motes) {
       mote.y -= ((mote.speed + drift) * dt) / this.height;
       if (mote.y < -0.05) {
@@ -310,8 +317,7 @@ export class WaterScene {
 
     const segments = this.quality.waveSegments;
     const step = this.width / segments;
-    const heightAt = (x: number): number =>
-      Math.sin(x * 0.012 + this.time * 1.6) * 5 + Math.sin(x * 0.031 - this.time * 2.3) * 2.5;
+    const heightAt = (x: number): number => this.surfaceHeightAt(x);
 
     this.wave.moveTo(0, heightAt(0));
     for (let i = 1; i <= segments; i++) this.wave.lineTo(i * step, heightAt(i * step));
@@ -324,8 +330,4 @@ export class WaterScene {
     for (let i = 1; i <= segments; i++) this.wave.lineTo(i * step, heightAt(i * step));
     this.wave.stroke({ width: 2, color: 0xe8fffb, alpha: 0.75 * light });
   }
-}
-
-function clamp(value: number, min: number, max: number): number {
-  return value < min ? min : value > max ? max : value;
 }

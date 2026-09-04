@@ -16,6 +16,26 @@ function canvas(w: number, h: number): [HTMLCanvasElement, CanvasRenderingContex
   return [el, ctx];
 }
 
+/**
+ * Растворяет нижний край силуэта в воде. Без этого видно прямоугольник
+ * текстуры: скалы висят в толще воды и ни на что не опираются.
+ */
+function fadeBottom(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  portion: number,
+): void {
+  const from = height * (1 - portion);
+  const grad = ctx.createLinearGradient(0, from, 0, height);
+  grad.addColorStop(0, 'rgba(0,0,0,1)');
+  grad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.globalCompositeOperation = 'destination-in';
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, from, width, height - from);
+  ctx.globalCompositeOperation = 'source-over';
+}
+
 export interface GradientStop {
   at: number;
   color: string;
@@ -117,13 +137,16 @@ export function rockTexture(width: number, height: number, seed: number, color =
   ctx.beginPath();
   ctx.moveTo(0, height);
   let x = 0;
-  let y = height * rng.range(0.45, 0.8);
+  // Края гряды опускаются к низу текстуры: иначе на месте её границы виден
+  // вертикальный срез, и силуэт читается как прямоугольник.
+  let y = height * 0.98;
   ctx.lineTo(x, y);
   for (let i = 0; i < steps; i++) {
     const nx = ((i + 1) / steps) * width;
-    const ny = height * rng.range(0.18, 0.85);
+    const edge = i === steps - 1;
+    const ny = edge ? height * 0.98 : height * rng.range(0.18, 0.7);
     const cx = (x + nx) / 2 + rng.range(-width * 0.06, width * 0.06);
-    const cy = Math.min(y, ny) - rng.range(0, height * 0.18);
+    const cy = Math.min(y, ny) - rng.range(height * 0.05, height * 0.22);
     ctx.quadraticCurveTo(cx, cy, nx, ny);
     x = nx;
     y = ny;
@@ -132,6 +155,7 @@ export function rockTexture(width: number, height: number, seed: number, color =
   ctx.closePath();
   ctx.fillStyle = color;
   ctx.fill();
+  fadeBottom(ctx, width, height, 0.45);
   return Texture.from(el);
 }
 
@@ -156,5 +180,18 @@ export function kelpTexture(height: number, seed: number, color = '#000000'): Te
   ctx.lineWidth = thickness;
   ctx.lineCap = 'round';
   ctx.stroke();
+  fadeBottom(ctx, width, height, 0.3);
+  return Texture.from(el);
+}
+
+/** Текстура лески: мягкая горизонтальная нить для MeshRope. */
+export function lineTexture(thickness = 4): Texture {
+  const [el, ctx] = canvas(8, thickness);
+  const grad = ctx.createLinearGradient(0, 0, 0, thickness);
+  grad.addColorStop(0, 'rgba(255,255,255,0)');
+  grad.addColorStop(0.5, 'rgba(255,255,255,1)');
+  grad.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 8, thickness);
   return Texture.from(el);
 }

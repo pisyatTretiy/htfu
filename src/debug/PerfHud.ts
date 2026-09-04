@@ -16,7 +16,7 @@ export class PerfHud {
 
   constructor(
     private readonly quality: QualityProfile,
-    private readonly probe: () => { sprites: number; depth: number },
+    private readonly probe: () => { sprites: number; rows: [string, string][] },
   ) {
     const el = document.getElementById('hud');
     if (!el) throw new Error('#hud не найден в разметке');
@@ -48,7 +48,7 @@ export class PerfHud {
   }
 
   private render(): void {
-    const { sprites, depth } = this.probe();
+    const { sprites, rows } = this.probe();
     const target = this.quality.targetFps;
     const fpsClass = this.fps >= target ? 'ok' : 'bad';
     const canvas = document.querySelector('#app canvas');
@@ -59,14 +59,15 @@ export class PerfHud {
       `<div>худший кадр <b>${this.worstShown.toFixed(1)} мс</b></div>`,
       `<div>цель <b>≥ ${target}</b></div>`,
       '<hr>',
+      ...rows.map(([label, value]) => `<div>${label} <b>${value}</b></div>`),
+      '<hr>',
       `<div>профиль <b>${this.quality.tier}</b></div>`,
-      `<div>спрайтов <b>${sprites}</b></div>`,
-      `<div>глубина <b>${depth.toFixed(0)} м</b></div>`,
+      `<div>узлов <b>${sprites}</b></div>`,
       `<div>буфер <b>${size}</b></div>`,
       `<div>DPR <b>${devicePixelRatio.toFixed(2)}</b></div>`,
       '<hr>',
-      '<div class="hint">?q=low — мобильный профиль</div>',
-      '<div class="hint">H — скрыть, клик — приглушить</div>',
+      '<div class="hint">удержать — заброс, тап — подмотка</div>',
+      '<div class="hint">L — фриз 250 мс, H — скрыть HUD</div>',
     ].join('');
   }
 }
