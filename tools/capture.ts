@@ -27,6 +27,8 @@ interface Snapshot {
   patience: number;
   money: number;
   onHook: string;
+  upgrades?: Record<string, number>;
+  shopOpen?: boolean;
 }
 
 const EMPTY: Snapshot = {
@@ -40,7 +42,8 @@ const EMPTY: Snapshot = {
 
 /** Читаем состояние игры напрямую, а не парсим HUD: он обновляется раз в 0.5 с. */
 async function snapshot(page: Page): Promise<Snapshot> {
-  return (await page.evaluate(() => window.__htfu)) ?? EMPTY;
+  const raw = await page.evaluate(() => window.__htfu);
+  return raw ? { ...EMPTY, ...raw } : EMPTY;
 }
 
 async function readState(page: Page): Promise<string> {
@@ -101,7 +104,20 @@ async function main(): Promise<void> {
     ...(existsSync(BROWSER_PATH) ? { executablePath: BROWSER_PATH } : {}),
     args: ['--no-sandbox', '--use-gl=swiftshader', '--enable-unsafe-swiftshader'],
   });
-  const page = await browser.newPage({ viewport: VIEWPORT });
+  // Основная аудитория площадки — русская, поэтому и кадры снимаем на русском.
+  const page = await browser.newPage({ viewport: VIEWPORT, locale: 'ru-RU' });
+
+  // Подкладываем сейв со стартовыми деньгами: иначе до первой покупки пришлось
+  // бы наловить рыбы на 90 ₽, и прогон растянулся бы на минуты.
+  await page.addInitScript(() => {
+    // Только если сейва ещё нет: после reload проверяем, что покупка сохранилась.
+    if (!localStorage.getItem('htfu.save')) {
+      localStorage.setItem(
+        'htfu.save',
+        JSON.stringify({ version: 1, updatedAt: Date.now(), money: 200, upgrades: {}, album: {} }),
+      );
+    }
+  });
 
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(String(error)));
@@ -164,12 +180,57 @@ async function main(): Promise<void> {
 
   await page.keyboard.press('KeyL');
   await page.waitForTimeout(500);
+
+  // --- магазин: покупка и то, что она переживает перезагрузку ---
+  const beforeShop = await snapshot(page);
+  await waitForState(page, ['idle'], 30000);
+  await page.click('#ui-shop-open');
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: `${OUT}/9-shop.png` });
+
+  await page.click('#ui-shop-list .branch:first-child .buy');
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: `${OUT}/10-bought.png` });
+  const afterBuy = await snapshot(page);
+
+  if ((afterBuy.upgrades?.line ?? 0) !== 1) {
+    throw new Error(`Покупка не применилась: ${JSON.stringify(afterBuy.upgrades)}`);
+  }
+  if (afterBuy.money >= beforeShop.money) {
+    throw new Error(`Деньги не списались: было ${beforeShop.money}, стало ${afterBuy.money}`);
+  }
+
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.waitForTimeout(1200);
+  const afterReload = await snapshot(page);
+  if ((afterReload.upgrades?.line ?? 0) !== 1) {
+    throw new Error(`Прогресс не пережил перезагрузку: ${JSON.stringify(afterReload.upgrades)}`);
+  }
+
   await page.keyboard.press('KeyH');
   await page.waitForTimeout(600);
-  await page.screenshot({ path: `${OUT}/9-after-freeze-hud.png` });
+  await page.screenshot({ path: `${OUT}/11-hud.png` });
 
-  const final = await snapshot(page);
-  console.log(`Итог: состояние ${final.state}, кошелёк ${final.money} ₽`);
+  console.log(
+    `Итог: кошелёк ${afterReload.money} ₽, леска ур. ${afterReload.upgrades?.line ?? 0}, ` +
+      'прогресс пережил перезагрузку',
+  );
+
+  // Проверка локализации: язык площадка отдаёт сама, и на английском интерфейс
+  // должен быть переведён целиком — это требование модерации.
+  const english = await browser.newPage({ viewport: VIEWPORT, locale: 'en-US' });
+  await english.goto(URL, { waitUntil: 'networkidle' });
+  await english.waitForTimeout(1200);
+  await english.click('#ui-shop-open');
+  await english.waitForTimeout(300);
+  await english.screenshot({ path: `${OUT}/12-shop-en.png` });
+  const englishText = await english.evaluate(
+    () => document.getElementById('ui')?.textContent ?? '',
+  );
+  if (/[А-Яа-я]/.test(englishText)) {
+    throw new Error(`В английском интерфейсе осталась кириллица: ${englishText}`);
+  }
+  await english.close();
 
   await browser.close();
 
@@ -178,7 +239,7 @@ async function main(): Promise<void> {
     for (const error of errors) console.error(`  · ${error}`);
     process.exit(1);
   }
-  console.log('✓ Полный цикл пройден, ошибок в консоли нет');
+  console.log('✓ Полный цикл, магазин и сохранение пройдены, ошибок в консоли нет');
 }
 
 main().catch((error: unknown) => {

@@ -13,13 +13,13 @@ import { Rng } from '../core/Rng';
 import { clamp, damp, metersToPx, MAX_DEPTH_M } from '../core/world';
 import type { CatchEntry } from '../content/types';
 import type { QualityProfile } from '../core/Quality';
+import type { Effects } from '../meta/Progression';
 
 /** Шаг симуляции: 120 Гц. Кадр может быть любым, шаг — нет. */
 const STEP = 1 / 120;
 /** Потолок шагов за кадр: защита от спирали смерти после фриза вкладки. */
 const MAX_STEPS = 8;
 
-const MAX_LINE_M = 60;
 const REEL_SPEED = 980;
 /** Клёв гарантирован: вопрос только в том, через сколько секунд под водой. */
 const BITE_MIN = 0.7;
@@ -40,13 +40,22 @@ export type CastState =
  * Исход боя считает FightSystem фиксированным шагом; леска, изгиб удилища и
  * тряска камеры его только показывают (ADR-0001, § 2.1).
  */
+export interface SceneHooks {
+  toast(text: string): void;
+  /** Эффекты прокачки читаются каждый кадр: снасть меняется прямо в магазине. */
+  effects(): Effects;
+  /** Улов зачтён: деньги, альбом и сохранение — забота вызывающего. */
+  onCatch(entry: CatchEntry, reward: number): void;
+}
+
 export class FishingScene {
   readonly root = new Container();
 
   state: CastState = 'idle';
   trickShot = false;
   trickStreak = 0;
-  money = 0;
+  /** Пауза: открыт магазин. Симуляция стоит, вода продолжает жить. */
+  paused = false;
 
   private readonly water: WaterScene;
   private readonly rod = new Rod();
@@ -77,7 +86,7 @@ export class FishingScene {
 
   constructor(
     quality: QualityProfile,
-    private readonly onToast: (text: string) => void,
+    private readonly hooks: SceneHooks,
   ) {
     this.water = new WaterScene(quality);
     this.line = new FishingLine(lineTexture(3));
@@ -131,7 +140,7 @@ export class FishingScene {
       this.hook.cast(this.meter.value);
       this.state = 'flying';
       if (this.trickShot) {
-        this.onToast(this.trickStreak > 1 ? `Трюк-шот ×${this.trickStreak}` : 'Трюк-шот!');
+        this.hooks.toast(this.trickStreak > 1 ? `Трюк-шот ×${this.trickStreak}` : 'Трюк-шот!');
       }
       return;
     }
@@ -158,6 +167,13 @@ export class FishingScene {
   // --- симуляция ------------------------------------------------------------
 
   update(deltaMs: number): void {
+    if (this.paused) {
+      // Вода и пузыри живут дальше — застывшая сцена за магазином выглядит багом.
+      this.water.setDepth(this.cameraDepth);
+      this.water.update(deltaMs);
+      this.accumulator = 0;
+      return;
+    }
     this.accumulator += Math.min(deltaMs, 250);
 
     let steps = 0;
@@ -226,7 +242,12 @@ export class FishingScene {
     if (this.state === 'idle' || this.state === 'onboard') {
       this.line.reset(this.rod.tipX, this.rod.tipY);
     } else {
-      this.line.step(dt, { x: this.rod.tipX, y: this.rod.tipY }, this.hook, metersToPx(MAX_LINE_M));
+      this.line.step(
+        dt,
+        { x: this.rod.tipX, y: this.rod.tipY },
+        this.hook,
+        metersToPx(this.hooks.effects().maxLineM),
+      );
     }
 
     this.followCamera(dt);
@@ -235,15 +256,16 @@ export class FishingScene {
   /** Клёв гарантирован, пока крючок в воде — находка оригинала (docs/01). */
   private bite(): void {
     const entry = rollCatch(this.hook.depthMeters, this.rng);
+    const { reelPower, lineStrength } = this.hooks.effects();
     this.hookedEntry = entry;
-    this.fight = new FightSystem(entry, this.rng.int(1, 1 << 20));
+    this.fight = new FightSystem(entry, this.rng.int(1, 1 << 20), { reelPower, lineStrength });
     this.hooked = new CatchView(entry);
     this.water.gameplay.addChildAt(this.hooked.view, 0);
     this.bitePointX = this.hook.x;
     this.bitePointY = this.hook.y;
     this.state = 'fighting';
     this.shake = 7;
-    this.onToast('Клюёт!');
+    this.hooks.toast('Клюёт!');
   }
 
   private stepFight(dt: number): void {
@@ -273,11 +295,11 @@ export class FishingScene {
       this.hooked.view.rotation = Math.sin(fight.surge * 6) * 0.35;
     }
 
-    this.line.view.tint = tensionTint(fight.tension);
+    this.line.view.tint = tensionTint(fight.tensionRatio);
     this.shake = Math.max(this.shake, fight.surge * 4.5);
 
     if (outcome === 'snapped' || outcome === 'escaped') {
-      this.onToast(outcome === 'snapped' ? 'Леска лопнула!' : 'Сорвалась!');
+      this.hooks.toast(outcome === 'snapped' ? 'Леска лопнула!' : 'Сорвалась!');
       this.hitstop = 0.12;
       this.shake = outcome === 'snapped' ? 14 : 8;
       this.dropHooked();
@@ -301,17 +323,21 @@ export class FishingScene {
     // Мусор не буянит: его просто сдают и смеются над тем, что вытащили.
     if (entry.mischief === 'none') {
       const reward = fight.reward(this.trickShot);
-      this.money += reward;
-      this.onToast(`${entry.name}! +${reward} ₽`);
+      this.hooks.onCatch(entry, reward);
+      this.hooks.toast(`${entry.name}! +${reward} ₽`);
       this.rest();
       return;
     }
 
-    this.mischief = new MischiefAct(entry, this.rng.int(1, 1 << 20));
+    this.mischief = new MischiefAct(
+      entry,
+      this.rng.int(1, 1 << 20),
+      this.hooks.effects().subdueSeconds,
+    );
     this.water.gameplay.addChild(this.mischief.view);
     this.mischief.start(this.boatArea());
     this.state = 'onboard';
-    this.onToast(`${entry.name} в лодке!`);
+    this.hooks.toast(`${entry.name} в лодке!`);
   }
 
   private stepMischief(dt: number): void {
@@ -322,18 +348,18 @@ export class FishingScene {
 
     const { result, prank } = act.step(dt, this.boatArea());
     if (prank) {
-      this.onToast(prank);
+      this.hooks.toast(prank);
       this.shake = Math.max(this.shake, 6);
     }
 
     if (result === 'subdued') {
       const reward = Math.max(1, Math.round(fight.reward(this.trickShot) * (1 - act.damage)));
-      this.money += reward;
-      this.onToast(`${entry.name} усмирён! +${reward} ₽`);
+      this.hooks.onCatch(entry, reward);
+      this.hooks.toast(`${entry.name} усмирён! +${reward} ₽`);
       this.clearMischief();
       this.rest();
     } else if (result === 'escaped') {
-      this.onToast(`${entry.name} ушёл за борт!`);
+      this.hooks.toast(`${entry.name} ушёл за борт!`);
       this.shake = 10;
       this.clearMischief();
       this.rest();
@@ -366,7 +392,7 @@ export class FishingScene {
   }
 
   private applyLineLimit(): void {
-    const maxLength = metersToPx(MAX_LINE_M);
+    const maxLength = metersToPx(this.hooks.effects().maxLineM);
     const dx = this.hook.x - this.rod.tipX;
     const dy = this.hook.y - this.rod.tipY;
     const distance = Math.hypot(dx, dy);
@@ -403,7 +429,7 @@ export class FishingScene {
     const x = this.boatX - width / 2;
     const y = this.rod.tipY - 44;
     const value =
-      this.state === 'fighting' ? (this.fight?.tension ?? 0) : (this.mischief?.patience ?? 0);
+      this.state === 'fighting' ? (this.fight?.tensionRatio ?? 0) : (this.mischief?.patience ?? 0);
     const color = this.state === 'fighting' ? tensionTint(value) : 0xffd166;
 
     g.roundRect(x - 3, y - 3, width + 6, 16, 8).fill({ color: 0x08222c, alpha: 0.85 });
@@ -471,15 +497,13 @@ export class FishingScene {
     tension: number;
     stamina: number;
     patience: number;
-    money: number;
     onHook: string;
   } {
     return {
       state: this.state,
-      tension: this.fight?.tension ?? 0,
+      tension: this.fight?.tensionRatio ?? 0,
       stamina: this.fight?.stamina ?? 1,
       patience: this.mischief?.patience ?? (this.fight?.patience ?? 1),
-      money: this.money,
       onHook: this.hookedEntry?.name ?? '',
     };
   }
@@ -487,12 +511,12 @@ export class FishingScene {
   get metrics(): [string, string][] {
     const rows: [string, string][] = [
       ['состояние', this.state],
-      ['кошелёк', `${this.money} ₽`],
       ['глубина', `${this.hook.depthMeters.toFixed(1)} м`],
+      ['леска', `${this.hooks.effects().maxLineM} м`],
     ];
     if (this.fight && this.state === 'fighting') {
       rows.push(['на крючке', this.fight.name]);
-      rows.push(['натяжение', this.fight.tension.toFixed(2)]);
+      rows.push(['натяжение', this.fight.tensionRatio.toFixed(2)]);
       rows.push(['силы рыбы', this.fight.stamina.toFixed(2)]);
       rows.push(['терпение', this.fight.patience.toFixed(2)]);
     } else if (this.mischief) {

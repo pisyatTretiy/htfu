@@ -15,8 +15,8 @@ export interface Area {
 
 /** Сколько раз нужно попасть по существу, чтобы усмирить. */
 const TAPS_TO_SUBDUE = 3;
-/** Сколько секунд оно буянит, прежде чем уйти за борт с частью улова. */
-const PATIENCE = 7;
+/** Базовое время на усмирение. Подсак его увеличивает. */
+const BASE_PATIENCE = 7;
 /** Пауза между пакостями. */
 const PRANK_EVERY = 1.7;
 
@@ -55,10 +55,14 @@ export class MischiefAct {
   /** Убытки от пакостей — вычитаются из награды. */
   damage = 0;
 
+  private readonly patienceSeconds: number;
+
   constructor(
     private readonly entry: CatchEntry,
     seed: number,
+    patienceSeconds = BASE_PATIENCE,
   ) {
+    this.patienceSeconds = patienceSeconds > 0 ? patienceSeconds : BASE_PATIENCE;
     this.rng = new Rng(seed);
     this.catchView = new CatchView(entry);
     // В лодке улов ужимается: рыба крупнее лодки — шутка, но лодку она при
@@ -74,7 +78,7 @@ export class MischiefAct {
 
   /** Сколько терпения осталось, 0..1 — рисуется полоской над лодкой. */
   get patience(): number {
-    return clamp(1 - this.timer / PATIENCE, 0, 1);
+    return clamp(1 - this.timer / this.patienceSeconds, 0, 1);
   }
 
   start(area: Area): void {
@@ -103,7 +107,7 @@ export class MischiefAct {
     if (this.result !== 'active') return { result: this.result, prank: null };
 
     this.timer += dt;
-    if (this.timer >= PATIENCE) {
+    if (this.timer >= this.patienceSeconds) {
       this.result = 'escaped';
       return { result: this.result, prank: null };
     }

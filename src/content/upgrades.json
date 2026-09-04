@@ -1,0 +1,57 @@
+{
+  "$comment": "Четыре ветки по пять уровней. Уровень 0 — стартовая снасть, цена 0. Каждая ветка чинит своё узкое место, чтобы игрок чувствовал, за что платит (docs/03, § 3.5).",
+  "branches": [
+    {
+      "id": "line",
+      "name": { "ru": "Леска", "en": "Line" },
+      "hint": { "ru": "Длина: как глубоко достаёт крючок", "en": "Length: how deep the hook reaches" },
+      "unit": { "ru": "м", "en": "m" },
+      "levels": [
+        { "price": 0, "value": 60 },
+        { "price": 90, "value": 95 },
+        { "price": 260, "value": 140 },
+        { "price": 620, "value": 190 },
+        { "price": 1400, "value": 250 }
+      ]
+    },
+    {
+      "id": "reel",
+      "name": { "ru": "Катушка", "en": "Reel" },
+      "hint": { "ru": "Подмотка: как быстро рыба выдыхается", "en": "Reeling: how fast the fish tires" },
+      "unit": { "ru": "×", "en": "×" },
+      "levels": [
+        { "price": 0, "value": 1 },
+        { "price": 120, "value": 1.18 },
+        { "price": 320, "value": 1.36 },
+        { "price": 700, "value": 1.56 },
+        { "price": 1500, "value": 1.8 }
+      ]
+    },
+    {
+      "id": "rod",
+      "name": { "ru": "Удилище", "en": "Rod" },
+      "hint": { "ru": "Запас прочности: сколько натяжения прощает", "en": "Tolerance: how much tension it forgives" },
+      "unit": { "ru": "×", "en": "×" },
+      "levels": [
+        { "price": 0, "value": 1 },
+        { "price": 140, "value": 1.09 },
+        { "price": 360, "value": 1.18 },
+        { "price": 780, "value": 1.28 },
+        { "price": 1650, "value": 1.4 }
+      ]
+    },
+    {
+      "id": "net",
+      "name": { "ru": "Подсак", "en": "Net" },
+      "hint": { "ru": "Сколько секунд на усмирение улова в лодке", "en": "Seconds to subdue the catch aboard" },
+      "unit": { "ru": "с", "en": "s" },
+      "levels": [
+        { "price": 0, "value": 7 },
+        { "price": 110, "value": 8.5 },
+        { "price": 300, "value": 10 },
+        { "price": 660, "value": 12 },
+        { "price": 1450, "value": 14.5 }
+      ]
+    }
+  ]
+}

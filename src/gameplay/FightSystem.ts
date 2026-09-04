@@ -2,8 +2,8 @@ import { clamp } from '../core/world';
 import { Rng } from '../core/Rng';
 import type { CatchEntry } from '../content/types';
 
-/** Натяжение выше этого — леска рвётся. */
-const BREAK_AT = 1;
+/** Базовый порог обрыва. Прокачка удилища его поднимает. */
+const BASE_BREAK_AT = 1;
 /** Скорость роста натяжения от самой подмотки, без учёта рывков. */
 const REEL_TENSION = 0.34;
 /** Скорость падения натяжения, когда игрок отпустил. */
@@ -15,6 +15,15 @@ const RELAX = 0.62;
 const PATIENCE = 20;
 
 export type FightOutcome = 'fighting' | 'landed' | 'snapped' | 'escaped';
+
+export interface FightModifiers {
+  /** Множитель к тому, как быстро рыба выдыхается (катушка). */
+  reelPower: number;
+  /** Во сколько раз выше порог обрыва (удилище). */
+  lineStrength: number;
+}
+
+const NO_MODIFIERS: FightModifiers = { reelPower: 1, lineStrength: 1 };
 
 /**
  * Бой с рыбой: натяжение против усталости.
@@ -44,12 +53,23 @@ export class FightSystem {
   private time = 0;
   private readonly rng: Rng;
 
+  private readonly breakAt: number;
+  private readonly reelPower: number;
+
   constructor(
     private readonly entry: CatchEntry,
     seed: number,
+    modifiers: FightModifiers = NO_MODIFIERS,
   ) {
     this.rng = new Rng(seed);
     this.stamina = entry.fight.stamina;
+    this.breakAt = BASE_BREAK_AT * modifiers.lineStrength;
+    this.reelPower = modifiers.reelPower;
+  }
+
+  /** Натяжение в долях от порога обрыва — именно это рисует полоска. */
+  get tensionRatio(): number {
+    return clamp(this.tension / this.breakAt, 0, 1);
   }
 
   get name(): string {
@@ -76,14 +96,14 @@ export class FightSystem {
 
     if (this.reeling) {
       this.tension += (REEL_TENSION + pullNow) * dt;
-      this.stamina = clamp(this.stamina - drain * dt, 0, 1);
+      this.stamina = clamp(this.stamina - drain * this.reelPower * dt, 0, 1);
     } else {
       this.tension -= RELAX * dt;
       this.stamina = clamp(this.stamina + recover * dt, 0, 1);
     }
-    this.tension = clamp(this.tension, 0, BREAK_AT);
+    this.tension = clamp(this.tension, 0, this.breakAt);
 
-    if (this.tension >= BREAK_AT) {
+    if (this.tension >= this.breakAt) {
       this.outcome = 'snapped';
     } else if (this.stamina <= 0) {
       this.outcome = 'landed';

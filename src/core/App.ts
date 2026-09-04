@@ -3,11 +3,22 @@ import { resolveQuality, type QualityProfile } from './Quality';
 import type { IPlatform } from '../platform';
 import { FishingScene } from '../scenes/FishingScene';
 import { PerfHud } from '../debug/PerfHud';
+import { GameUi } from '../ui/GameUi';
+import { Progression, type BranchId } from '../meta/Progression';
+import { Album } from '../meta/Album';
+import { SaveService, emptySave, type GameSave } from '../services/SaveService';
+import { i18n } from '../services/I18n';
+
+export type DebugSnapshot = FishingScene['debugSnapshot'] & {
+  money: number;
+  upgrades: Record<string, number>;
+  shopOpen: boolean;
+};
 
 declare global {
   interface Window {
     /** Тестовый шов для tools/capture.ts. Читается только автотестом. */
-    __htfu?: FishingScene['debugSnapshot'] | undefined;
+    __htfu?: DebugSnapshot | undefined;
   }
 }
 
@@ -26,9 +37,17 @@ export class App {
   private readonly quality: QualityProfile = resolveQuality();
   private scene!: FishingScene;
   private hud?: PerfHud;
+  private ui!: GameUi;
   private running = false;
 
-  constructor(private readonly platform: IPlatform) {}
+  private readonly progression = new Progression();
+  private readonly album = new Album();
+  private readonly save: SaveService;
+  private state: GameSave = emptySave();
+
+  constructor(private readonly platform: IPlatform) {
+    this.save = new SaveService(platform);
+  }
 
   async start(): Promise<void> {
     const host = document.getElementById('app');
@@ -44,9 +63,30 @@ export class App {
     });
     host.appendChild(this.pixi.canvas);
 
-    this.scene = new FishingScene(this.quality, (text) => showToast(text));
+    i18n.setLang(this.platform.lang());
+    await this.restore();
+
+    this.scene = new FishingScene(this.quality, {
+      toast: (text) => showToast(text),
+      effects: () => this.progression.effects,
+      onCatch: (entry, reward) => this.collect(entry.id, reward),
+    });
     this.pixi.stage.addChild(this.scene.root);
     this.resize();
+
+    this.ui = new GameUi(
+      {
+        buy: (id) => this.buy(id),
+        shopToggled: (open) => {
+          this.scene.paused = open;
+          // Разметка геймплея: пока открыт магазин, это уже не игра.
+          if (open) this.platform.gameplayStop();
+          else this.platform.gameplayStart();
+        },
+      },
+      this.progression,
+    );
+    this.renderUi();
 
     this.bindInput();
     this.bindFocus();
@@ -56,17 +96,72 @@ export class App {
       rows: this.scene.metrics,
     }));
 
+    let lastSceneState = this.scene.state;
     this.pixi.ticker.add((ticker) => {
       if (!this.running) return;
       this.scene.update(ticker.deltaMS);
+      if (this.scene.state !== lastSceneState) {
+        lastSceneState = this.scene.state;
+        this.renderUi();
+      }
       this.hud?.update(ticker.deltaMS);
-      window.__htfu = this.scene.debugSnapshot;
+      window.__htfu = {
+        ...this.scene.debugSnapshot,
+        money: this.state.money,
+        upgrades: this.progression.serialize(),
+        shopOpen: this.ui.isShopOpen,
+      };
     });
 
     this.running = true;
     this.platform.ready();
     this.platform.gameplayStart();
     document.getElementById('boot')?.classList.add('hidden');
+  }
+
+  private async restore(): Promise<void> {
+    this.state = await this.save.load();
+    this.progression.restore(this.state.upgrades as Record<BranchId, number>);
+    this.album.restore(this.state.album);
+  }
+
+  /** Улов зачтён: деньги, альбом, сохранение. */
+  private collect(entryId: string, reward: number): void {
+    this.state.money += reward;
+    if (this.album.record(entryId)) showToast('Новый вид в альбоме!');
+    this.persist();
+  }
+
+  private buy(id: BranchId): void {
+    const price = this.progression.nextPrice(id);
+    if (price === null || this.state.money < price) return;
+
+    this.state.money -= price;
+    this.progression.levelUp(id);
+    const branch = this.progression.branches.find((entry) => entry.id === id);
+    showToast(
+      i18n.t('toast.bought', {
+        name: branch ? i18n.pick(branch.name) : id,
+        level: this.progression.levelOf(id) + 1,
+      }),
+    );
+    this.persist();
+  }
+
+  private persist(): void {
+    this.state.upgrades = this.progression.serialize();
+    this.state.album = this.album.serialize();
+    this.save.save(this.state);
+    this.renderUi();
+  }
+
+  private renderUi(): void {
+    this.ui.render({
+      money: this.state.money,
+      progression: this.progression,
+      album: this.album,
+      canShop: this.scene.state === 'idle',
+    });
   }
 
   private resize(): void {
@@ -103,7 +198,7 @@ export class App {
       startX = event.clientX;
       startY = event.clientY;
       canvas.setPointerCapture(event.pointerId);
-      this.scene.pressStart(event.clientX, event.clientY);
+      if (!this.ui.isShopOpen) this.scene.pressStart(event.clientX, event.clientY);
     });
 
     canvas.addEventListener('pointermove', (event) => {
@@ -161,6 +256,12 @@ export class App {
     document.addEventListener('visibilitychange', () => (document.hidden ? suspend() : resume()));
     addEventListener('blur', suspend);
     addEventListener('focus', resume);
+
+    // Уход со страницы — последний момент, когда можно дописать прогресс в облако.
+    addEventListener('pagehide', () => void this.save.flush());
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) void this.save.flush();
+    });
   }
 }
 
