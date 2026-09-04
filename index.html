@@ -70,6 +70,31 @@
     #ui .btn:focus-visible { outline: 3px solid #4fd6b4; outline-offset: 2px; }
     #ui .topbar .btn { margin-left: auto; }
 
+    #ui .gauge {
+      position: absolute; left: 50%; bottom: 118px; transform: translateX(-50%);
+      width: min(280px, 74vw); display: flex; flex-direction: column; gap: 5px;
+      pointer-events: none;
+    }
+    #ui .gauge[hidden] { display: none !important; }
+    #ui .gauge-label {
+      font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase;
+      color: #eafffb; text-align: center; text-shadow: 0 1px 3px rgba(0,0,0,.6);
+    }
+    #ui .gauge-track {
+      position: relative; height: 12px; border-radius: 999px; overflow: hidden;
+      background: rgba(4, 20, 26, .62); border: 2px solid rgba(255,255,255,.22);
+    }
+    #ui .gauge-track.thin { height: 6px }
+    #ui .gauge-track i { display: block; height: 100%; background: #4fd6b4; transition: width .05s linear }
+    #ui .gauge-track.thin i { background: #ffd166 }
+    #ui .gauge[data-kind="tension"] .gauge-track i { background: linear-gradient(90deg, #4fd6b4, #ffd166 62%, #ff5f4d) }
+    #ui .gauge[data-kind="patience"] .gauge-track i { background: #ffd166 }
+    #ui .gauge-zone {
+      position: absolute; left: 72%; width: 16%; top: 0; bottom: 0;
+      background: rgba(79, 214, 180, .45);
+    }
+    #ui .gauge-zone[hidden] { display: none !important; }
+
     #ui .offer {
       position: absolute; left: 50%; bottom: 68px; transform: translateX(-50%);
       background: #4fd6b4; border-color: #06403a; box-shadow: 0 3px 0 #06403a;
@@ -193,6 +218,31 @@
     #ui .btn:disabled { opacity: .45; cursor: default; }
     #ui .btn:focus-visible { outline: 3px solid #4fd6b4; outline-offset: 2px; }
     #ui .topbar .btn { margin-left: auto; }
+
+    #ui .gauge {
+      position: absolute; left: 50%; bottom: 118px; transform: translateX(-50%);
+      width: min(280px, 74vw); display: flex; flex-direction: column; gap: 5px;
+      pointer-events: none;
+    }
+    #ui .gauge[hidden] { display: none !important; }
+    #ui .gauge-label {
+      font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase;
+      color: #eafffb; text-align: center; text-shadow: 0 1px 3px rgba(0,0,0,.6);
+    }
+    #ui .gauge-track {
+      position: relative; height: 12px; border-radius: 999px; overflow: hidden;
+      background: rgba(4, 20, 26, .62); border: 2px solid rgba(255,255,255,.22);
+    }
+    #ui .gauge-track.thin { height: 6px }
+    #ui .gauge-track i { display: block; height: 100%; background: #4fd6b4; transition: width .05s linear }
+    #ui .gauge-track.thin i { background: #ffd166 }
+    #ui .gauge[data-kind="tension"] .gauge-track i { background: linear-gradient(90deg, #4fd6b4, #ffd166 62%, #ff5f4d) }
+    #ui .gauge[data-kind="patience"] .gauge-track i { background: #ffd166 }
+    #ui .gauge-zone {
+      position: absolute; left: 72%; width: 16%; top: 0; bottom: 0;
+      background: rgba(79, 214, 180, .45);
+    }
+    #ui .gauge-zone[hidden] { display: none !important; }
 
     #ui .offer {
       position: absolute; left: 50%; bottom: 68px; transform: translateX(-50%);

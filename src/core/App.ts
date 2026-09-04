@@ -1,4 +1,4 @@
-import { WebGLRenderer } from 'three';
+import { ACESFilmicToneMapping, PCFSoftShadowMap, WebGLRenderer } from 'three';
 import { resolveQuality, type QualityProfile } from './Quality';
 import type { IPlatform } from '../platform';
 import { FishingScene3D } from '../scene3d/FishingScene3D';
@@ -89,6 +89,11 @@ export class App {
     // Тени — примета стиля, но и самая дорогая его часть: на бюджетном
     // профиле выключаем целиком.
     this.renderer.shadowMap.enabled = this.quality.filters;
+    this.renderer.shadowMap.type = PCFSoftShadowMap;
+    // Без тонмаппинга плоские материалы выгорают в белое на солнце и
+    // проваливаются в грязь в тени: картинка читается «пластиковой».
+    this.renderer.toneMapping = ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.15;
     host.appendChild(this.renderer.domElement);
 
     i18n.setLang(this.platform.lang());
@@ -153,6 +158,8 @@ export class App {
     this.renderer.render(this.scene.scene, this.scene.camera);
     this.hud?.update(delta);
 
+    this.updateGauge();
+
     const reached = this.quests.onDepth(this.scene.debugSnapshot.depth);
     if (reached) {
       this.completeQuest(reached);
@@ -170,6 +177,20 @@ export class App {
       platform: this.platform.name,
       lastReward: this.lastReward,
     };
+  }
+
+  /** Полоса состояния под прицелом: заброс, бой или возня в лодке. */
+  private updateGauge(): void {
+    const snapshot = this.scene.debugSnapshot;
+    if (this.scene.chargePower > 0) {
+      this.ui.setGauge('power', this.scene.chargePower);
+    } else if (snapshot.state === 'fighting') {
+      this.ui.setGauge('tension', snapshot.tension, 1 - snapshot.stamina);
+    } else if (snapshot.state === 'onboard') {
+      this.ui.setGauge('patience', snapshot.patience);
+    } else {
+      this.ui.setGauge('none', 0);
+    }
   }
 
   // --- прогресс ------------------------------------------------------------

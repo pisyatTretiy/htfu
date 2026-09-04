@@ -10,6 +10,8 @@ import {
 import { Sky3D } from './Sky3D';
 import { Water3D } from './Water3D';
 import { Environment3D, shoreHeight } from './Environment3D';
+import { Pier3D } from './Pier3D';
+import { AmbientFish3D } from './AmbientFish3D';
 import { Hands3D } from './Hands3D';
 import { Hook3D } from './Hook3D';
 import { Line3D } from './Line3D';
@@ -36,9 +38,13 @@ const BITE_MAX = 2.1;
 /** Пределы наклона взгляда: вниз смотрим охотнее, чем вверх. */
 const PITCH_MIN = -1.15;
 const PITCH_MAX = 0.5;
-/** Где стоит игрок и на какой высоте его глаза. */
-const PLAYER_Z = 3.2;
-const EYE_HEIGHT = 1.65;
+/** Где стоит игрок и на какой высоте его глаза: на настиле причала. */
+const PLAYER_Z = -6;
+const EYE_HEIGHT = 1.62;
+/** Линия берега: за ней песок, перед ней вода. */
+const SHORE_Z = 2.5;
+/** Высота настила причала над водой. */
+const PIER_Y = 0.68;
 
 export type CastState =
   | 'idle'
@@ -83,6 +89,8 @@ export class FishingScene3D {
   private readonly sky = new Sky3D();
   private readonly water = new Water3D();
   private readonly shore = new Environment3D();
+  private readonly pier = new Pier3D();
+  private readonly ambient = new AmbientFish3D();
   private readonly hands = new Hands3D();
   private readonly sun = new DirectionalLight(0xffffff, 2.1);
   private readonly hook = new Hook3D();
@@ -113,7 +121,9 @@ export class FishingScene3D {
   private readonly forward = new Vector3();
 
   constructor(private readonly hooks: SceneHooks) {
-    this.scene.add(this.sky.mesh, this.water.mesh, this.shore.group, this.hook.object, this.line.mesh);
+    this.pier.group.position.set(0, 0, 3.4);
+    this.scene.add(this.sky.mesh, this.water.mesh, this.shore.group, this.pier.group);
+    this.scene.add(this.hook.object, this.line.mesh, this.ambient.group);
     this.camera.add(this.hands.group);
     this.scene.add(this.camera);
 
@@ -130,8 +140,8 @@ export class FishingScene3D {
     this.sun.shadow.bias = -0.0015;
     this.scene.add(this.sun, new HemisphereLight(0xdfeeff, 0x7a6a4a, 1.15));
 
-    // Игрок стоит на берегу у самой воды и смотрит в море.
-    this.camera.position.set(0, shoreHeight(PLAYER_Z) + EYE_HEIGHT, PLAYER_Z);
+    // Игрок стоит на причале и смотрит в море.
+    this.camera.position.set(0, PIER_Y + EYE_HEIGHT, PLAYER_Z);
     this.applyLook();
     this.hook.reset(this.rodTip());
     this.line.reset(this.rodTip());
@@ -143,7 +153,9 @@ export class FishingScene3D {
     this.sky.setPalette(zone.sky);
     const [shallow] = zone.water;
     const deep = zone.water[zone.water.length - 3] ?? zone.water[0];
-    if (shallow && deep) this.water.setPalette(shallow, deep);
+    if (shallow && deep) this.water.setPalette(shallow, deep, zone.sky[0] ?? '#eef7fb');
+    this.water.setShoreZ(SHORE_Z);
+    this.water.setSun(this.sun.position);
     this.shore.setPalette(zone.sand, zone.foliage);
     // Дымка на горизонте того же цвета, что и небо у линии воды.
     this.scene.fog = new Fog(new Color(zone.sky[0] ?? '#cfe6f5').getHex(), 45, 260);
@@ -245,12 +257,12 @@ export class FishingScene3D {
       if (steps === MAX_STEPS) this.accumulator = 0;
     }
 
-    // Игрок стоит на песке — качается не он, а вода. Тряска остаётся отдачей
-    // от рывка рыбы.
-    this.camera.position.y = shoreHeight(PLAYER_Z) + EYE_HEIGHT + this.shakeOffset();
+    // Причал не качается — качается вода. Тряска остаётся отдачей от рывка.
+    this.camera.position.y = PIER_Y + EYE_HEIGHT + this.shakeOffset();
     this.shake *= Math.pow(0.02, dt);
 
     this.water.update(dt, this.camera.position);
+    this.ambient.update(dt);
     this.hooked?.update(dt, this.fight?.surge ?? 0.3);
     this.line.render(this.camera);
 
@@ -591,6 +603,8 @@ export class FishingScene3D {
     this.sky.dispose();
     this.water.dispose();
     this.shore.dispose();
+    this.pier.dispose();
+    this.ambient.dispose();
     this.hands.dispose();
     this.line.dispose();
     this.hook.dispose();
@@ -604,3 +618,4 @@ function tensionTint(tension: number): number {
 
 /** Пока не используется, но damp понадобится для плавной камеры боя. */
 void damp;
+void shoreHeight;

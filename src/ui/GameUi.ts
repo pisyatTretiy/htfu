@@ -45,6 +45,11 @@ export class GameUi {
   private readonly mapButton: HTMLButtonElement;
   private readonly questEl: HTMLElement;
   private readonly offer: HTMLButtonElement;
+  private readonly gauge: HTMLElement;
+  private readonly gaugeLabel: HTMLElement;
+  private readonly gaugeFill: HTMLElement;
+  private readonly gaugeZone: HTMLElement;
+  private readonly gaugeSecond: HTMLElement;
   private readonly rows = new Map<BranchId, HTMLElement>();
 
   private open: 'shop' | 'album' | 'map' | null = null;
@@ -67,6 +72,11 @@ export class GameUi {
         <button class="btn" id="ui-shop-open">${i18n.t('shop.open')}</button>
       </div>
       <button class="btn offer" id="ui-offer" hidden></button>
+      <div class="gauge" id="ui-gauge" hidden>
+        <div class="gauge-label" id="ui-gauge-label"></div>
+        <div class="gauge-track"><i id="ui-gauge-fill"></i><span class="gauge-zone" id="ui-gauge-zone"></span></div>
+        <div class="gauge-track thin"><i id="ui-gauge-second"></i></div>
+      </div>
       <div class="panel" id="ui-shop" hidden>
         <div class="panel-head">
           <span>${i18n.t('shop.title')}</span>
@@ -100,6 +110,11 @@ export class GameUi {
     this.mapButton = must(document.getElementById('ui-map-open')) as HTMLButtonElement;
     this.albumList = must(document.getElementById('ui-album-list'));
     this.offer = must(document.getElementById('ui-offer')) as HTMLButtonElement;
+    this.gauge = must(document.getElementById('ui-gauge'));
+    this.gaugeLabel = must(document.getElementById('ui-gauge-label'));
+    this.gaugeFill = must(document.getElementById('ui-gauge-fill'));
+    this.gaugeZone = must(document.getElementById('ui-gauge-zone'));
+    this.gaugeSecond = must(document.getElementById('ui-gauge-second'));
 
     const list = must(document.getElementById('ui-shop-list'));
     for (const branch of progression.branches) {
@@ -161,6 +176,31 @@ export class GameUi {
     }
     this.offer.hidden = true;
     this.offer.onclick = null;
+  }
+
+  /**
+   * Полоса состояния: сила заброса, натяжение в бою, терпение улова в лодке.
+   *
+   * В 3D от первого лица игроку нечем измерить происходящее на глаз — изгиб
+   * удилища читается плохо на маленьком экране, а цена ошибки высокая.
+   */
+  setGauge(
+    kind: 'none' | 'power' | 'tension' | 'patience',
+    value: number,
+    secondary = 0,
+  ): void {
+    if (kind === 'none') {
+      this.gauge.hidden = true;
+      return;
+    }
+    this.gauge.hidden = false;
+    this.gauge.dataset.kind = kind;
+    this.gaugeLabel.textContent = i18n.t(`gauge.${kind}`);
+    this.gaugeFill.style.width = `${Math.round(Math.min(1, Math.max(0, value)) * 100)}%`;
+    // Зелёная зона трюк-шота показывается только на шкале заброса.
+    this.gaugeZone.hidden = kind !== 'power';
+    this.gaugeSecond.parentElement!.hidden = kind !== 'tension';
+    this.gaugeSecond.style.width = `${Math.round(Math.min(1, Math.max(0, secondary)) * 100)}%`;
   }
 
   get isShopOpen(): boolean {
