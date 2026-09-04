@@ -1,15 +1,16 @@
 import {
   Color,
-  Mesh,
-  MeshBasicMaterial,
+  DirectionalLight,
+  Fog,
+  HemisphereLight,
   PerspectiveCamera,
-  PlaneGeometry,
   Scene,
   Vector3,
 } from 'three';
 import { Sky3D } from './Sky3D';
 import { Water3D } from './Water3D';
-import { Boat3D } from './Boat3D';
+import { Environment3D, shoreHeight } from './Environment3D';
+import { Hands3D } from './Hands3D';
 import { Hook3D } from './Hook3D';
 import { Line3D } from './Line3D';
 import { FishView3D } from './FishView3D';
@@ -35,6 +36,9 @@ const BITE_MAX = 2.1;
 /** Пределы наклона взгляда: вниз смотрим охотнее, чем вверх. */
 const PITCH_MIN = -1.15;
 const PITCH_MAX = 0.5;
+/** Где стоит игрок и на какой высоте его глаза. */
+const PLAYER_Z = 3.2;
+const EYE_HEIGHT = 1.65;
 
 export type CastState =
   | 'idle'
@@ -78,10 +82,11 @@ export class FishingScene3D {
 
   private readonly sky = new Sky3D();
   private readonly water = new Water3D();
-  private readonly boat = new Boat3D();
+  private readonly shore = new Environment3D();
+  private readonly hands = new Hands3D();
+  private readonly sun = new DirectionalLight(0xffffff, 2.1);
   private readonly hook = new Hook3D();
   private readonly line = new Line3D();
-  private readonly seabed: Mesh;
   private readonly rng = new Rng(Date.now() & 0xffff);
 
   private fight: FightSystem | null = null;
@@ -108,18 +113,25 @@ export class FishingScene3D {
   private readonly forward = new Vector3();
 
   constructor(private readonly hooks: SceneHooks) {
-    this.scene.add(this.sky.mesh, this.water.mesh, this.boat.hull, this.hook.object, this.line.mesh);
-    this.camera.add(this.boat.rod);
+    this.scene.add(this.sky.mesh, this.water.mesh, this.shore.group, this.hook.object, this.line.mesh);
+    this.camera.add(this.hands.group);
     this.scene.add(this.camera);
 
-    this.seabed = new Mesh(
-      new PlaneGeometry(500, 500),
-      new MeshBasicMaterial({ color: new Color('#0b3348') }),
-    );
-    this.seabed.rotation.x = -Math.PI / 2;
-    this.scene.add(this.seabed);
+    // Солнце сбоку и сзади: тени ложатся в кадр, а не прячутся за объектами.
+    // Настоящие тени — главная примета стиля, ради которой всё и затевалось.
+    this.sun.position.set(14, 20, 12);
+    this.sun.castShadow = true;
+    this.sun.shadow.mapSize.set(1024, 1024);
+    this.sun.shadow.camera.left = -26;
+    this.sun.shadow.camera.right = 26;
+    this.sun.shadow.camera.top = 26;
+    this.sun.shadow.camera.bottom = -26;
+    this.sun.shadow.camera.far = 70;
+    this.sun.shadow.bias = -0.0015;
+    this.scene.add(this.sun, new HemisphereLight(0xdfeeff, 0x7a6a4a, 1.15));
 
-    this.camera.position.set(0, 1.15, 0);
+    // Игрок стоит на берегу у самой воды и смотрит в море.
+    this.camera.position.set(0, shoreHeight(PLAYER_Z) + EYE_HEIGHT, PLAYER_Z);
     this.applyLook();
     this.hook.reset(this.rodTip());
     this.line.reset(this.rodTip());
@@ -130,10 +142,11 @@ export class FishingScene3D {
   applyZone(zone: Zone): void {
     this.sky.setPalette(zone.sky);
     const [shallow] = zone.water;
-    const deep = zone.water[zone.water.length - 2] ?? zone.water[0];
+    const deep = zone.water[zone.water.length - 3] ?? zone.water[0];
     if (shallow && deep) this.water.setPalette(shallow, deep);
-    (this.seabed.material as MeshBasicMaterial).color.set(zone.water[zone.water.length - 1] ?? '#04162f');
-    this.seabed.position.y = -zone.maxDepth * UNITS_PER_M;
+    this.shore.setPalette(zone.sand, zone.foliage);
+    // Дымка на горизонте того же цвета, что и небо у линии воды.
+    this.scene.fog = new Fog(new Color(zone.sky[0] ?? '#cfe6f5').getHex(), 45, 260);
   }
 
   resize(width: number, height: number): void {
@@ -232,14 +245,9 @@ export class FishingScene3D {
       if (steps === MAX_STEPS) this.accumulator = 0;
     }
 
-    // Лодка качается на волне, камера вместе с ней — это и есть присутствие.
-    // Борт держим над водой: иначе лодку видно сквозь полупрозрачную воду и
-    // она читается зелёным пятном, а не бортом.
-    const wave = this.water.heightAt(0, 0);
-    // Дно лодки держим выше ватерлинии: вода — полупрозрачная плоскость и,
-    // проходя сквозь корпус, закрашивает внутренность бирюзой.
-    this.boat.hull.position.y = wave + 0.45;
-    this.camera.position.y = wave + 1.5 + this.shakeOffset();
+    // Игрок стоит на песке — качается не он, а вода. Тряска остаётся отдачей
+    // от рывка рыбы.
+    this.camera.position.y = shoreHeight(PLAYER_Z) + EYE_HEIGHT + this.shakeOffset();
     this.shake *= Math.pow(0.02, dt);
 
     this.water.update(dt, this.camera.position);
@@ -290,7 +298,7 @@ export class FishingScene3D {
 
     const pull = this.camera.worldToLocal(this.hook.position.clone());
     const tension = this.fight ? Math.max(this.line.tension, this.fight.tensionRatio) : this.line.tension;
-    this.boat.update(tension, pull.sub(this.boat.tipLocal));
+    this.hands.update(tension, pull.sub(this.hands.tipLocal));
 
     if (this.state === 'idle' || this.state === 'onboard') this.line.reset(tip);
     else this.line.step(dt, tip, this.hook.position, this.maxLineUnits());
@@ -481,7 +489,7 @@ export class FishingScene3D {
   // --- служебное -----------------------------------------------------------
 
   private rodTip(): Vector3 {
-    this.tipWorld.copy(this.boat.tipLocal);
+    this.tipWorld.copy(this.hands.tipLocal);
     return this.camera.localToWorld(this.tipWorld.clone());
   }
 
@@ -582,7 +590,8 @@ export class FishingScene3D {
   dispose(): void {
     this.sky.dispose();
     this.water.dispose();
-    this.boat.dispose();
+    this.shore.dispose();
+    this.hands.dispose();
     this.line.dispose();
     this.hook.dispose();
   }

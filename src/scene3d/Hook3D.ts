@@ -1,4 +1,4 @@
-import { Color, Mesh, MeshBasicMaterial, Object3D, SphereGeometry, Vector3 } from 'three';
+import { Color, Mesh, MeshLambertMaterial, Object3D, SphereGeometry, Vector3 } from 'three';
 
 const GRAVITY_AIR = 9.8;
 /** Вес грузила за вычетом выталкивающей силы. */
@@ -25,13 +25,14 @@ export class Hook3D {
   constructor() {
     this.bobber = new Mesh(
       new SphereGeometry(0.09, 12, 10),
-      new MeshBasicMaterial({ color: new Color('#ff5f4d') }),
+      new MeshLambertMaterial({ color: new Color('#ff5f4d') }),
     );
     const weight = new Mesh(
       new SphereGeometry(0.05, 10, 8),
-      new MeshBasicMaterial({ color: new Color('#2a3b42') }),
+      new MeshLambertMaterial({ color: new Color('#2a3b42') }),
     );
     weight.position.y = -0.14;
+    this.bobber.castShadow = true;
     this.object.add(this.bobber, weight);
   }
 

@@ -3,9 +3,10 @@ import { Color, DoubleSide, Mesh, PlaneGeometry, ShaderMaterial } from 'three';
 /** Параметры волн: три синуса разной длины дают неповторяющийся рисунок. */
 const WAVES = `
   float waveHeight(vec2 p, float t) {
-    float h = sin(p.x * 0.09 + t * 1.1) * 0.16;
-    h += sin(p.y * 0.13 - t * 0.9) * 0.12;
-    h += sin((p.x + p.y) * 0.05 + t * 1.7) * 0.09;
+    // Три волны разной длины: крупная зыбь, средняя рябь и мелкая дрожь.
+    float h = sin(p.x * 0.26 + t * 1.3) * 0.13;
+    h += sin(p.y * 0.34 - t * 1.05) * 0.1;
+    h += sin((p.x + p.y) * 0.62 + t * 2.1) * 0.045;
     return h;
   }
 `;
@@ -56,13 +57,13 @@ const FRAGMENT = /* glsl */ `
     float spec = pow(max(dot(reflect(-sun, normal), view), 0.0), 90.0);
 
     // Пена на гребнях: тонкая полоска по верхушкам волн.
-    float foam = smoothstep(0.2, 0.29, vHeight);
+    float foam = smoothstep(0.15, 0.24, vHeight);
 
     vec3 color = mix(base, uFoam, fresnel * 0.55);
     color = mix(color, uFoam, foam * 0.35);
     color += spec * 0.9;
 
-    gl_FragColor = vec4(color, 0.82);
+    gl_FragColor = vec4(color, 0.66);
   }
 `;
 
@@ -78,7 +79,7 @@ export class Water3D {
   private readonly material: ShaderMaterial;
   private time = 0;
 
-  constructor(size = 1500, segments = 140) {
+  constructor(size = 700, segments = 180) {
     this.material = new ShaderMaterial({
       vertexShader: VERTEX,
       fragmentShader: FRAGMENT,

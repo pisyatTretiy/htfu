@@ -26,6 +26,9 @@ export interface Zone {
   sky: string[];
   water: string[];
   tint: string;
+  /** Цвет песка и зелени на берегу локации. */
+  sand: string;
+  foliage: string;
   catches: string[];
 }
 

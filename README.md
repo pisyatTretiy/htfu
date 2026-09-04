@@ -44,6 +44,7 @@ npm run capture    # прогон заброса в Playwright: кадры в di
 | [docs/adr/0002-fish-animation.md](docs/adr/0002-fish-animation.md) | ADR-0002: анимация рыбы меш-деформацией вместо скелетной |
 | [docs/adr/0003-comedy-register.md](docs/adr/0003-comedy-register.md) | ADR-0003: комедийный регистр и механические носители юмора |
 | [docs/adr/0004-first-person-3d.md](docs/adr/0004-first-person-3d.md) | ADR-0004: переход на полное 3D от первого лица |
+| [docs/adr/0005-art-direction.md](docs/adr/0005-art-direction.md) | ADR-0005: арт-дирекция low-poly с плоским затенением |
 | [docs/spike-log.md](docs/spike-log.md) | Журнал разработки: что собрано, что измерено, что найдено автотестами |
 
 ## Короткая версия плана

@@ -22,20 +22,20 @@
         "shelf": true
       },
       "sky": [
-        "#4fc9f5",
-        "#9fe6fb",
-        "#dff8ff"
+        "#cfe6f5",
+        "#a8d4ee",
+        "#5aa6dc"
       ],
       "water": [
-        "#4ae6d2",
-        "#1ecbd0",
-        "#0fa2c8",
-        "#0c73b6",
-        "#134a9c",
-        "#1b2c78",
-        "#191047"
+        "#5f9fc4",
+        "#4a86ad",
+        "#3c7096",
+        "#325d80",
+        "#28496a",
+        "#1e3752",
+        "#152538"
       ],
-      "tint": "#2a2f7a",
+      "tint": "#1e3752",
       "catches": [
         "perch",
         "roach",
@@ -55,7 +55,9 @@
         "anchor",
         "umbrella",
         "phone"
-      ]
+      ],
+      "sand": "#e8d5a8",
+      "foliage": "#4f9440"
     },
     {
       "id": "bay",
@@ -79,20 +81,20 @@
         "shelf": true
       },
       "sky": [
-        "#4a86b8",
-        "#86b9d4",
-        "#c2dde8"
+        "#c6ddea",
+        "#9cc4dd",
+        "#4f92c4"
       ],
       "water": [
-        "#2fc2b4",
-        "#0fa3ae",
-        "#0a7ba4",
-        "#075a94",
-        "#0b3d7a",
-        "#101f56",
-        "#0a0f2e"
+        "#4f93aa",
+        "#3f7c96",
+        "#356982",
+        "#2c556c",
+        "#233f54",
+        "#1a2d3e",
+        "#101d29"
       ],
-      "tint": "#141d4e",
+      "tint": "#1a2d3e",
       "catches": [
         "mackerel",
         "pike",
@@ -114,7 +116,9 @@
         "umbrella",
         "phone",
         "fridge"
-      ]
+      ],
+      "sand": "#d8c79c",
+      "foliage": "#478a45"
     },
     {
       "id": "wreck",
@@ -138,20 +142,20 @@
         "shelf": false
       },
       "sky": [
-        "#6b7f7a",
-        "#9aada4",
-        "#c6d2c8"
+        "#cdd6d4",
+        "#a8b7b4",
+        "#75908e"
       ],
       "water": [
-        "#3f9a86",
-        "#2a7f7a",
-        "#1c5f6e",
-        "#134860",
-        "#0e3350",
-        "#0a2138",
-        "#050f1c"
+        "#4a8177",
+        "#3d6d67",
+        "#325a57",
+        "#284846",
+        "#1f3634",
+        "#162523",
+        "#0d1614"
       ],
-      "tint": "#0c2a2a",
+      "tint": "#162523",
       "catches": [
         "eel",
         "octopus",
@@ -173,7 +177,9 @@
         "umbrella",
         "phone",
         "fridge"
-      ]
+      ],
+      "sand": "#c9bfa2",
+      "foliage": "#3f7a4a"
     },
     {
       "id": "ice",
@@ -197,20 +203,20 @@
         "shelf": false
       },
       "sky": [
-        "#cfe6f2",
-        "#e6f2f8",
-        "#fbfeff"
+        "#eaf3f8",
+        "#cfe2ec",
+        "#9dc3d8"
       ],
       "water": [
-        "#b6ecf2",
-        "#86cfe4",
-        "#57a2c4",
-        "#3a76a8",
-        "#2a5288",
-        "#1c3563",
-        "#0d1730"
+        "#8fbccc",
+        "#6fa2b8",
+        "#54879f",
+        "#3f6b84",
+        "#2d5069",
+        "#1e384c",
+        "#12222f"
       ],
-      "tint": "#4a6ea8",
+      "tint": "#2d5069",
       "catches": [
         "cod",
         "halibut",
@@ -232,7 +238,9 @@
         "umbrella",
         "phone",
         "fridge"
-      ]
+      ],
+      "sand": "#dfe6ea",
+      "foliage": "#5c8a6a"
     },
     {
       "id": "abyss",
@@ -256,20 +264,20 @@
         "shelf": false
       },
       "sky": [
-        "#1d3f5c",
-        "#325a76",
-        "#587f95"
+        "#8fa6b4",
+        "#6a8496",
+        "#42606f"
       ],
       "water": [
-        "#12707f",
-        "#0a5470",
-        "#063d5e",
-        "#04294a",
-        "#031c36",
-        "#021024",
-        "#01060f"
+        "#3a7280",
+        "#2e5c6b",
+        "#244857",
+        "#1b3645",
+        "#132632",
+        "#0c1820",
+        "#050c11"
       ],
-      "tint": "#060428",
+      "tint": "#0c1820",
       "catches": [
         "angler",
         "lantern",
@@ -291,7 +299,9 @@
         "umbrella",
         "phone",
         "fridge"
-      ]
+      ],
+      "sand": "#8f8b7c",
+      "foliage": "#37624a"
     }
   ]
 }

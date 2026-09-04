@@ -86,6 +86,9 @@ export class App {
 
     this.renderer = new WebGLRenderer({ antialias: this.quality.filters, alpha: false });
     this.renderer.setPixelRatio(Math.min(devicePixelRatio || 1, this.quality.maxResolution));
+    // Тени — примета стиля, но и самая дорогая его часть: на бюджетном
+    // профиле выключаем целиком.
+    this.renderer.shadowMap.enabled = this.quality.filters;
     host.appendChild(this.renderer.domElement);
 
     i18n.setLang(this.platform.lang());

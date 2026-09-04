@@ -4,7 +4,7 @@ import {
   ConeGeometry,
   Group,
   Mesh,
-  MeshBasicMaterial,
+  MeshLambertMaterial,
   SphereGeometry,
 } from 'three';
 import type { CatchEntry } from '../content/types';
@@ -28,34 +28,37 @@ export class FishView3D {
     const length = entry.body.length / 100;
     const color = new Color(entry.body.fill);
 
-    const geometry = new SphereGeometry(length * 0.5, 16, 12);
+    const geometry = new SphereGeometry(length * 0.5, 10, 7);
     geometry.scale(1, 0.62, 0.44);
     this.base = Float32Array.from(geometry.getAttribute('position').array);
-    this.body = new Mesh(geometry, new MeshBasicMaterial({ color }));
+    this.body = new Mesh(geometry, new MeshLambertMaterial({ color, flatShading: true }));
 
     this.tail = new Mesh(
       new ConeGeometry(length * 0.3, length * 0.45, 4),
-      new MeshBasicMaterial({ color: color.clone().multiplyScalar(0.82) }),
+      new MeshLambertMaterial({ color: color.clone().multiplyScalar(0.82), flatShading: true }),
     );
     this.tail.rotation.z = Math.PI / 2;
     this.tail.position.x = -length * 0.62;
 
     const eye = new Mesh(
       new SphereGeometry(length * 0.09, 10, 8),
-      new MeshBasicMaterial({ color: new Color('#f4ffff') }),
+      new MeshLambertMaterial({ color: new Color('#f4ffff') }),
     );
     eye.position.set(length * 0.3, length * 0.1, length * 0.14);
     const pupil = new Mesh(
       new SphereGeometry(length * 0.045, 8, 6),
-      new MeshBasicMaterial({ color: new Color(entry.body.outline) }),
+      new MeshLambertMaterial({ color: new Color(entry.body.outline) }),
     );
     pupil.position.set(length * 0.34, length * 0.1, length * 0.18);
 
     this.group.add(this.body, this.tail, eye, pupil);
+    this.group.traverse((node) => {
+      if (node instanceof Mesh) node.castShadow = true;
+    });
   }
 
   setTint(color: number): void {
-    (this.body.material as MeshBasicMaterial).color.setHex(color);
+    (this.body.material as MeshLambertMaterial).color.setHex(color);
   }
 
   /** @param intensity 0..1 — насколько резко бьётся */
@@ -82,7 +85,7 @@ export class FishView3D {
     this.group.traverse((node) => {
       if (node instanceof Mesh) {
         node.geometry.dispose();
-        (node.material as MeshBasicMaterial).dispose();
+        (node.material as MeshLambertMaterial).dispose();
       }
     });
   }
