@@ -18,6 +18,22 @@ describe('миграции сейва', () => {
     expect(save.album).toEqual({});
   });
 
+  it('сейв первой версии получает цепочку заданий, не теряя нажитого', () => {
+    const v1 = {
+      version: 1,
+      updatedAt: 5,
+      money: 780,
+      upgrades: { line: 3, net: 1 },
+      album: { perch: 12 },
+    };
+    const save = migrate(v1 as never);
+    expect(save.version).toBe(SAVE_VERSION);
+    expect(save.money).toBe(780);
+    expect(save.upgrades).toEqual({ line: 3, net: 1 });
+    expect(save.album).toEqual({ perch: 12 });
+    expect(save.quests).toEqual({ index: 0, progress: 0 });
+  });
+
   it('не ломает сейв из будущей версии — игрок мог откатиться', () => {
     const future = { ...emptySave(), version: SAVE_VERSION + 5, money: 99 };
     const save = migrate(future);

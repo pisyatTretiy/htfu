@@ -72,10 +72,6 @@ export class FightSystem {
     return clamp(this.tension / this.breakAt, 0, 1);
   }
 
-  get name(): string {
-    return this.entry.name;
-  }
-
   get isJunk(): boolean {
     return this.entry.kind === 'junk';
   }

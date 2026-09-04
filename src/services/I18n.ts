@@ -12,6 +12,18 @@ const STRINGS: Record<string, Localized> = {
   'hud.money': { ru: '₽', en: '₽' },
   'hud.album': { ru: 'Виды', en: 'Species' },
   'toast.bought': { ru: 'Куплено: {name} ур. {level}', en: 'Bought: {name} lv. {level}' },
+  'album.open': { ru: 'Альбом', en: 'Album' },
+  'album.title': { ru: 'Альбом', en: 'Album' },
+  'album.unknown': { ru: 'Не пойман', en: 'Not caught yet' },
+  'album.times': { ru: '{count} шт.', en: '×{count}' },
+  'album.kind.fish': { ru: 'рыба', en: 'fish' },
+  'album.kind.junk': { ru: 'мусор', en: 'junk' },
+  'quest.label': { ru: 'Задание', en: 'Quest' },
+  'quest.done': { ru: 'Все задания причала выполнены', en: 'All dock quests done' },
+  'quest.reward': { ru: 'Задание выполнено: {title} · +{reward} ₽', en: 'Quest complete: {title} · +{reward} ₽' },
+  'toast.newSpecies': { ru: 'Новый вид в альбоме!', en: 'New species in the album!' },
+  'toast.doubled': { ru: 'Улов удвоен! +{reward} ₽', en: 'Catch doubled! +{reward} ₽' },
+  'offer.double': { ru: 'Удвоить ×2 · {reward} ₽', en: 'Double ×2 · {reward} ₽' },
 };
 
 /**

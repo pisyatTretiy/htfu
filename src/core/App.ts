@@ -2,10 +2,13 @@ import { Application, Container } from 'pixi.js';
 import { resolveQuality, type QualityProfile } from './Quality';
 import type { IPlatform } from '../platform';
 import { FishingScene } from '../scenes/FishingScene';
+import type { CatchEntry } from '../content/types';
+import type { Quest } from '../meta/Quests';
 import { PerfHud } from '../debug/PerfHud';
 import { GameUi } from '../ui/GameUi';
 import { Progression, type BranchId } from '../meta/Progression';
 import { Album } from '../meta/Album';
+import { Quests } from '../meta/Quests';
 import { SaveService, emptySave, type GameSave } from '../services/SaveService';
 import { i18n } from '../services/I18n';
 import { AudioService } from '../services/AudioService';
@@ -46,6 +49,7 @@ export class App {
 
   private readonly progression = new Progression();
   private readonly album = new Album();
+  private readonly quests = new Quests();
   private readonly audio = new AudioService();
   private readonly save: SaveService;
   private readonly ads: AdManager;
@@ -91,7 +95,7 @@ export class App {
       toast: (text) => showToast(text),
       sfx: (name) => this.audio.play(name),
       effects: () => this.progression.effects,
-      onCatch: (entry, reward) => this.collect(entry.id, reward),
+      onCatch: (entry, reward) => this.collect(entry, reward),
     });
     this.pixi.stage.addChild(this.scene.root);
     this.resize();
@@ -122,6 +126,14 @@ export class App {
     this.pixi.ticker.add((ticker) => {
       if (!this.running) return;
       this.scene.update(ticker.deltaMS);
+
+      const depth = this.scene.debugSnapshot.depth ?? 0;
+      const reached = this.quests.onDepth(depth);
+      if (reached) {
+        this.completeQuest(reached);
+        this.persist();
+      }
+
       if (this.scene.state !== lastSceneState) {
         lastSceneState = this.scene.state;
         this.renderUi();
@@ -147,20 +159,34 @@ export class App {
     this.state = await this.save.load();
     this.progression.restore(this.state.upgrades as Record<BranchId, number>);
     this.album.restore(this.state.album);
+    this.quests.restore(this.state.quests);
   }
 
   /** Улов зачтён: деньги, альбом, сохранение. */
-  private collect(entryId: string, reward: number): void {
+  private collect(entry: CatchEntry, reward: number): void {
     this.state.money += reward;
     this.lastReward = reward;
     this.audio.play('coin');
-    if (this.album.record(entryId)) showToast('Новый вид в альбоме!');
+    if (this.album.record(entry.id)) showToast(i18n.t('toast.newSpecies'));
+
+    const finished = this.quests.onCatch(entry);
+    if (finished) this.completeQuest(finished);
     this.persist();
 
     // Добровольный бонус: без просмотра игрок ничего не теряет.
     if (reward > 0 && !this.platform.isTV()) {
-      this.ui.offerReward(`Удвоить ×2 · ${reward} ₽`, 6, () => void this.doubleReward(reward));
+      this.ui.offerReward(i18n.t('offer.double', { reward }), 6, () =>
+        void this.doubleReward(reward),
+      );
     }
+  }
+
+  private completeQuest(quest: Quest): void {
+    this.state.money += quest.reward;
+    this.audio.play('coin');
+    showToast(
+      i18n.t('quest.reward', { title: i18n.pick(quest.title), reward: quest.reward }),
+    );
   }
 
   private async doubleReward(reward: number): Promise<void> {
@@ -168,7 +194,7 @@ export class App {
     if (!watched) return;
     this.state.money += reward;
     this.audio.play('coin');
-    showToast(`Улов удвоен! +${reward} ₽`);
+    showToast(i18n.t('toast.doubled', { reward }));
     this.persist();
   }
 
@@ -191,6 +217,7 @@ export class App {
   private persist(): void {
     this.state.upgrades = this.progression.serialize();
     this.state.album = this.album.serialize();
+    this.state.quests = this.quests.serialize();
     this.save.save(this.state);
     this.renderUi();
   }
@@ -200,6 +227,7 @@ export class App {
       money: this.state.money,
       progression: this.progression,
       album: this.album,
+      quests: this.quests,
       canShop: this.scene.state === 'idle',
     });
   }

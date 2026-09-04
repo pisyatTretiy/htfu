@@ -1,0 +1,40 @@
+{
+  "$comment": "Цепочка заданий причала. Идут по порядку, одно активное за раз. Первые пять — это и есть воронка первых десяти минут (docs/03, § 3.6).",
+  "quests": [
+    {
+      "id": "first_catch",
+      "title": { "ru": "Хоть что-нибудь", "en": "Anything at all" },
+      "npc": { "ru": "Механик", "en": "Mechanic" },
+      "goal": { "type": "catch_any", "count": 1 },
+      "reward": 40
+    },
+    {
+      "id": "perch_three",
+      "title": { "ru": "Три окуня механику на уху", "en": "Three perch for the mechanic" },
+      "npc": { "ru": "Механик", "en": "Mechanic" },
+      "goal": { "type": "catch_id", "id": "perch", "count": 3 },
+      "reward": 90
+    },
+    {
+      "id": "junk_one",
+      "title": { "ru": "Достань что-нибудь несъедобное", "en": "Fish out something inedible" },
+      "npc": { "ru": "Скупщик", "en": "Trader" },
+      "goal": { "type": "catch_kind", "kind": "junk", "count": 1 },
+      "reward": 60
+    },
+    {
+      "id": "deep_forty",
+      "title": { "ru": "Опустись на 40 метров", "en": "Go down to 40 metres" },
+      "npc": { "ru": "Скупщик", "en": "Trader" },
+      "goal": { "type": "reach_depth", "depth": 40 },
+      "reward": 120
+    },
+    {
+      "id": "pike_one",
+      "title": { "ru": "Поймай щуку", "en": "Catch a pike" },
+      "npc": { "ru": "Механик", "en": "Mechanic" },
+      "goal": { "type": "catch_id", "id": "pike", "count": 1 },
+      "reward": 220
+    }
+  ]
+}

@@ -2,10 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { JUNK_SHARE, poolAt, rollCatch } from './CatchPool';
 import { FightSystem } from './FightSystem';
 import { Rng } from '../core/Rng';
-import table from '../content/catches.json';
-import type { CatchEntry, CatchTable } from '../content/types';
+import { CATCH_ENTRIES } from '../content/catalog';
+import type { CatchEntry } from '../content/types';
 
-const ENTRIES = (table as unknown as CatchTable).entries;
+const ENTRIES = CATCH_ENTRIES;
 const DEPTHS = [0, 10, 30, 60, 100, 160, 240];
 
 describe('пул заброса', () => {
@@ -75,19 +75,19 @@ describe('баланс боя', () => {
 
   it('вменяемый ритм вытаскивает любую рыбу', () => {
     for (const entry of fish) {
-      expect(playReasonably(entry, 7), entry.name).toBe('landed');
+      expect(playReasonably(entry, 7), entry.name.ru).toBe('landed');
     }
   });
 
   it('зажатый палец рвёт леску на рыбе — иначе в бою нет решения', () => {
     for (const entry of fish) {
-      expect(playGreedily(entry, 7), entry.name).toBe('snapped');
+      expect(playGreedily(entry, 7), entry.name.ru).toBe('snapped');
     }
   });
 
   it('мусор вытаскивается без борьбы', () => {
     for (const entry of junk) {
-      expect(playGreedily(entry, 7), entry.name).toBe('landed');
+      expect(playGreedily(entry, 7), entry.name.ru).toBe('landed');
     }
   });
 

@@ -8,6 +8,7 @@ import { FightSystem } from '../gameplay/FightSystem';
 import { CatchView } from '../gameplay/CatchView';
 import { MischiefAct, type Area } from '../gameplay/Mischief';
 import { rollCatch } from '../gameplay/CatchPool';
+import { entryName } from '../content/catalog';
 import { lineTexture, radialTexture } from '../fx/textures';
 import { Rng } from '../core/Rng';
 import { clamp, damp, metersToPx, MAX_DEPTH_M } from '../core/world';
@@ -333,7 +334,7 @@ export class FishingScene {
     if (entry.mischief === 'none') {
       const reward = fight.reward(this.trickShot);
       this.hooks.onCatch(entry, reward);
-      this.hooks.toast(`${entry.name}! +${reward} ₽`);
+      this.hooks.toast(`${entryName(entry)}! +${reward} ₽`);
       this.rest();
       return;
     }
@@ -346,7 +347,7 @@ export class FishingScene {
     this.water.gameplay.addChild(this.mischief.view);
     this.mischief.start(this.boatArea());
     this.state = 'onboard';
-    this.hooks.toast(`${entry.name} в лодке!`);
+    this.hooks.toast(`${entryName(entry)} в лодке!`);
   }
 
   private stepMischief(dt: number): void {
@@ -364,11 +365,11 @@ export class FishingScene {
     if (result === 'subdued') {
       const reward = Math.max(1, Math.round(fight.reward(this.trickShot) * (1 - act.damage)));
       this.hooks.onCatch(entry, reward);
-      this.hooks.toast(`${entry.name} усмирён! +${reward} ₽`);
+      this.hooks.toast(`${entryName(entry)} усмирён! +${reward} ₽`);
       this.clearMischief();
       this.rest();
     } else if (result === 'escaped') {
-      this.hooks.toast(`${entry.name} ушёл за борт!`);
+      this.hooks.toast(`${entryName(entry)} ушёл за борт!`);
       this.shake = 10;
       this.clearMischief();
       this.rest();
@@ -506,14 +507,16 @@ export class FishingScene {
     tension: number;
     stamina: number;
     patience: number;
+    depth: number;
     onHook: string;
   } {
     return {
       state: this.state,
+      depth: this.hook.depthMeters,
       tension: this.fight?.tensionRatio ?? 0,
       stamina: this.fight?.stamina ?? 1,
       patience: this.mischief?.patience ?? (this.fight?.patience ?? 1),
-      onHook: this.hookedEntry?.name ?? '',
+      onHook: this.hookedEntry ? entryName(this.hookedEntry) : '',
     };
   }
 
@@ -524,12 +527,12 @@ export class FishingScene {
       ['леска', `${this.hooks.effects().maxLineM} м`],
     ];
     if (this.fight && this.state === 'fighting') {
-      rows.push(['на крючке', this.fight.name]);
+      rows.push(['на крючке', entryName(this.hookedEntry ?? { name: { ru: '—' } } as never)]);
       rows.push(['натяжение', this.fight.tensionRatio.toFixed(2)]);
       rows.push(['силы рыбы', this.fight.stamina.toFixed(2)]);
       rows.push(['терпение', this.fight.patience.toFixed(2)]);
     } else if (this.mischief) {
-      rows.push(['в лодке', this.hookedEntry?.name ?? '—']);
+      rows.push(['в лодке', this.hookedEntry ? entryName(this.hookedEntry) : '—']);
       rows.push(['усмирение', `${Math.round(this.mischief.progress * 100)} %`]);
       rows.push(['терпение', this.mischief.patience.toFixed(2)]);
     } else {

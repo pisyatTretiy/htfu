@@ -206,13 +206,24 @@ async function main(): Promise<void> {
   // --- магазин: покупка и то, что она переживает перезагрузку ---
   const beforeShop = await snapshot(page);
   await waitForState(page, ['idle'], 30000);
+  // Альбом: пойманные виды раскрыты, остальные скрыты за «???».
+  await page.click('#ui-album-open');
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: `${OUT}/9-album.png` });
+  const albumText = await page.locator('#ui-album-list').innerText();
+  if (!albumText.includes('???')) {
+    throw new Error('В альбоме нет ни одного нераскрытого вида — что-то не так');
+  }
+  await page.click('#ui-album-close');
+  await page.waitForTimeout(200);
+
   await page.click('#ui-shop-open');
   await page.waitForTimeout(300);
-  await page.screenshot({ path: `${OUT}/9-shop.png` });
+  await page.screenshot({ path: `${OUT}/10-shop.png` });
 
   await page.click('#ui-shop-list .branch:first-child .buy');
   await page.waitForTimeout(400);
-  await page.screenshot({ path: `${OUT}/10-bought.png` });
+  await page.screenshot({ path: `${OUT}/11-bought.png` });
   const afterBuy = await snapshot(page);
 
   if ((afterBuy.upgrades?.line ?? 0) !== 1) {
@@ -229,9 +240,16 @@ async function main(): Promise<void> {
     throw new Error(`Прогресс не пережил перезагрузку: ${JSON.stringify(afterReload.upgrades)}`);
   }
 
+  // Задания: цепочка должна была сдвинуться хотя бы на одно за прогон.
+  const questText = await page.locator('#ui-quest').innerText();
+  if (questText.trim().length === 0) {
+    throw new Error('Панель заданий пуста');
+  }
+  console.log(`Задание на экране: ${questText.replace(/\s+/g, ' ').trim()}`);
+
   await page.keyboard.press('KeyH');
   await page.waitForTimeout(600);
-  await page.screenshot({ path: `${OUT}/11-hud.png` });
+  await page.screenshot({ path: `${OUT}/13-hud.png` });
 
   console.log(
     `Итог: кошелёк ${afterReload.money} ₽, леска ур. ${afterReload.upgrades?.line ?? 0}, ` +
@@ -245,7 +263,11 @@ async function main(): Promise<void> {
   await english.waitForTimeout(1200);
   await english.click('#ui-shop-open');
   await english.waitForTimeout(300);
-  await english.screenshot({ path: `${OUT}/12-shop-en.png` });
+  await english.screenshot({ path: `${OUT}/14-shop-en.png` });
+  await english.click('#ui-shop-close');
+  await english.click('#ui-album-open');
+  await english.waitForTimeout(250);
+  await english.screenshot({ path: `${OUT}/15-album-en.png` });
   const englishText = await english.evaluate(
     () => document.getElementById('ui')?.textContent ?? '',
   );

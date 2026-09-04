@@ -1,8 +1,8 @@
 import type { Rng } from '../core/Rng';
-import table from '../content/catches.json';
-import type { CatchEntry, CatchTable } from '../content/types';
+import { CATCH_ENTRIES } from '../content/catalog';
+import type { CatchEntry } from '../content/types';
 
-const CATCHES = (table as unknown as CatchTable).entries;
+const CATCHES = CATCH_ENTRIES;
 
 /**
  * Доля не-рыбы в пуле (ADR-0003, носитель № 1).

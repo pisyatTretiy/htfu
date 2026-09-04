@@ -3,7 +3,10 @@
   "entries": [
     {
       "id": "perch",
-      "name": "Окунь",
+      "name": {
+        "ru": "Окунь",
+        "en": "Perch"
+      },
       "kind": "fish",
       "weight": 26,
       "depth": [
@@ -30,7 +33,10 @@
     },
     {
       "id": "pike",
-      "name": "Щука",
+      "name": {
+        "ru": "Щука",
+        "en": "Pike"
+      },
       "kind": "fish",
       "weight": 15,
       "depth": [
@@ -57,7 +63,10 @@
     },
     {
       "id": "crab",
-      "name": "Спящий краб",
+      "name": {
+        "ru": "Спящий краб",
+        "en": "Sleepy crab"
+      },
       "kind": "fish",
       "weight": 12,
       "depth": [
@@ -84,7 +93,10 @@
     },
     {
       "id": "lantern",
-      "name": "Фонарная рыба",
+      "name": {
+        "ru": "Фонарная рыба",
+        "en": "Lanternfish"
+      },
       "kind": "fish",
       "weight": 9,
       "depth": [
@@ -111,7 +123,10 @@
     },
     {
       "id": "boot",
-      "name": "Сапог",
+      "name": {
+        "ru": "Сапог",
+        "en": "Boot"
+      },
       "kind": "junk",
       "weight": 12,
       "depth": [
@@ -138,7 +153,10 @@
     },
     {
       "id": "kettle",
-      "name": "Чайник",
+      "name": {
+        "ru": "Чайник",
+        "en": "Kettle"
+      },
       "kind": "junk",
       "weight": 8,
       "depth": [
@@ -165,7 +183,10 @@
     },
     {
       "id": "cone",
-      "name": "Дорожный конус",
+      "name": {
+        "ru": "Дорожный конус",
+        "en": "Traffic cone"
+      },
       "kind": "junk",
       "weight": 6,
       "depth": [
@@ -192,7 +213,10 @@
     },
     {
       "id": "rod",
-      "name": "Чужая удочка",
+      "name": {
+        "ru": "Чужая удочка",
+        "en": "Someone's rod"
+      },
       "kind": "junk",
       "weight": 4,
       "depth": [

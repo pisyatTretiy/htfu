@@ -2,6 +2,8 @@ import { Container } from 'pixi.js';
 import { CatchView } from './CatchView';
 import { Rng } from '../core/Rng';
 import { clamp } from '../core/world';
+import { entryName } from '../content/catalog';
+import { i18n, type Localized } from '../services/I18n';
 import type { CatchEntry } from '../content/types';
 
 export type MischiefResult = 'active' | 'subdued' | 'escaped';
@@ -25,10 +27,22 @@ const BOARD_SIZE = 96;
 const GRAVITY = 1100;
 const BOUNCE = 0.68;
 
-const PRANKS: Record<string, string[]> = {
-  flop: ['{name} сшиб ведро!', '{name} прыгает по всей лодке!', '{name} опрокинул снасти!'],
-  grab: ['{name} вцепился в удочку!', '{name} не отпускает катушку!', '{name} жуёт леску!'],
-  steal: ['{name} утащил наживку!', '{name} выкинул улов за борт!', '{name} лезет в ящик!'],
+const PRANKS: Record<string, Localized[]> = {
+  flop: [
+    { ru: '{name} сшиб ведро!', en: '{name} knocked the bucket over!' },
+    { ru: '{name} прыгает по всей лодке!', en: '{name} is bouncing all over the boat!' },
+    { ru: '{name} опрокинул снасти!', en: '{name} tipped the tackle box!' },
+  ],
+  grab: [
+    { ru: '{name} вцепился в удочку!', en: '{name} grabbed the rod!' },
+    { ru: '{name} не отпускает катушку!', en: "{name} won't let go of the reel!" },
+    { ru: '{name} жуёт леску!', en: '{name} is chewing the line!' },
+  ],
+  steal: [
+    { ru: '{name} утащил наживку!', en: '{name} stole the bait!' },
+    { ru: '{name} выкинул улов за борт!', en: '{name} threw the catch overboard!' },
+    { ru: '{name} лезет в ящик!', en: '{name} is raiding the box!' },
+  ],
 };
 
 /**
@@ -158,6 +172,6 @@ export class MischiefAct {
   private pickPrank(): string | null {
     const lines = PRANKS[this.entry.mischief];
     if (!lines || lines.length === 0) return null;
-    return this.rng.pick(lines).replace('{name}', this.entry.name);
+    return i18n.pick(this.rng.pick(lines)).replace('{name}', entryName(this.entry));
   }
 }

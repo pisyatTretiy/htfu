@@ -1,3 +1,5 @@
+import type { Localized } from '../services/I18n';
+
 /** Типы контента. Данные лежат в JSON, код только читает — docs/04, § 4.2. */
 
 export type CatchKind = 'fish' | 'junk';
@@ -32,7 +34,8 @@ export interface BodyParams {
 
 export interface CatchEntry {
   id: string;
-  name: string;
+  /** Локализовано: модерация требует полного перевода на заявленные языки. */
+  name: Localized;
   kind: CatchKind;
   /** Вес в пуле случайного выбора. */
   weight: number;

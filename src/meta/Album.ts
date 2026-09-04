@@ -1,7 +1,6 @@
-import table from '../content/catches.json';
-import type { CatchTable } from '../content/types';
+import { CATCH_ENTRIES } from '../content/catalog';
 
-const TOTAL = (table as unknown as CatchTable).entries.length;
+const TOTAL = CATCH_ENTRIES.length;
 
 /**
  * Альбом видов. Долгосрочная цель поверх денег: заполнение даёт бонусы

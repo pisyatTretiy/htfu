@@ -1,6 +1,8 @@
 import { i18n } from '../services/I18n';
+import { CATCH_ENTRIES, entryName } from '../content/catalog';
 import type { BranchId, Progression } from '../meta/Progression';
 import type { Album } from '../meta/Album';
+import type { Quests } from '../meta/Quests';
 
 export interface UiCallbacks {
   buy(id: BranchId): void;
@@ -12,7 +14,8 @@ export interface UiState {
   money: number;
   progression: Progression;
   album: Album;
-  /** Магазин открывается только в покое: в бою он бы прятал происходящее. */
+  quests: Quests;
+  /** Панели открываются только в покое: в бою они прятали бы происходящее. */
   canShop: boolean;
 }
 
@@ -25,13 +28,16 @@ export interface UiState {
 export class GameUi {
   private readonly root: HTMLElement;
   private readonly moneyEl: HTMLElement;
-  private readonly albumEl: HTMLElement;
   private readonly openButton: HTMLButtonElement;
   private readonly shop: HTMLElement;
+  private readonly album: HTMLElement;
+  private readonly albumList: HTMLElement;
+  private readonly albumButton: HTMLButtonElement;
+  private readonly questEl: HTMLElement;
   private readonly offer: HTMLButtonElement;
   private readonly rows = new Map<BranchId, HTMLElement>();
 
-  private open = false;
+  private open: 'shop' | 'album' | null = null;
   private offerTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(
@@ -43,24 +49,35 @@ export class GameUi {
     this.root = root;
 
     this.root.innerHTML = `
+      <div class="questbar" id="ui-quest"></div>
       <div class="topbar">
         <div class="stat" id="ui-money"></div>
-        <div class="stat" id="ui-album"></div>
+        <button class="btn" id="ui-album-open">${i18n.t('album.open')}</button>
         <button class="btn" id="ui-shop-open">${i18n.t('shop.open')}</button>
       </div>
       <button class="btn offer" id="ui-offer" hidden></button>
-      <div class="shop" id="ui-shop" hidden>
-        <div class="shop-head">
+      <div class="panel" id="ui-shop" hidden>
+        <div class="panel-head">
           <span>${i18n.t('shop.title')}</span>
           <button class="btn ghost" id="ui-shop-close" aria-label="${i18n.t('shop.close')}">×</button>
         </div>
-        <div class="shop-list" id="ui-shop-list"></div>
+        <div class="panel-list" id="ui-shop-list"></div>
+      </div>
+      <div class="panel" id="ui-album" hidden>
+        <div class="panel-head">
+          <span>${i18n.t('album.title')}</span>
+          <button class="btn ghost" id="ui-album-close" aria-label="${i18n.t('shop.close')}">×</button>
+        </div>
+        <div class="panel-list album-list" id="ui-album-list"></div>
       </div>`;
 
     this.moneyEl = must(document.getElementById('ui-money'));
-    this.albumEl = must(document.getElementById('ui-album'));
+    this.questEl = must(document.getElementById('ui-quest'));
     this.openButton = must(document.getElementById('ui-shop-open')) as HTMLButtonElement;
+    this.albumButton = must(document.getElementById('ui-album-open')) as HTMLButtonElement;
     this.shop = must(document.getElementById('ui-shop'));
+    this.album = must(document.getElementById('ui-album'));
+    this.albumList = must(document.getElementById('ui-album-list'));
     this.offer = must(document.getElementById('ui-offer')) as HTMLButtonElement;
 
     const list = must(document.getElementById('ui-shop-list'));
@@ -83,13 +100,17 @@ export class GameUi {
       this.rows.set(branch.id, row);
     }
 
-    this.openButton.addEventListener('click', () => this.toggle(true));
+    this.openButton.addEventListener('click', () => this.toggle('shop'));
+    this.albumButton.addEventListener('click', () => this.toggle('album'));
     must(document.getElementById('ui-shop-close')).addEventListener('click', () =>
-      this.toggle(false),
+      this.toggle(null),
+    );
+    must(document.getElementById('ui-album-close')).addEventListener('click', () =>
+      this.toggle(null),
     );
     // Escape на десктопе и Back на пульте закрывают панель.
     addEventListener('keydown', (event) => {
-      if ((event.key === 'Escape' || event.key === 'GoBack') && this.open) this.toggle(false);
+      if ((event.key === 'Escape' || event.key === 'GoBack') && this.open) this.toggle(null);
     });
   }
 
@@ -118,22 +139,32 @@ export class GameUi {
   }
 
   get isShopOpen(): boolean {
-    return this.open;
+    return this.open !== null;
   }
 
-  toggle(open: boolean): void {
-    if (this.open === open) return;
-    this.open = open;
-    this.shop.hidden = !open;
-    this.callbacks.shopToggled(open);
-    if (open) this.shop.querySelector('button')?.focus();
+  /** Открытая панель ставит симуляцию на паузу: это уже не геймплей. */
+  toggle(panel: 'shop' | 'album' | null): void {
+    const next = this.open === panel ? null : panel;
+    if (this.open === next) return;
+
+    this.open = next;
+    this.shop.hidden = next !== 'shop';
+    this.album.hidden = next !== 'album';
+    this.callbacks.shopToggled(next !== null);
+
+    if (next === 'shop') this.shop.querySelector('button')?.focus();
+    else if (next === 'album') this.album.querySelector('button')?.focus();
     else this.openButton.focus();
   }
 
   render(state: UiState): void {
     this.moneyEl.textContent = `${state.money} ${i18n.t('hud.money')}`;
-    this.albumEl.textContent = `${i18n.t('hud.album')} ${state.album.discovered}/${state.album.total}`;
-    this.openButton.disabled = !state.canShop && !this.open;
+    this.openButton.disabled = !state.canShop && this.open === null;
+    this.albumButton.disabled = !state.canShop && this.open === null;
+    this.albumButton.textContent = `${i18n.t('album.open')} ${state.album.discovered}/${state.album.total}`;
+
+    this.renderQuest(state);
+    this.renderAlbum(state);
 
     for (const branch of state.progression.branches) {
       const row = this.rows.get(branch.id);
@@ -165,6 +196,35 @@ export class GameUi {
         row.classList.toggle('locked', state.money < price);
       }
     }
+  }
+
+  private renderQuest(state: UiState): void {
+    const quest = state.quests.active;
+    if (!quest) {
+      this.questEl.textContent = i18n.t('quest.done');
+      this.questEl.classList.add('done');
+      return;
+    }
+    this.questEl.classList.remove('done');
+    this.questEl.innerHTML =
+      `<span class="quest-npc">${i18n.pick(quest.npc)}</span>` +
+      `<span class="quest-title">${i18n.pick(quest.title)}</span>` +
+      `<span class="quest-progress">${Math.floor(state.quests.current)}/${state.quests.target}</span>`;
+  }
+
+  private renderAlbum(state: UiState): void {
+    this.albumList.innerHTML = CATCH_ENTRIES.map((entry) => {
+      const count = state.album.countOf(entry.id);
+      const kind = i18n.t(`album.kind.${entry.kind}`);
+      const title = count > 0 ? entryName(entry) : '???';
+      const note =
+        count > 0 ? i18n.t('album.times', { count }) : i18n.t('album.unknown');
+      return `
+        <div class="album-item${count > 0 ? '' : ' unknown'}">
+          <div class="album-name">${title}</div>
+          <div class="album-meta">${kind} · ${note}</div>
+        </div>`;
+    }).join('');
   }
 }
 
