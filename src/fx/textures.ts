@@ -274,6 +274,89 @@ export function cartoonFishTexture(
   return Texture.from(el);
 }
 
+/**
+ * Силуэты мусора. Узнаваемость здесь — не украшение: весь смысл механики
+ * «клюёт не всегда рыба» в том, что игрок понимает, что именно он вытащил
+ * (ADR-0003, носитель № 1). Поэтому не абстрактные кляксы, а формы.
+ */
+export function junkTexture(
+  id: string,
+  width: number,
+  fill = '#8b5a3c',
+  outline = '#3a1f10',
+): Texture {
+  const pad = 8;
+  const height = Math.round(width * 0.82);
+  const [el, ctx] = canvas(width + pad * 2, height + pad * 2);
+  const w = width;
+  const h = height;
+  const ox = pad;
+  const oy = pad;
+
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.lineWidth = Math.max(4, width * 0.05);
+  ctx.strokeStyle = outline;
+  ctx.fillStyle = fill;
+
+  const shape = (): void => {
+    switch (id) {
+      case 'kettle': {
+        ctx.beginPath();
+        ctx.ellipse(ox + w * 0.45, oy + h * 0.62, w * 0.3, h * 0.3, 0, 0, Math.PI * 2);
+        ctx.closePath();
+        ctx.moveTo(ox + w * 0.7, oy + h * 0.52);
+        ctx.lineTo(ox + w * 0.96, oy + h * 0.3);
+        ctx.lineTo(ox + w * 0.86, oy + h * 0.62);
+        ctx.closePath();
+        break;
+      }
+      case 'cone': {
+        ctx.beginPath();
+        ctx.moveTo(ox + w * 0.5, oy + h * 0.1);
+        ctx.lineTo(ox + w * 0.78, oy + h * 0.78);
+        ctx.lineTo(ox + w * 0.22, oy + h * 0.78);
+        ctx.closePath();
+        ctx.moveTo(ox + w * 0.12, oy + h * 0.78);
+        ctx.lineTo(ox + w * 0.88, oy + h * 0.78);
+        ctx.lineTo(ox + w * 0.88, oy + h * 0.92);
+        ctx.lineTo(ox + w * 0.12, oy + h * 0.92);
+        ctx.closePath();
+        break;
+      }
+      case 'rod': {
+        ctx.beginPath();
+        ctx.moveTo(ox + w * 0.08, oy + h * 0.86);
+        ctx.lineTo(ox + w * 0.94, oy + h * 0.14);
+        ctx.lineTo(ox + w * 0.88, oy + h * 0.06);
+        ctx.lineTo(ox + w * 0.02, oy + h * 0.78);
+        ctx.closePath();
+        ctx.moveTo(ox + w * 0.3, oy + h * 0.72);
+        ctx.arc(ox + w * 0.26, oy + h * 0.72, w * 0.1, 0, Math.PI * 2);
+        break;
+      }
+      default: {
+        // Сапог: голенище плюс ступня.
+        ctx.beginPath();
+        ctx.moveTo(ox + w * 0.28, oy + h * 0.08);
+        ctx.lineTo(ox + w * 0.6, oy + h * 0.08);
+        ctx.lineTo(ox + w * 0.62, oy + h * 0.6);
+        ctx.lineTo(ox + w * 0.94, oy + h * 0.66);
+        ctx.quadraticCurveTo(ox + w * 0.99, oy + h * 0.86, ox + w * 0.86, oy + h * 0.9);
+        ctx.lineTo(ox + w * 0.3, oy + h * 0.9);
+        ctx.quadraticCurveTo(ox + w * 0.22, oy + h * 0.7, ox + w * 0.28, oy + h * 0.08);
+        ctx.closePath();
+        break;
+      }
+    }
+  };
+
+  shape();
+  ctx.fill();
+  ctx.stroke();
+  return Texture.from(el);
+}
+
 /** Текстура лески: мягкая горизонтальная нить для MeshRope. */
 export function lineTexture(thickness = 4): Texture {
   const [el, ctx] = canvas(8, thickness);

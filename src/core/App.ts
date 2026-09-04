@@ -4,6 +4,13 @@ import type { IPlatform } from '../platform';
 import { FishingScene } from '../scenes/FishingScene';
 import { PerfHud } from '../debug/PerfHud';
 
+declare global {
+  interface Window {
+    /** Тестовый шов для tools/capture.ts. Читается только автотестом. */
+    __htfu?: FishingScene['debugSnapshot'] | undefined;
+  }
+}
+
 /** Касание короче этого и без сдвига считается тапом, а не свайпом. */
 const TAP_MS = 200;
 const TAP_SLOP = 10;
@@ -53,6 +60,7 @@ export class App {
       if (!this.running) return;
       this.scene.update(ticker.deltaMS);
       this.hud?.update(ticker.deltaMS);
+      window.__htfu = this.scene.debugSnapshot;
     });
 
     this.running = true;
@@ -95,7 +103,7 @@ export class App {
       startX = event.clientX;
       startY = event.clientY;
       canvas.setPointerCapture(event.pointerId);
-      this.scene.pressStart();
+      this.scene.pressStart(event.clientX, event.clientY);
     });
 
     canvas.addEventListener('pointermove', (event) => {
@@ -121,7 +129,7 @@ export class App {
     addEventListener('keydown', (event) => {
       if (event.code === 'Space' && !spaceHeld) {
         spaceHeld = true;
-        this.scene.pressStart();
+        this.scene.pressStart(this.pixi.screen.width * 0.26, this.pixi.screen.height * 0.42);
         event.preventDefault();
       }
       if (event.key === 'ArrowLeft') this.scene.steer(-1);

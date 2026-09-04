@@ -1,0 +1,221 @@
+{
+  "$comment": "Пул заброса. Баланс правится здесь, а не в коде — docs/04, § 4.2. Доля мусора держится в коридоре 20-30% по правилу ADR-0003. Ориентир по бою: при ритме «тянуть 0.3 с / отпускать 0.2 с» окунь вытаскивается, щука рвёт леску — нужен ритм точнее.",
+  "entries": [
+    {
+      "id": "perch",
+      "name": "Окунь",
+      "kind": "fish",
+      "weight": 26,
+      "depth": [
+        0,
+        45
+      ],
+      "price": 14,
+      "fight": {
+        "stamina": 1,
+        "drain": 0.5,
+        "pull": 0.34,
+        "burst": 1.2,
+        "rhythm": 1.0,
+        "recover": 0.06
+      },
+      "body": {
+        "length": 110,
+        "wave": 3.4,
+        "amp": 0.15,
+        "fill": "#4bb7e8",
+        "outline": "#123b56"
+      },
+      "mischief": "flop"
+    },
+    {
+      "id": "pike",
+      "name": "Щука",
+      "kind": "fish",
+      "weight": 15,
+      "depth": [
+        18,
+        90
+      ],
+      "price": 46,
+      "fight": {
+        "stamina": 1,
+        "drain": 0.32,
+        "pull": 0.4,
+        "burst": 2.2,
+        "rhythm": 0.62,
+        "recover": 0.1
+      },
+      "body": {
+        "length": 168,
+        "wave": 2.6,
+        "amp": 0.11,
+        "fill": "#63c96f",
+        "outline": "#1b4a24"
+      },
+      "mischief": "grab"
+    },
+    {
+      "id": "crab",
+      "name": "Спящий краб",
+      "kind": "fish",
+      "weight": 12,
+      "depth": [
+        6,
+        60
+      ],
+      "price": 28,
+      "fight": {
+        "stamina": 1,
+        "drain": 0.5,
+        "pull": 0.3,
+        "burst": 3.0,
+        "rhythm": 0.4,
+        "recover": 0.05
+      },
+      "body": {
+        "length": 96,
+        "wave": 1.2,
+        "amp": 0.07,
+        "fill": "#ff7a4d",
+        "outline": "#5c1d0c"
+      },
+      "mischief": "steal"
+    },
+    {
+      "id": "lantern",
+      "name": "Фонарная рыба",
+      "kind": "fish",
+      "weight": 9,
+      "depth": [
+        40,
+        250
+      ],
+      "price": 88,
+      "fight": {
+        "stamina": 1,
+        "drain": 0.3,
+        "pull": 0.38,
+        "burst": 2.0,
+        "rhythm": 0.8,
+        "recover": 0.11
+      },
+      "body": {
+        "length": 140,
+        "wave": 3.9,
+        "amp": 0.19,
+        "fill": "#ffd166",
+        "outline": "#6b4a05"
+      },
+      "mischief": "flop"
+    },
+    {
+      "id": "boot",
+      "name": "Сапог",
+      "kind": "junk",
+      "weight": 12,
+      "depth": [
+        0,
+        250
+      ],
+      "price": 2,
+      "fight": {
+        "stamina": 1,
+        "drain": 1.1,
+        "pull": 0.06,
+        "burst": 1.1,
+        "rhythm": 0.2,
+        "recover": 0.02
+      },
+      "body": {
+        "length": 92,
+        "wave": 0.4,
+        "amp": 0.03,
+        "fill": "#8b5a3c",
+        "outline": "#3a1f10"
+      },
+      "mischief": "none"
+    },
+    {
+      "id": "kettle",
+      "name": "Чайник",
+      "kind": "junk",
+      "weight": 8,
+      "depth": [
+        0,
+        250
+      ],
+      "price": 5,
+      "fight": {
+        "stamina": 1,
+        "drain": 1.05,
+        "pull": 0.07,
+        "burst": 1.1,
+        "rhythm": 0.25,
+        "recover": 0.02
+      },
+      "body": {
+        "length": 88,
+        "wave": 0.3,
+        "amp": 0.02,
+        "fill": "#b8c4c9",
+        "outline": "#374a50"
+      },
+      "mischief": "none"
+    },
+    {
+      "id": "cone",
+      "name": "Дорожный конус",
+      "kind": "junk",
+      "weight": 6,
+      "depth": [
+        0,
+        120
+      ],
+      "price": 4,
+      "fight": {
+        "stamina": 1,
+        "drain": 1.1,
+        "pull": 0.06,
+        "burst": 1.1,
+        "rhythm": 0.22,
+        "recover": 0.02
+      },
+      "body": {
+        "length": 96,
+        "wave": 0.3,
+        "amp": 0.02,
+        "fill": "#ff8a3d",
+        "outline": "#5c2a08"
+      },
+      "mischief": "none"
+    },
+    {
+      "id": "rod",
+      "name": "Чужая удочка",
+      "kind": "junk",
+      "weight": 4,
+      "depth": [
+        0,
+        160
+      ],
+      "price": 18,
+      "fight": {
+        "stamina": 1,
+        "drain": 0.95,
+        "pull": 0.09,
+        "burst": 1.2,
+        "rhythm": 0.3,
+        "recover": 0.03
+      },
+      "body": {
+        "length": 150,
+        "wave": 0.6,
+        "amp": 0.04,
+        "fill": "#7a4a2a",
+        "outline": "#2e1608"
+      },
+      "mischief": "none"
+    }
+  ]
+}

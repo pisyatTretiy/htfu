@@ -283,6 +283,11 @@ export class WaterScene {
     this.depth = clamp(meters, 0, MAX_DEPTH_M);
   }
 
+  /** Экранные координаты в мировые: мир не масштабируется, только смещается. */
+  screenToWorld(x: number, y: number): { x: number; y: number } {
+    return { x, y: y - this.world.y };
+  }
+
   /** Уровень воды в точке x с учётом волны — на нём качается лодка. */
   surfaceHeightAt(x: number): number {
     return (

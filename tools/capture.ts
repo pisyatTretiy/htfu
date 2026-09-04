@@ -1,32 +1,98 @@
 /**
- * Снимает серию кадров заброса для журнала спайка — и заодно проверяет, что
- * сцена не падает: любая ошибка в консоли браузера роняет скрипт.
+ * Прогон полного цикла ловли в реальном браузере: заброс → клёв → бой →
+ * улов буянит в лодке → усмирение. Снимает кадры для журнала спайка и служит
+ * дымовым тестом: любая ошибка в консоли роняет скрипт.
+ *
+ * Скрипт идёт по состояниям игры, а не по таймингам, — иначе кадры разъезжаются
+ * с тем, что происходит на экране.
  *
  * Запуск: npm run preview (в другом терминале), затем npm run capture
  */
-import { chromium, type Browser } from 'playwright';
+import { chromium, type Browser, type Page } from 'playwright';
 import { existsSync, mkdirSync } from 'node:fs';
 
 const URL = process.env.CAPTURE_URL ?? 'http://localhost:4173/?q=low';
 const OUT = 'dist-shots';
 const BROWSER_PATH = '/opt/pw-browsers/chromium';
 
-interface Shot {
-  name: string;
-  /** Задержка перед снимком, мс. */
-  wait: number;
-  action?: 'chargeStart' | 'chargeEnd' | 'freeze' | 'reel';
+const VIEWPORT = { width: 430, height: 760 };
+/** Лодка стоит на 26 % ширины, буянящий улов прыгает над ватерлинией. */
+const BOAT_X = Math.round(VIEWPORT.width * 0.26);
+const WATER_Y = Math.round(VIEWPORT.height * 0.42);
+
+interface Snapshot {
+  state: string;
+  tension: number;
+  stamina: number;
+  patience: number;
+  money: number;
+  onHook: string;
 }
 
-const SCRIPT: Shot[] = [
-  { name: '1-idle', wait: 900 },
-  { name: '2-charging', wait: 420, action: 'chargeStart' },
-  { name: '3-flying', wait: 260, action: 'chargeEnd' },
-  { name: '4-splash', wait: 700 },
-  { name: '5-sinking', wait: 2200 },
-  { name: '6-after-freeze', wait: 500, action: 'freeze' },
-  { name: '7-reeling', wait: 400, action: 'reel' },
-];
+const EMPTY: Snapshot = {
+  state: '',
+  tension: 0,
+  stamina: 1,
+  patience: 1,
+  money: 0,
+  onHook: '',
+};
+
+/** Читаем состояние игры напрямую, а не парсим HUD: он обновляется раз в 0.5 с. */
+async function snapshot(page: Page): Promise<Snapshot> {
+  return (await page.evaluate(() => window.__htfu)) ?? EMPTY;
+}
+
+async function readState(page: Page): Promise<string> {
+  return (await snapshot(page)).state;
+}
+
+async function waitForState(page: Page, wanted: string[], timeoutMs = 12000): Promise<string> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const state = await readState(page);
+    if (wanted.includes(state)) return state;
+    await page.waitForTimeout(120);
+  }
+  throw new Error(`Не дождались состояния ${wanted.join('|')} за ${timeoutMs} мс`);
+}
+
+/**
+ * Играем как вменяемый игрок: тянем, пока натяжение низкое, и отпускаем на
+ * подходе к обрыву. Если бой невозможно выиграть таким ритмом — тест это
+ * покажет: он вернёт snapped, а не landed.
+ */
+const HOLD_UNTIL = 0.62;
+const RELEASE_UNTIL = 0.24;
+
+async function fightOnce(page: Page): Promise<string> {
+  let reeling = false;
+  const deadline = Date.now() + 25000;
+
+  while (Date.now() < deadline) {
+    const { state, tension } = await snapshot(page);
+    if (state !== 'fighting') {
+      if (reeling) await page.keyboard.up('Space');
+      return state;
+    }
+    if (!reeling && tension < RELEASE_UNTIL) {
+      await page.keyboard.down('Space');
+      reeling = true;
+    } else if (reeling && tension > HOLD_UNTIL) {
+      await page.keyboard.up('Space');
+      reeling = false;
+    }
+    await page.waitForTimeout(40);
+  }
+  if (reeling) await page.keyboard.up('Space');
+  return readState(page);
+}
+
+async function cast(page: Page): Promise<void> {
+  await page.keyboard.down('Space');
+  await page.waitForTimeout(420);
+  await page.keyboard.up('Space');
+}
 
 async function main(): Promise<void> {
   mkdirSync(OUT, { recursive: true });
@@ -35,7 +101,7 @@ async function main(): Promise<void> {
     ...(existsSync(BROWSER_PATH) ? { executablePath: BROWSER_PATH } : {}),
     args: ['--no-sandbox', '--use-gl=swiftshader', '--enable-unsafe-swiftshader'],
   });
-  const page = await browser.newPage({ viewport: { width: 430, height: 760 } });
+  const page = await browser.newPage({ viewport: VIEWPORT });
 
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(String(error)));
@@ -44,19 +110,66 @@ async function main(): Promise<void> {
   });
 
   await page.goto(URL, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(900);
+  // HUD — DOM поверх канваса: он закрывает лодку и перехватывает клики,
+  // поэтому сюжетные кадры снимаем без него, а метрики — отдельным кадром.
+  await page.keyboard.press('KeyH');
+  await page.screenshot({ path: `${OUT}/1-idle.png` });
 
-  for (const shot of SCRIPT) {
-    if (shot.action === 'chargeStart') await page.keyboard.down('Space');
-    if (shot.action === 'chargeEnd') await page.keyboard.up('Space');
-    if (shot.action === 'freeze') await page.keyboard.press('KeyL');
-    if (shot.action === 'reel') await page.keyboard.press('KeyR');
-    await page.waitForTimeout(shot.wait);
-    await page.screenshot({ path: `${OUT}/${shot.name}.png` });
-    console.log(`✓ ${OUT}/${shot.name}.png`);
+  await cast(page);
+  await page.waitForTimeout(260);
+  await page.screenshot({ path: `${OUT}/2-flying.png` });
+
+  await waitForState(page, ['sinking']);
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: `${OUT}/3-splash.png` });
+
+  await waitForState(page, ['fighting']);
+  await page.screenshot({ path: `${OUT}/4-bite.png` });
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: `${OUT}/5-fighting.png` });
+
+  // Ловим, пока не вытащим что-нибудь буянящее: мусор не буянит, это норма.
+  let landed = await fightOnce(page);
+  const deadline = Date.now() + 90000;
+  while (landed !== 'onboard' && Date.now() < deadline) {
+    const state = await readState(page);
+    if (state === 'onboard') {
+      landed = 'onboard';
+    } else if (state === 'fighting') {
+      landed = await fightOnce(page);
+    } else if (state === 'idle') {
+      await cast(page);
+      await page.waitForTimeout(400);
+    } else {
+      // Полёт, погружение, подмотка — просто ждём, пока цикл довернётся.
+      await page.waitForTimeout(300);
+    }
   }
 
-  const state = await page.evaluate(() => document.getElementById('hud')?.textContent ?? '');
-  console.log(`HUD: ${state.replace(/\s+/g, ' ').trim()}`);
+  if (landed === 'onboard') {
+    await page.screenshot({ path: `${OUT}/6-onboard.png` });
+    await page.waitForTimeout(900);
+    await page.screenshot({ path: `${OUT}/7-mischief.png` });
+    // Тапаем по всей площади лодки: улов прыгает, попасть с первого раза нельзя.
+    for (let i = 0; i < 16; i++) {
+      await page.mouse.click(BOAT_X + ((i % 5) - 2) * 22, WATER_Y - 14 - (i % 5) * 20);
+      await page.waitForTimeout(70);
+    }
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: `${OUT}/8-subdued.png` });
+  } else {
+    console.warn(`⚠ За 6 попыток буянящий улов не попался, последнее состояние: ${landed}`);
+  }
+
+  await page.keyboard.press('KeyL');
+  await page.waitForTimeout(500);
+  await page.keyboard.press('KeyH');
+  await page.waitForTimeout(600);
+  await page.screenshot({ path: `${OUT}/9-after-freeze-hud.png` });
+
+  const final = await snapshot(page);
+  console.log(`Итог: состояние ${final.state}, кошелёк ${final.money} ₽`);
 
   await browser.close();
 
@@ -65,7 +178,7 @@ async function main(): Promise<void> {
     for (const error of errors) console.error(`  · ${error}`);
     process.exit(1);
   }
-  console.log('✓ Ошибок в консоли нет');
+  console.log('✓ Полный цикл пройден, ошибок в консоли нет');
 }
 
 main().catch((error: unknown) => {
