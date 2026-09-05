@@ -228,6 +228,7 @@ export class FishingScene3D {
     this.water.setSun(SUN_POSITION);
     this.sky.setSun(SUN_POSITION);
     this.shore.applyZone(zone);
+    this.pier.applyZone(zone.decor.set);
     this.ambient.setZone(this.hooks.zoneCatches(), zone.tint);
 
     // Особенности локации (docs/03, § 3.5). Течение и доля мусара меняют

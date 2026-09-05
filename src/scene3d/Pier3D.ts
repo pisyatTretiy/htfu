@@ -16,16 +16,37 @@ import { Rng } from '../core/Rng';
  * даёт глубину сцене, которая иначе распадается на три горизонтальные полосы —
  * песок, вода, небо.
  */
+/**
+ * Палитра настила по набору декора локации.
+ *
+ * Игрок стоит на одном и том же помосте во всех пяти локациях — и деревянный
+ * причал посреди льдов выглядел вещью из другой игры. Материал помоста
+ * меняется вместе с местом: доски, ржавое железо, обмёрзшее дерево, чёрный
+ * камень.
+ */
+const DECK_PALETTE: Record<string, { wood: string; post: string }> = {
+  tropical: { wood: '#8a7059', post: '#5f4c3c' },
+  wreck: { wood: '#7c5647', post: '#4a3a34' },
+  ice: { wood: '#9fb3bd', post: '#6b8290' },
+  rift: { wood: '#4c4a52', post: '#33323a' },
+};
+
 export class Pier3D {
   readonly group = new Group();
 
   private readonly materials: MeshLambertMaterial[] = [];
+  /** Сдвиг оттенка каждой доски: настил из одинаковых досок читается полом. */
+  private readonly plankShades: [number, number, number][] = [];
+  private readonly wood: MeshLambertMaterial;
+  private readonly post: MeshLambertMaterial;
 
   constructor(length = 16, width = 2.2) {
     // Дерево приглушённое: насыщенная охра тянет на себя весь кадр и спорит
     // с водой, ради которой сцена и построена.
     const wood = new MeshLambertMaterial({ color: new Color('#8a7059'), flatShading: true });
     const post = new MeshLambertMaterial({ color: new Color('#5f4c3c'), flatShading: true });
+    this.wood = wood;
+    this.post = post;
     const rng = new Rng(77);
 
     // Доски настила кладём поперёк: щели между ними читаются и на мобильном.
@@ -34,7 +55,13 @@ export class Pier3D {
     const planks = Math.floor(length / 0.62);
     for (let i = 0; i < planks; i++) {
       const shade = wood.clone();
-      shade.color.offsetHSL(rng.range(-0.012, 0.012), rng.range(-0.05, 0.05), rng.range(-0.07, 0.07));
+      const offset: [number, number, number] = [
+        rng.range(-0.012, 0.012),
+        rng.range(-0.05, 0.05),
+        rng.range(-0.07, 0.07),
+      ];
+      shade.color.offsetHSL(...offset);
+      this.plankShades.push(offset);
       this.materials.push(shade);
 
       const plank = new Mesh(new BoxGeometry(width, 0.11, 0.5), shade);
@@ -108,6 +135,21 @@ export class Pier3D {
     coil.castShadow = true;
 
     this.group.add(crate, lid, bucket, handle, bollard, coil);
+  }
+
+  /** Перекрасить помост под локацию. Форма та же, материал — местный. */
+  applyZone(set: string): void {
+    const palette = DECK_PALETTE[set] ?? DECK_PALETTE.tropical;
+    if (!palette) return;
+
+    this.wood.color.set(palette.wood);
+    this.post.color.set(palette.post);
+    for (let i = 0; i < this.materials.length; i++) {
+      const offset = this.plankShades[i];
+      const material = this.materials[i];
+      if (!material || !offset) continue;
+      material.color.set(palette.wood).offsetHSL(...offset);
+    }
   }
 
   dispose(): void {
