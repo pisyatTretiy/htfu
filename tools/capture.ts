@@ -531,6 +531,35 @@ async function main(): Promise<void> {
   if (closed !== 0) throw new Error('Back с пульта не закрыл панель');
   console.log(`Пульт: ${firstFocus} → ${secondFocus} → ${openedPanel} (${inPanel})`);
 
+  // --- узкий телефон: нижний ряд не должен уезжать за край ---
+  // 360 CSS-пикселей — это обычный Android, а шестизначный кошелёк — обычная
+  // середина игры. Вместе они и выталкивали «Снасти» за экран.
+  const narrow = await browser.newPage({ viewport: { width: 360, height: 640 }, locale: 'ru-RU' });
+  await narrow.addInitScript(() => {
+    localStorage.setItem(
+      'htfu.save',
+      JSON.stringify({ version: 10, updatedAt: Date.now(), money: 128640 }),
+    );
+  });
+  await narrow.goto(URL, { waitUntil: 'networkidle' });
+  await narrow.waitForTimeout(1200);
+  const overflow = await narrow.evaluate(() => {
+    const bar = document.querySelector('#ui .topbar');
+    if (!bar) return 'нет нижнего ряда';
+    const width = document.documentElement.clientWidth;
+    for (const node of bar.children) {
+      const box = node.getBoundingClientRect();
+      if (box.right > width + 0.5 || box.left < -0.5) {
+        return `${node.id || node.className} выходит за экран: ${Math.round(box.left)}..${Math.round(box.right)} при ширине ${width}`;
+      }
+    }
+    return bar.getBoundingClientRect().height > 70 ? 'ряд переносится на две строки' : '';
+  });
+  if (overflow) throw new Error(`Узкий экран: ${overflow}`);
+  await narrow.screenshot({ path: `${OUT}/18-narrow.png` });
+  await narrow.close();
+  console.log('Узкий экран 360 px: нижний ряд помещается');
+
   // Проверка локализации: язык площадка отдаёт сама, и на английском интерфейс
   // должен быть переведён целиком — это требование модерации.
   const english = await browser.newPage({ viewport: VIEWPORT, locale: 'en-US' });

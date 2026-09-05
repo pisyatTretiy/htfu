@@ -1,5 +1,6 @@
 import { i18n } from '../services/I18n';
 import { CATCH_ENTRIES, entryName } from '../content/catalog';
+import { catchIcon } from './CatchIcon';
 import { RARITIES } from '../gameplay/Rarity';
 import type { BranchId, Progression } from '../meta/Progression';
 import type { Album } from '../meta/Album';
@@ -103,7 +104,7 @@ export class GameUi {
         <div class="stat" id="ui-money"></div>
         <button class="btn icon" id="ui-sound" aria-label="${i18n.t('sound.toggle')}"></button>
         <button class="btn" id="ui-map-open">${i18n.t('map.open')}</button>
-        <button class="btn" id="ui-album-open">${i18n.t('album.open')}</button>
+        <button class="btn" id="ui-album-open" aria-label="${i18n.t('album.open')}"></button>
         <button class="btn" id="ui-shop-open">${i18n.t('shop.open')}</button>
       </div>
       <button class="btn offer" id="ui-offer" hidden></button>
@@ -424,7 +425,9 @@ export class GameUi {
     this.openButton.disabled = !state.canShop && this.open === null;
     this.albumButton.disabled = !state.canShop && this.open === null;
     this.mapButton.disabled = !state.canShop && this.open === null;
-    this.albumButton.textContent = `${i18n.t('album.open')} ${state.album.discovered}/${state.album.total}`;
+    // Значок вместо слова: на 360 CSS-пикселях слово «Альбом» вместе с
+    // шестизначным кошельком выталкивало «Снасти» за край экрана.
+    this.albumButton.textContent = `📖 ${state.album.discovered}/${state.album.total}`;
 
     this.lureRow.hidden = !state.canWatchAds;
     this.lureButton.textContent = state.boosts.isLureActive()
@@ -643,6 +646,7 @@ export class GameUi {
           count > 0 ? i18n.t('album.times', { count }) : i18n.t('album.unknown');
         return `
           <div class="album-item${count > 0 ? '' : ' unknown'}${complete ? ' complete' : ''}">
+            ${catchIcon(entry, count > 0)}
             <div class="album-name">${title}</div>
             <div class="album-meta">${i18n.t(`album.kind.${entry.kind}`)} · ${note}</div>
             <div class="album-slots">${slots}</div>

@@ -50,19 +50,29 @@
     #ui { position: fixed; inset: 0; z-index: 8; pointer-events: none; }
     #ui .topbar {
       position: absolute; left: 0; right: 0; bottom: 0;
-      display: flex; align-items: center; gap: 8px;
-      padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+      display: flex; align-items: center; gap: 6px;
+      padding: 10px 10px calc(10px + env(safe-area-inset-bottom));
+    }
+    /* Нижний ряд не переносится: пять элементов должны влезать в 360 CSS-пикселей,
+       иначе на узком телефоне кнопки уезжают в две строки. */
+    #ui .topbar > * { white-space: nowrap; flex: 0 0 auto; }
+    /* Узкий телефон (360 CSS-пикселей) с шестизначным кошельком — самый тесный
+       случай, какой бывает: ужимаем весь ряд, а не прячем кнопки. */
+    @media (max-width: 385px) {
+      #ui .topbar { gap: 5px; padding-left: 8px; padding-right: 8px }
+      #ui .topbar .btn { padding: 7px 9px; font-size: 11.5px }
+      #ui .stat { padding: 5px 8px; font-size: 11.5px }
     }
     #ui .stat {
-      pointer-events: none; font-size: 13px; color: #f2fbf8; font-weight: 500;
+      pointer-events: none; font-size: 12.5px; color: #f2fbf8; font-weight: 500;
       background: rgba(4, 20, 26, .62); border: 2px solid rgba(255,255,255,.14);
-      border-radius: 999px; padding: 6px 12px; backdrop-filter: blur(3px);
+      border-radius: 999px; padding: 6px 10px; backdrop-filter: blur(3px);
       font-variant-numeric: tabular-nums;
     }
     #ui .btn {
-      pointer-events: auto; font: inherit; font-size: 13px; font-weight: 600;
+      pointer-events: auto; font: inherit; font-size: 12.5px; font-weight: 600;
       color: #06231f; background: #ffd166; border: 2px solid #5a2a14;
-      border-radius: 999px; padding: 8px 16px; cursor: pointer;
+      border-radius: 999px; padding: 8px 12px; cursor: pointer;
       box-shadow: 0 3px 0 #5a2a14; transition: transform .08s, box-shadow .08s;
     }
     #ui .btn:active:not(:disabled) { transform: translateY(3px); box-shadow: none; }
@@ -186,11 +196,12 @@
     #ui .album-list {
       display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 8px;
     }
+    #ui .album-icon { display: block; margin: 0 auto 2px; width: 100%; height: auto; max-width: 64px }
     #ui .album-item {
       background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12);
       border-radius: 12px; padding: 9px 11px; display: flex; flex-direction: column; gap: 2px;
     }
-    #ui .album-item.unknown { opacity: .45 }
+    #ui .album-item.unknown { opacity: .7 }
     #ui .album-bonus {
       grid-column: 1 / -1; font-size: 11.5px; color: #4fd6b4;
       background: rgba(79,214,180,.1); border: 1px solid rgba(79,214,180,.3);
