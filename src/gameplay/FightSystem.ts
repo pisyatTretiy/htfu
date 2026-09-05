@@ -9,10 +9,32 @@ const REEL_TENSION = 0.34;
 /** Скорость падения натяжения, когда игрок отпустил. */
 const RELAX = 0.62;
 /**
+ * Сколько леска терпит на пределе, прежде чем лопнуть.
+ *
+ * Мгновенный обрыв наказывает за незнание, а не за ошибку: модель новичка
+ * (реакция 0.35 с) теряла на нём **все** бои до единого, а модель умелого
+ * игрока не теряла ни одного. Бой был не сложным, а бинарным: знаешь приём —
+ * побеждаешь всегда, не знаешь — не побеждаешь никогда.
+ */
+const SNAP_GRACE = 0.2;
+/** Во сколько раз медленнее «перегрев» лески остывает, чем набирается. */
+const COOLDOWN = 0.6;
+/**
+ * Какая доля рывка достаётся леске, когда игрок отпустил.
+ *
+ * Без этого отпустить палец — абсолютная защита, и весь бой сводится к
+ * скорости реакции: любая модель игрока, которая вообще отпускает, побеждает
+ * в ста процентах боёв. С этим слагаемым сильная потяжка тянет леску и на
+ * свободной катушке, и отпускать приходится **заранее**, а не по факту
+ * красной шкалы. Мелкая рыба (pull·burst около 0.4) до порога не дотягивает
+ * и остаётся такой же прощающей, как была; глубоководная (до 1.8) — нет.
+ */
+const SLACK_PULL = 0.3;
+/**
  * Через столько секунд улов срывается сам. Без этого бой не имеет давления:
  * можно просто не тянуть, и рыба будет висеть на крючке бесконечно.
  */
-const PATIENCE = 28;
+const PATIENCE = 20;
 /** У боссов бой длиннее по замыслу, поэтому и терпения больше. */
 const BOSS_PATIENCE = 70;
 
@@ -21,6 +43,8 @@ export type FightOutcome = 'fighting' | 'landed' | 'snapped' | 'escaped';
 export interface FightSetup {
   /** Фазы боя: на порогах усталости меняются рывки. Только у боссов. */
   phases?: FightPhase[];
+  /** Терпение босса из данных. Без него берётся общее для всех боссов. */
+  patience?: number;
 }
 
 export interface FightModifiers {
@@ -52,12 +76,18 @@ export class FightSystem {
   /** Сила текущего рывка 0..1 — для тряски камеры и звука. */
   surge = 0;
 
+  /** Насколько близко к обрыву прямо сейчас, 0..1. Леска уже на пределе. */
+  get danger(): number {
+    return clamp(this.overload / SNAP_GRACE, 0, 1);
+  }
+
   /** Сколько терпения улова осталось, 0..1. */
   get patienceLeft(): number {
     return clamp(1 - this.time / this.patience, 0, 1);
   }
 
   private time = 0;
+  private overload = 0;
   private readonly rng: Rng;
 
   private readonly breakAt: number;
@@ -81,7 +111,10 @@ export class FightSystem {
     this.breakAt = BASE_BREAK_AT * modifiers.lineStrength;
     this.reelPower = modifiers.reelPower;
     this.phases = setup.phases ?? [];
-    this.patience = this.phases.length > 0 ? BOSS_PATIENCE : PATIENCE;
+    this.patience =
+      this.phases.length > 0
+        ? (setup.patience ?? BOSS_PATIENCE)
+        : (entry.fight.patience ?? PATIENCE);
   }
 
   get isBoss(): boolean {
@@ -140,20 +173,29 @@ export class FightSystem {
     const pullNow = pull * (1 + (burst - 1) * shape) * this.stamina;
 
     if (this.reeling) {
-      this.tension += (REEL_TENSION + pullNow) * dt;
+      // Подмотка против рывка стоит куда дороже, чем подмотка в паузе: без
+      // этого множителя «тянуть в паузах» ничего не значило — натяжение росло
+      // одинаково в любой момент, и рывки были украшением.
+      this.tension += (REEL_TENSION * (0.4 + 1.5 * shape) + pullNow) * dt;
       this.stamina = clamp(this.stamina - drain * this.reelPower * dt, 0, 1);
     } else {
-      this.tension -= RELAX * dt;
+      this.tension += (pullNow * SLACK_PULL - RELAX) * dt;
       this.stamina = clamp(this.stamina + recover * dt, 0, 1);
     }
     this.tension = clamp(this.tension, 0, this.breakAt);
 
     if (this.tension >= this.breakAt) {
-      this.outcome = 'snapped';
-    } else if (this.stamina <= 0) {
-      this.outcome = 'landed';
-    } else if (this.time >= this.patience) {
-      this.outcome = 'escaped';
+      // На пределе леска не рвётся сразу: у игрока есть доля секунды, чтобы
+      // отпустить. Успел — бой продолжается, не успел — обрыв.
+      this.overload += dt;
+      if (this.overload >= SNAP_GRACE) this.outcome = 'snapped';
+    } else {
+      this.overload = Math.max(0, this.overload - dt * COOLDOWN);
+    }
+
+    if (this.outcome === 'fighting') {
+      if (this.stamina <= 0) this.outcome = 'landed';
+      else if (this.time >= this.patience) this.outcome = 'escaped';
     }
     return this.outcome;
   }

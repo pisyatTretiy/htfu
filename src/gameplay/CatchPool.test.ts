@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { JUNK_SHARE, poolAt, rollCatch } from './CatchPool';
+import { COMPETENT, simulateFight } from './Simulate';
 import { FightSystem } from './FightSystem';
 import { Rng } from '../core/Rng';
 import { CATCH_ENTRIES } from '../content/catalog';
@@ -44,17 +45,18 @@ describe('пул заброса', () => {
   });
 });
 
-/** Игрок с нормальной реакцией: тянет на низком натяжении, отпускает перед обрывом. */
-function playReasonably(entry: CatchEntry, seed: number): string {
-  const fight = new FightSystem(entry, seed);
-  const step = 1 / 120;
-  for (let i = 0; i < 120 * 30; i++) {
-    if (fight.tension > 0.62) fight.reeling = false;
-    else if (fight.tension < 0.24) fight.reeling = true;
-    const outcome = fight.step(step);
-    if (outcome !== 'fighting') return outcome;
+/**
+ * Доля побед игрока с нормальной реакцией на нескольких раскладах рывков.
+ *
+ * Модель игрока — общая с симулятором баланса (`npm run balance`), иначе
+ * данные подгонялись бы под одного игрока, а проверялись бы другим.
+ */
+function landRate(entry: CatchEntry, runs = 8): number {
+  let landed = 0;
+  for (let seed = 1; seed <= runs; seed++) {
+    if (simulateFight(entry, seed * 977, COMPETENT).outcome === 'landed') landed += 1;
   }
-  return 'timeout';
+  return landed / runs;
 }
 
 /** Игрок, который просто зажал палец и не отпускает. */
@@ -75,7 +77,10 @@ describe('баланс боя', () => {
 
   it('вменяемый ритм вытаскивает любую рыбу', () => {
     for (const entry of fish) {
-      expect(playReasonably(entry, 7), entry.name.ru).toBe('landed');
+      // Не «всегда», а «почти всегда»: бой статистический, и рывки иногда
+      // ложатся неудачно. Вид, который проигрывается чаще одного раза из
+      // восьми, — это уже не сложность, а поломка данных.
+      expect(landRate(entry), entry.name.ru).toBeGreaterThanOrEqual(0.875);
     }
   });
 

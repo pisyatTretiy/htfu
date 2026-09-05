@@ -30,6 +30,13 @@ export interface FightParams {
   rhythm: number;
   /** Сколько сил возвращается за секунду, пока игрок не тянет. */
   recover: number;
+  /**
+   * Через сколько секунд улов срывается сам. Считается по длине честного боя
+   * (tools/tune-patience.ts), а не берётся с потолка: одинаковое терпение для
+   * всех видов означало бы, что вялую рыбу невозможно вытащить в срок, а
+   * бойкую — невозможно упустить.
+   */
+  patience?: number;
 }
 
 export interface BodyParams {
@@ -78,6 +85,8 @@ export interface BossEntry {
   reward: number;
   body: BodyParams;
   phases: FightPhase[];
+  /** Через сколько секунд босс уходит. Считается по длине боя со стартовой снастью. */
+  patience?: number;
 }
 
 export interface BossTable {

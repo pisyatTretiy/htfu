@@ -10,9 +10,11 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "zip": "node --experimental-strip-types tools/build-zip.ts",
-    "capture": "node --experimental-strip-types tools/capture.ts",
+    "capture": "tsx tools/capture.ts",
     "test": "vitest run",
-    "shot": "node --experimental-strip-types tools/shot.ts"
+    "shot": "tsx tools/shot.ts",
+    "balance": "tsx tools/balance.ts",
+    "tune-fights": "tsx tools/tune-fights.ts"
   },
   "dependencies": {
     "three": "^0.185.1"
@@ -21,6 +23,7 @@
     "@types/node": "^26.4.1",
     "@types/three": "^0.185.4",
     "playwright": "^1.62.1",
+    "tsx": "^4.23.13",
     "typescript": "^5.7.0",
     "vite": "^6.0.0",
     "vitest": "^5.0.0"

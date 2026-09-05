@@ -81,7 +81,12 @@ export interface SceneHooks {
   sfx(name: 'cast' | 'splash' | 'bite' | 'snap' | 'bounce' | 'coin'): void;
   zoneCatches(): readonly string[];
   zoneDepth(): number;
-  bossBite(): { entry: CatchEntry; phases: FightPhase[]; taunt: string } | null;
+  bossBite(): {
+    entry: CatchEntry;
+    phases: FightPhase[];
+    taunt: string;
+    patience?: number;
+  } | null;
   onBoss(entryId: string): void;
   onBossEscaped(): void;
   effects(): Effects;
@@ -434,7 +439,12 @@ export class FishingScene3D {
       entry,
       this.rng.int(1, 1 << 20),
       { reelPower, lineStrength },
-      boss ? { phases: boss.phases } : {},
+      boss
+        ? {
+            phases: boss.phases,
+            ...(boss.patience === undefined ? {} : { patience: boss.patience }),
+          }
+        : {},
     );
 
     this.hooked = new FishView3D(entry);

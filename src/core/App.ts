@@ -392,12 +392,22 @@ export class App {
     this.persist();
   }
 
-  private rollBoss(): { entry: CatchEntry; phases: FightPhase[]; taunt: string } | null {
+  private rollBoss(): {
+    entry: CatchEntry;
+    phases: FightPhase[];
+    taunt: string;
+    patience?: number;
+  } | null {
     const zone = this.zones.current;
     if (!this.bosses.isReady(zone.id)) return null;
     const boss = this.bosses.bossOf(zone.id);
     if (!boss) return null;
-    return { entry: bossAsCatch(boss), phases: boss.phases, taunt: i18n.pick(boss.taunt) };
+    return {
+      entry: bossAsCatch(boss),
+      phases: boss.phases,
+      taunt: i18n.pick(boss.taunt),
+      ...(boss.patience === undefined ? {} : { patience: boss.patience }),
+    };
   }
 
   private defeatBoss(bossId: string): void {
