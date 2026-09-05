@@ -26,6 +26,14 @@ export class Environment3D {
   private readonly sand: Mesh;
   /** Общий берег: камни у прибоя и острова на горизонте. Есть везде. */
   private readonly props = new Group();
+  /**
+   * Материалы зелени: перекрашиваются вместе с локацией.
+   *
+   * Раньше нужные материалы искались по совпадению цвета — и после первой же
+   * смены палитры совпадение переставало срабатывать, поэтому вторая локация
+   * оставалась с зеленью первой.
+   */
+  private readonly foliage: MeshLambertMaterial[] = [];
   /** Наборы декора локаций. Строятся один раз, дальше только показываются. */
   private readonly sets: Record<ZoneDecorSet, Group> = {
     tropical: new Group(),
@@ -89,6 +97,7 @@ export class Environment3D {
 
     // Пучки травы: скрещенные плоскости, самый дешёвый способ набить объём.
     const grassMaterial = new MeshLambertMaterial({ color: new Color('#5f9e42'), flatShading: true });
+    this.foliage.push(grassMaterial);
     for (let i = 0; i < 110; i++) {
       const tuft = new Mesh(grassGeometry(rng), grassMaterial);
       const z = rng.range(1, 34);
@@ -285,6 +294,7 @@ export class Environment3D {
     palm.add(trunk);
 
     const leafMaterial = new MeshLambertMaterial({ color: new Color('#3f8f3a'), flatShading: true });
+    this.foliage.push(leafMaterial);
     const leaves = rng.int(6, 8);
     for (let i = 0; i < leaves; i++) {
       const leaf = new Mesh(leafGeometry(rng), leafMaterial);
@@ -330,14 +340,7 @@ export class Environment3D {
 
   private setPalette(sand: string, foliage: string): void {
     (this.sand.material as MeshLambertMaterial).color.set(sand);
-    this.sets.tropical.traverse((node) => {
-      if (node instanceof Mesh) {
-        const material = node.material as MeshLambertMaterial;
-        if (material.color.getHexString() === '5f9e42' || material.color.getHexString() === '3f8f3a') {
-          material.color.set(foliage);
-        }
-      }
-    });
+    for (const material of this.foliage) material.color.set(foliage);
   }
 
   dispose(): void {
