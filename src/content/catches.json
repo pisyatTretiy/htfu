@@ -1288,7 +1288,7 @@
         "amp": 0.02,
         "fill": "#8b5a3c",
         "outline": "#3a1f10",
-        "shape": "junk"
+        "shape": "boot"
       },
       "mischief": "none"
     },
@@ -1350,7 +1350,7 @@
         "amp": 0.02,
         "fill": "#ff8a3d",
         "outline": "#5c2a08",
-        "shape": "junk"
+        "shape": "cone"
       },
       "mischief": "none"
     },
@@ -1381,7 +1381,7 @@
         "amp": 0.02,
         "fill": "#7a4a2a",
         "outline": "#2e1608",
-        "shape": "junk"
+        "shape": "rod"
       },
       "mischief": "none"
     },
@@ -1443,7 +1443,7 @@
         "amp": 0.02,
         "fill": "#b8813c",
         "outline": "#4a2a10",
-        "shape": "junk"
+        "shape": "chest"
       },
       "mischief": "none"
     },
@@ -1536,7 +1536,7 @@
         "amp": 0.02,
         "fill": "#5a6670",
         "outline": "#1e262c",
-        "shape": "junk"
+        "shape": "anchor"
       },
       "mischief": "none"
     },
@@ -1567,7 +1567,7 @@
         "amp": 0.02,
         "fill": "#c4566a",
         "outline": "#40161f",
-        "shape": "junk"
+        "shape": "umbrella"
       },
       "mischief": "none"
     },
@@ -1598,7 +1598,7 @@
         "amp": 0.02,
         "fill": "#2e3a44",
         "outline": "#0e1418",
-        "shape": "junk"
+        "shape": "phone"
       },
       "mischief": "none"
     },
@@ -1629,7 +1629,7 @@
         "amp": 0.02,
         "fill": "#e4e8ea",
         "outline": "#4a5257",
-        "shape": "junk"
+        "shape": "fridge"
       },
       "mischief": "none"
     }

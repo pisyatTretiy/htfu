@@ -68,6 +68,14 @@ class PropView implements CatchView {
     else if (shape === 'star') this.buildStar(size, body, outline);
     else if (shape === 'ring') this.buildRing(size, body, outline);
     else if (shape === 'can') this.buildCan(size, body, trim, outline);
+    else if (shape === 'boot') this.buildBoot(size, body, outline);
+    else if (shape === 'chest') this.buildChest(size, body, trim, outline);
+    else if (shape === 'anchor') this.buildAnchor(size, body, outline);
+    else if (shape === 'umbrella') this.buildUmbrella(size, body, outline);
+    else if (shape === 'phone') this.buildPhone(size, body, trim, outline);
+    else if (shape === 'fridge') this.buildFridge(size, body, trim, outline);
+    else if (shape === 'cone') this.buildCone(size, body, trim, outline);
+    else if (shape === 'rod') this.buildRod(size, body, trim, outline);
     else this.buildJunk(size, entry.id, body, trim, outline);
 
     this.group.traverse((node) => {
@@ -217,10 +225,192 @@ class PropView implements CatchView {
   }
 
   /**
-   * Свёрток: сапог, ящик, зонт — всё, у чего нет своей узнаваемой формы.
+   * Сапог: подошва и голенище.
    *
-   * Пропорции разводятся по имени вида: двенадцать одинаковых комков выглядели
-   * бы одной вещью, перекрашенной двенадцать раз.
+   * Сапог, сундук, якорь и зонт — это шутка локации, и шутка работает,
+   * только если предмет узнаётся с первого взгляда. До этих сборок все
+   * восемь предметов были одинаковыми ящиками с шишкой и палкой.
+   */
+  private buildBoot(size: number, body: MeshLambertMaterial, outline: MeshLambertMaterial): void {
+    const shaft = new Mesh(new BoxGeometry(size * 0.3, size * 0.5, size * 0.3), body);
+    shaft.position.set(-size * 0.08, size * 0.1, 0);
+
+    const foot = new Mesh(new BoxGeometry(size * 0.52, size * 0.2, size * 0.28), body);
+    foot.position.set(size * 0.08, -size * 0.24, 0);
+
+    const sole = new Mesh(new BoxGeometry(size * 0.56, size * 0.07, size * 0.3), outline);
+    sole.position.set(size * 0.08, -size * 0.37, 0);
+
+    const cuff = new Mesh(new BoxGeometry(size * 0.34, size * 0.08, size * 0.34), outline);
+    cuff.position.set(-size * 0.08, size * 0.35, 0);
+
+    this.group.add(shaft, foot, sole, cuff);
+  }
+
+  /** Сундук: короб, круглая крышка и полосы оковки. */
+  private buildChest(
+    size: number,
+    body: MeshLambertMaterial,
+    trim: MeshLambertMaterial,
+    outline: MeshLambertMaterial,
+  ): void {
+    const box = new Mesh(new BoxGeometry(size * 0.56, size * 0.3, size * 0.36), body);
+    box.position.y = -size * 0.1;
+
+    const lid = new Mesh(
+      new CylinderGeometry(size * 0.18, size * 0.18, size * 0.56, 10, 1, false, 0, Math.PI),
+      trim,
+    );
+    lid.rotation.z = Math.PI / 2;
+    lid.position.y = size * 0.05;
+
+    const lock = new Mesh(new BoxGeometry(size * 0.06, size * 0.12, size * 0.06), outline);
+    lock.position.set(size * 0.29, -size * 0.02, 0);
+
+    const bands: Mesh[] = [];
+    for (const side of [-1, 1]) {
+      const band = new Mesh(new BoxGeometry(size * 0.05, size * 0.32, size * 0.38), outline);
+      band.position.set(side * size * 0.18, -size * 0.1, 0);
+      bands.push(band);
+    }
+
+    this.group.add(box, lid, lock, ...bands);
+  }
+
+  /** Якорь: веретено, шток, рога и рым. */
+  private buildAnchor(size: number, body: MeshLambertMaterial, outline: MeshLambertMaterial): void {
+    const shank = new Mesh(new CylinderGeometry(size * 0.05, size * 0.05, size * 0.7, 6), body);
+
+    const stock = new Mesh(new BoxGeometry(size * 0.5, size * 0.06, size * 0.06), body);
+    stock.position.y = size * 0.24;
+
+    const ring = new Mesh(new TorusGeometry(size * 0.08, size * 0.025, 4, 10), outline);
+    ring.position.y = size * 0.42;
+
+    const flukes: Mesh[] = [];
+    for (const side of [-1, 1]) {
+      const arm = new Mesh(new CylinderGeometry(size * 0.03, size * 0.05, size * 0.34, 5), body);
+      arm.position.set(side * size * 0.13, -size * 0.29, 0);
+      arm.rotation.z = side * 1.15;
+
+      const barb = new Mesh(new ConeGeometry(size * 0.08, size * 0.16, 4), outline);
+      barb.position.set(side * size * 0.26, -size * 0.34, 0);
+      barb.rotation.z = side * 2.1;
+      flukes.push(arm, barb);
+    }
+
+    this.group.add(shank, stock, ring, ...flukes);
+  }
+
+  /** Зонт: купол, спицы, ручка крюком. */
+  private buildUmbrella(
+    size: number,
+    body: MeshLambertMaterial,
+    outline: MeshLambertMaterial,
+  ): void {
+    const canopy = new Mesh(new ConeGeometry(size * 0.42, size * 0.3, 8), body);
+    canopy.position.y = size * 0.18;
+
+    const shaft = new Mesh(new CylinderGeometry(size * 0.02, size * 0.02, size * 0.7, 5), outline);
+    shaft.position.y = -size * 0.08;
+
+    const hook = new Mesh(new TorusGeometry(size * 0.07, size * 0.02, 4, 8, Math.PI), outline);
+    hook.rotation.y = Math.PI / 2;
+    hook.position.set(0, -size * 0.43, size * 0.07);
+
+    const ribs: Mesh[] = [];
+    for (let i = 0; i < 4; i++) {
+      const rib = new Mesh(new BoxGeometry(size * 0.02, size * 0.02, size * 0.8), outline);
+      rib.position.y = size * 0.04;
+      rib.rotation.set(0.22, (i / 4) * Math.PI, 0);
+      ribs.push(rib);
+    }
+
+    this.group.add(canopy, shaft, hook, ...ribs);
+  }
+
+  /** Телефон: плитка с экраном и глазком камеры. */
+  private buildPhone(
+    size: number,
+    body: MeshLambertMaterial,
+    trim: MeshLambertMaterial,
+    outline: MeshLambertMaterial,
+  ): void {
+    const slab = new Mesh(new BoxGeometry(size * 0.3, size * 0.58, size * 0.05), body);
+    const screen = new Mesh(new BoxGeometry(size * 0.25, size * 0.46, size * 0.02), outline);
+    screen.position.z = size * 0.03;
+    const lens = new Mesh(new CylinderGeometry(size * 0.03, size * 0.03, size * 0.02, 8), trim);
+    lens.rotation.x = Math.PI / 2;
+    lens.position.set(size * 0.09, size * 0.2, -size * 0.03);
+
+    this.group.add(slab, screen, lens);
+  }
+
+  /** Холодильник: короб, дверь и ручка. */
+  private buildFridge(
+    size: number,
+    body: MeshLambertMaterial,
+    trim: MeshLambertMaterial,
+    outline: MeshLambertMaterial,
+  ): void {
+    const box = new Mesh(new BoxGeometry(size * 0.42, size * 0.78, size * 0.4), body);
+    const door = new Mesh(new BoxGeometry(size * 0.38, size * 0.52, size * 0.04), trim);
+    door.position.set(0, -size * 0.1, size * 0.21);
+    const freezer = new Mesh(new BoxGeometry(size * 0.38, size * 0.2, size * 0.04), trim);
+    freezer.position.set(0, size * 0.26, size * 0.21);
+    const handle = new Mesh(new BoxGeometry(size * 0.04, size * 0.3, size * 0.04), outline);
+    handle.position.set(-size * 0.14, -size * 0.1, size * 0.24);
+
+    this.group.add(box, door, freezer, handle);
+  }
+
+  /** Дорожный конус: сам конус, полоса и подошва. */
+  private buildCone(
+    size: number,
+    body: MeshLambertMaterial,
+    trim: MeshLambertMaterial,
+    outline: MeshLambertMaterial,
+  ): void {
+    const cone = new Mesh(new ConeGeometry(size * 0.22, size * 0.62, 8), body);
+    cone.position.y = size * 0.06;
+    const stripe = new Mesh(new CylinderGeometry(size * 0.15, size * 0.17, size * 0.1, 8), trim);
+    stripe.position.y = size * 0.14;
+    const base = new Mesh(new BoxGeometry(size * 0.44, size * 0.06, size * 0.44), outline);
+    base.position.y = -size * 0.25;
+
+    this.group.add(cone, stripe, base);
+  }
+
+  /** Чужая удочка: бланк, рукоять и катушка. */
+  private buildRod(
+    size: number,
+    body: MeshLambertMaterial,
+    trim: MeshLambertMaterial,
+    outline: MeshLambertMaterial,
+  ): void {
+    const blank = new Mesh(new CylinderGeometry(size * 0.008, size * 0.028, size * 0.86, 5), body);
+    blank.rotation.z = Math.PI / 2;
+    blank.position.x = size * 0.1;
+
+    const grip = new Mesh(new CylinderGeometry(size * 0.04, size * 0.04, size * 0.24, 6), outline);
+    grip.rotation.z = Math.PI / 2;
+    grip.position.x = -size * 0.42;
+
+    const spool = new Mesh(new CylinderGeometry(size * 0.09, size * 0.09, size * 0.07, 8), trim);
+    spool.rotation.x = Math.PI / 2;
+    spool.position.set(-size * 0.26, -size * 0.09, 0);
+
+    const stem = new Mesh(new BoxGeometry(size * 0.03, size * 0.1, size * 0.03), outline);
+    stem.position.set(-size * 0.26, -size * 0.04, 0);
+
+    this.group.add(blank, grip, spool, stem);
+  }
+
+  /**
+   * Свёрток: всё, у чего нет своей узнаваемой формы.
+   *
+   * Пропорции разводятся по имени вида: одинаковые комки выглядели бы одной
+   * вещью, перекрашенной несколько раз.
    */
   private buildJunk(
     size: number,
