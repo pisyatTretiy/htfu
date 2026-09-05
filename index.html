@@ -304,9 +304,11 @@
     #ui .branch-value { font-size: 12.5px; color: #4fd6b4; font-variant-numeric: tabular-nums }
     #ui .branch-foot .btn { padding: 6px 14px; font-size: 12.5px }
 
+    /* Выше карточки босса (26 %): в узком экране трёхстрочная всплывашка
+       доставала до неё и закрывала подпись трофея. */
     #toast {
       position: fixed; left: calc(var(--field-x, 0px) + var(--field-w, 100%) / 2);
-      top: 18%; z-index: 12;
+      top: 12%; z-index: 12;
       transform: translate(-50%, -8px); opacity: 0; pointer-events: none;
       font-size: 15px; letter-spacing: .1em; text-transform: uppercase; color: #eafffb;
       background: rgba(4, 20, 26, .8); border: 1px solid #2f7d74; border-radius: 999px;

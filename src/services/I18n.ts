@@ -44,7 +44,7 @@ export const STRINGS: Record<string, Localized> = {
   'map.needBoss': { ru: 'Победить: {name}', en: 'Defeat: {name}' },
   'album.trophies': { ru: 'Трофеи', en: 'Trophies' },
   'album.noTrophy': { ru: 'Не побеждён', en: 'Not defeated' },
-  'toast.boss': { ru: '{name} повержен! Трофей: {trophy}', en: '{name} defeated! Trophy: {trophy}' },
+  'toast.boss': { ru: 'Награда: {reward} ₽', en: 'Reward: {reward} ₽' },
   'quest.done': { ru: 'Все задания причала выполнены', en: 'All dock quests done' },
   'quest.reward': { ru: 'Задание выполнено: {title} · +{reward} ₽', en: 'Quest complete: {title} · +{reward} ₽' },
   'toast.newSpecies': { ru: 'Новый вид в альбоме!', en: 'New species in the album!' },

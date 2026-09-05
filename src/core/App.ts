@@ -470,7 +470,11 @@ export class App {
     this.album.record(bossId, 'common');
     // Победа над боссом заслуживает того же кадра, что и его появление.
     this.ui.showCard(i18n.t('boss.won'), i18n.pick(boss.trophy), 'trophy');
-    showToast(i18n.t('toast.boss', { name: i18n.pick(boss.name), trophy: i18n.pick(boss.trophy) }));
+    // Карточка уже назвала трофей во весь кадр — всплывающая строка повторяла
+    // её слово в слово и вдобавок наезжала на неё. Здесь остаётся то, чего в
+    // карточке нет: сколько за него заплатили. Имя босса не повторяем и
+    // потому, что в русском оно требует падежа, которого у названия нет.
+    showToast(i18n.t('toast.boss', { reward: String(boss.reward) }));
     this.persist();
     // Карточка трофея висит две с половиной секунды — окно оценки после неё.
     setTimeout(() => void this.askReview(), 3200);
