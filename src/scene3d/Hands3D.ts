@@ -34,6 +34,18 @@ export class Hands3D {
   private readonly rodMaterial: MeshLambertMaterial;
   private bend = 0;
 
+  // Переиспользуемые векторы и память о прошлом кадре: геометрия удилища
+  // пересобирается только когда изгиб или направление на крючок реально
+  // изменились. Раньше тюб на сто с лишним вершин строился каждый кадр —
+  // шестьдесят раз в секунду в том числе на неподвижной сцене.
+  private readonly restDir = new Vector3(0.1, 0.46, -0.88).normalize();
+  private readonly dir = new Vector3();
+  private readonly tip = new Vector3();
+  private readonly middle = new Vector3();
+  private readonly halfway = new Vector3();
+  private readonly lastPull = new Vector3(0, 0, -1);
+  private lastBend = -1;
+
   constructor() {
     this.rodMaterial = new MeshLambertMaterial({ color: new Color('#23262b'), flatShading: true });
     this.rodMesh = new Mesh(this.buildRod(0, new Vector3(0, 1, 0)), this.rodMaterial);
@@ -87,6 +99,15 @@ export class Hands3D {
    */
   update(tension: number, pull: Vector3): void {
     this.bend += (tension - this.bend) * 0.2;
+
+    const still =
+      Math.abs(this.bend - this.lastBend) < 0.004 &&
+      this.lastPull.distanceToSquared(pull) < 0.0004;
+    if (still) return;
+
+    this.lastBend = this.bend;
+    this.lastPull.copy(pull);
+
     const geometry = this.buildRod(this.bend, pull);
     this.rodMesh.geometry.dispose();
     this.rodMesh.geometry = geometry;
@@ -95,17 +116,18 @@ export class Hands3D {
   private buildRod(bend: number, pull: Vector3): TubeGeometry {
     // В покое удилище смотрит вперёд-вверх; под натяжением вершинка уходит
     // к крючку, а середина отстаёт — отсюда дуга, а не излом.
-    const rest = new Vector3(0.1, 0.46, -0.88).normalize();
-    const target = pull.clone().normalize();
-    const direction = rest.clone().lerp(target, Math.min(1, bend) * 0.55).normalize();
+    this.dir.copy(pull).normalize();
+    this.dir.lerpVectors(this.restDir, this.dir, Math.min(1, bend) * 0.55).normalize();
 
-    const tip = GRIP.clone().addScaledVector(direction, ROD_LENGTH);
-    const middle = GRIP.clone()
-      .addScaledVector(rest, ROD_LENGTH * 0.5)
-      .lerp(GRIP.clone().add(tip).multiplyScalar(0.5), bend * 0.45);
+    this.tip.copy(GRIP).addScaledVector(this.dir, ROD_LENGTH);
+    this.halfway.copy(GRIP).add(this.tip).multiplyScalar(0.5);
+    this.middle
+      .copy(GRIP)
+      .addScaledVector(this.restDir, ROD_LENGTH * 0.5)
+      .lerp(this.halfway, bend * 0.45);
 
-    this.tipLocal.copy(tip);
-    const curve = new CatmullRomCurve3([GRIP.clone(), middle, tip]);
+    this.tipLocal.copy(this.tip);
+    const curve = new CatmullRomCurve3([GRIP.clone(), this.middle.clone(), this.tip.clone()]);
     return new TubeGeometry(curve, 18, 0.014, 5, false);
   }
 
