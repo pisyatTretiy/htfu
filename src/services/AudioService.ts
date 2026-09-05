@@ -7,6 +7,7 @@ export type SoundName =
   | 'boss'
   | 'snap'
   | 'coin'
+  | 'rare'
   | 'bounce';
 
 /**
@@ -203,6 +204,13 @@ export class AudioService {
       case 'coin':
         this.sweep(880, 1320, 0.1, 'sine', 0.45);
         this.sweep(1320, 1760, 0.12, 'sine', 0.3, 0.08);
+        break;
+      case 'rare':
+        // Три ноты вверх: редкий вариант должен звучать иначе, чем обычный,
+        // иначе игрок узнаёт о нём только из строки в альбоме.
+        this.sweep(880, 1180, 0.12, 'triangle', 0.3);
+        this.sweep(1180, 1560, 0.12, 'triangle', 0.26, 0.1);
+        this.sweep(1560, 2100, 0.16, 'sine', 0.22, 0.2);
         break;
       case 'bounce':
         this.sweep(320, 140, 0.1, 'triangle', 0.35);

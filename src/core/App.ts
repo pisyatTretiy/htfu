@@ -487,7 +487,9 @@ export class App {
     this.state.money += total;
     this.bosses.countCatch(this.zones.current.id);
     this.lastReward = total;
-    this.audio.play('coin');
+    // Редкий вариант слышно: обычный звенит монетой, редкий и золотой —
+    // тремя нотами вверх. Иначе о редкости узнают из строки в альбоме.
+    this.audio.play(rarity === 'common' ? 'coin' : 'rare');
 
     // Дневные дела двигаются от того же события, что и альбом с квестами.
     const wasSubdued = entry.mischief !== 'none';
