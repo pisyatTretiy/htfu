@@ -86,6 +86,13 @@ export class App {
    */
   private lastSceneState = 'idle';
   private lastReward = 0;
+  /**
+   * Серия уловов подряд. Ниша «риск ради награды» вместо вырезанного
+   * гэмблинга (docs/03, § 3.5): множитель растёт с каждым уловом и
+   * обнуляется обрывом. Живёт в сессии, а не в сейве: перезагрузка — это
+   * не «продолжить серию», а начать заново.
+   */
+  private streak = 0;
 
   constructor(private readonly platform: IPlatform) {
     this.save = new SaveService(platform);
@@ -325,9 +332,12 @@ export class App {
   /** Эффекты снасти плюс постоянные бонусы альбома и временные — приманки. */
   private get effects(): Effects {
     const base = this.progression.effects;
+    // Особенность локации входит в те же эффекты, что снасть и альбом: на
+    // морозе леска дубеет, и это честный множитель, а не отдельное правило.
+    const zone = this.zones.current.modifiers?.lineStrength ?? 1;
     return {
       ...base,
-      lineStrength: base.lineStrength * this.album.lineStrengthMultiplier,
+      lineStrength: base.lineStrength * this.album.lineStrengthMultiplier * zone,
       luck: this.boosts.luck(),
     };
   }
@@ -339,6 +349,9 @@ export class App {
    * следующей встречи, и подменять его роликом значило бы продавать босса.
    */
   private offerRetry(entry: CatchEntry, isBoss: boolean): void {
+    // Обрыв сбрасывает серию — в этом и смысл риска.
+    this.streak = 0;
+    this.renderUi();
     if (isBoss || this.platform.isTV() || !this.scene.canRetry) return;
     this.ui.offerReward(i18n.t('offer.retry', { name: i18n.pick(entry.name) }), 5, () =>
       void this.doRetry(),
@@ -441,8 +454,12 @@ export class App {
   }
 
   private collect(entry: CatchEntry, reward: number, rarity: Rarity): void {
+    this.streak += 1;
     const total = Math.round(
-      reward * this.album.priceMultiplier * this.album.priceMultiplierFor(entry.id),
+      reward *
+        this.album.priceMultiplier *
+        this.album.priceMultiplierFor(entry.id) *
+        this.streakMultiplier,
     );
     this.state.money += total;
     this.bosses.countCatch(this.zones.current.id);
@@ -481,6 +498,11 @@ export class App {
         void this.doubleReward(total),
       );
     }
+  }
+
+  /** Множитель серии: +5 % за улов подряд, потолок +50 %. */
+  private get streakMultiplier(): number {
+    return 1 + Math.min(0.5, Math.max(0, this.streak - 1) * 0.05);
   }
 
   /** Название дела с подставленным числом из цели. */
@@ -608,6 +630,7 @@ export class App {
       store: this.store,
       products: this.products,
       canWatchAds: !this.platform.isTV(),
+      streakMultiplier: this.streakMultiplier,
       unlock: this.unlockContext,
       canShop: this.scene.state === 'idle',
     });

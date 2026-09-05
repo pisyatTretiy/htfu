@@ -128,6 +128,9 @@ export class FishingScene3D {
   private readonly wake = new Wake3D();
   private readonly hands = new Hands3D();
   private readonly sun = new DirectionalLight(0xffffff, 2.1);
+  private readonly ambientLight = new HemisphereLight(0xdfeeff, 0x7a6a4a, 1.15);
+  /** Доля мусора локации. undefined — общая доля из пула. */
+  private zoneJunkShare: number | undefined;
   private readonly hook = new Hook3D();
   private readonly line = new Line3D();
   private readonly rng = new Rng(Date.now() & 0xffff);
@@ -201,7 +204,7 @@ export class FishingScene3D {
     this.sun.shadow.camera.bottom = -26;
     this.sun.shadow.camera.far = 70;
     this.sun.shadow.bias = -0.0015;
-    this.scene.add(this.sun, new HemisphereLight(0xdfeeff, 0x7a6a4a, 1.15));
+    this.scene.add(this.sun, this.ambientLight);
 
     // Игрок стоит на причале и смотрит в море.
     this.camera.position.set(0, PIER_Y + EYE_HEIGHT, PLAYER_Z);
@@ -226,8 +229,24 @@ export class FishingScene3D {
     this.sky.setSun(SUN_POSITION);
     this.shore.setPalette(zone.sand, zone.foliage);
     this.ambient.setZone(this.hooks.zoneCatches(), zone.tint);
+
+    // Особенности локации (docs/03, § 3.5). Течение и доля мусара меняют
+    // игру, темнота — картинку; всё остальное в локациях одинаково.
+    const mods = zone.modifiers ?? {};
+    this.zoneJunkShare = mods.junkShare;
+    // Течение сносит вправо или влево в зависимости от знака: у каждой воды
+    // свой характер, и запоминается он именно так.
+    this.hook.current = (mods.drift ?? 0) * (zone.id.length % 2 === 0 ? 1 : -1);
+
+    const darkness = mods.darkness ?? 0;
     // Дымка на горизонте того же цвета, что и небо у линии воды.
-    this.scene.fog = new Fog(new Color(zone.sky[0] ?? '#cfe6f5').getHex(), 45, 260);
+    this.scene.fog = new Fog(
+      new Color(zone.sky[0] ?? '#cfe6f5').getHex(),
+      45 - darkness * 25,
+      260 - darkness * 150,
+    );
+    this.sun.intensity = 2.1 * (1 - darkness * 0.55);
+    this.ambientLight.intensity = 1.15 * (1 - darkness * 0.45);
   }
 
   resize(width: number, height: number): void {
@@ -444,7 +463,9 @@ export class FishingScene3D {
     const boss = this.hooks.bossBite();
     const aimed = aimedId ? CATCH_ENTRIES.find((entry) => entry.id === aimedId) : undefined;
     const entry =
-      boss?.entry ?? aimed ?? rollCatch(this.hook.depthMeters, this.rng, this.hooks.zoneCatches());
+      boss?.entry ??
+      aimed ??
+      rollCatch(this.hook.depthMeters, this.rng, this.hooks.zoneCatches(), this.zoneJunkShare);
     const { reelPower, lineStrength } = this.hooks.effects();
 
     this.ambient.highlight(-1);

@@ -41,6 +41,8 @@ export interface UiState {
   products: readonly Product[];
   /** На телевизоре рекламы за награду нет — кнопку прячем. */
   canWatchAds: boolean;
+  /** Множитель серии уловов подряд. */
+  streakMultiplier: number;
   unlock: UnlockContext;
   /** Панели открываются только в покое: в бою они прятали бы происходящее. */
   canShop: boolean;
@@ -55,6 +57,7 @@ export interface UiState {
 export class GameUi {
   private readonly root: HTMLElement;
   private readonly moneyEl: HTMLElement;
+  private readonly streakEl: HTMLElement;
   private readonly openButton: HTMLButtonElement;
   private readonly soundButton: HTMLButtonElement;
   private readonly shop: HTMLElement;
@@ -109,6 +112,7 @@ export class GameUi {
       </div>
       <div class="topbar" id="ui-topbar">
         <div class="stat" id="ui-money"></div>
+        <div class="stat streak" id="ui-streak" hidden></div>
         <button class="btn icon" id="ui-sound" aria-label="${i18n.t('sound.toggle')}"></button>
         <button class="btn" id="ui-map-open">${i18n.t('map.open')}</button>
         <button class="btn" id="ui-album-open" aria-label="${i18n.t('album.open')}"></button>
@@ -163,6 +167,7 @@ export class GameUi {
 
     this.topbar = must(document.getElementById('ui-topbar'));
     this.moneyEl = must(document.getElementById('ui-money'));
+    this.streakEl = must(document.getElementById('ui-streak'));
     this.questEl = must(document.getElementById('ui-quest'));
     this.hintEl = must(document.getElementById('ui-hint'));
     this.lureEl = must(document.getElementById('ui-lure'));
@@ -452,6 +457,14 @@ export class GameUi {
 
   render(state: UiState): void {
     this.moneyEl.textContent = `${state.money} ${i18n.t('hud.money')}`;
+
+    // Серия показывается, только когда уже что-то значит: «×1.00» на экране —
+    // это шум, а не награда.
+    const bonus = state.streakMultiplier;
+    this.streakEl.hidden = bonus <= 1;
+    if (bonus > 1) {
+      this.streakEl.textContent = i18n.t('hud.streak', { mult: bonus.toFixed(2) });
+    }
     this.openButton.disabled = !state.canShop && this.open === null;
     this.albumButton.disabled = !state.canShop && this.open === null;
     this.mapButton.disabled = !state.canShop && this.open === null;

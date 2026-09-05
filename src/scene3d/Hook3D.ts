@@ -64,6 +64,9 @@ export class Hook3D {
     if (this.submerged) {
       this.velocity.y -= GRAVITY_WATER * dt;
       this.velocity.addScaledVector(this.steer, STEER * dt);
+      // Течение локации: сносит крючок вбок, пока он тонет, и вести его
+      // приходится против сноса — это и есть особенность бухты.
+      this.velocity.x += this.current * dt;
       this.velocity.multiplyScalar(Math.exp(-WATER_DRAG * dt));
     } else {
       this.velocity.y -= GRAVITY_AIR * dt;
@@ -77,6 +80,9 @@ export class Hook3D {
   }
 
   /** Подмотка к вершинке удилища. @returns дошёл ли крючок */
+  /** Сила бокового течения локации. Ноль — спокойная вода. */
+  current = 0;
+
   reelTo(target: Vector3, speed: number, dt: number): boolean {
     const delta = target.clone().sub(this.position);
     const distance = delta.length();

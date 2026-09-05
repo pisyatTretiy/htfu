@@ -71,6 +71,20 @@ function playGreedily(entry: CatchEntry, seed: number): string {
   return 'timeout';
 }
 
+describe('доля мусора локации', () => {
+  it('локация мусора выдаёт его чаще обычной', () => {
+    const rng = new Rng(4242);
+    let dirty = 0;
+    let normal = 0;
+    for (let i = 0; i < 2000; i++) {
+      if (rollCatch(40, rng, undefined, 0.42).kind === 'junk') dirty += 1;
+      if (rollCatch(40, rng).kind === 'junk') normal += 1;
+    }
+    expect(dirty / 2000).toBeGreaterThan(0.35);
+    expect(dirty).toBeGreaterThan(normal);
+  });
+});
+
 describe('баланс боя', () => {
   const fish = ENTRIES.filter((entry) => entry.kind === 'fish');
   const junk = ENTRIES.filter((entry) => entry.kind === 'junk');

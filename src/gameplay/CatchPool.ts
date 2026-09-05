@@ -39,10 +39,11 @@ export function rollCatch(
   depthMeters: number,
   rng: Rng,
   allowed?: readonly string[],
+  junkShare = JUNK_SHARE,
 ): CatchEntry {
   const available = atDepth(depthMeters, allowed);
   const pool = available.length > 0 ? available : atDepth(depthMeters);
-  const wantJunk = rng.next() < JUNK_SHARE;
+  const wantJunk = rng.next() < junkShare;
 
   const primary = pool.filter((entry) => (entry.kind === 'junk') === wantJunk);
   const fallback = pool.filter((entry) => (entry.kind === 'junk') !== wantJunk);

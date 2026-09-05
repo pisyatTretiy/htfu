@@ -15,6 +15,21 @@ export interface ZoneUnlock {
   boss?: string;
 }
 
+/**
+ * Особенность локации (docs/03, § 3.5). Пустой объект — «обычная вода»:
+ * причал новичка ничем не удивляет намеренно.
+ */
+export interface ZoneModifiers {
+  /** Течение сносит крючок вбок, пока он тонет. */
+  drift?: number;
+  /** Своя доля мусора в пуле вместо общей. */
+  junkShare?: number;
+  /** Множитель к прочности лески: на морозе она дубеет. */
+  lineStrength?: number;
+  /** Темнота: туман ближе, свет тусклее. */
+  darkness?: number;
+}
+
 export interface Zone {
   id: string;
   name: Localized;
@@ -30,6 +45,7 @@ export interface Zone {
   sand: string;
   foliage: string;
   catches: string[];
+  modifiers?: ZoneModifiers;
 }
 
 export const ZONES = (zones as unknown as { zones: Zone[] }).zones;

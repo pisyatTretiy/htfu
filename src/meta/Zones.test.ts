@@ -87,4 +87,37 @@ describe('локации', () => {
     zones.restore('atlantis');
     expect(zones.current.id).toBe('dock');
   });
+
+  it('у каждой локации, кроме первой, есть своя особенность', () => {
+    // Причал новичка не удивляет намеренно: там учат. Дальше каждая вода
+    // должна отличаться механикой, а не только палитрой (docs/03, § 3.5).
+    const [first, ...rest] = ZONES;
+    expect(first?.modifiers ?? {}).toEqual({});
+    for (const zone of rest) {
+      const mods = zone.modifiers ?? {};
+      expect(Object.keys(mods).length, zone.id).toBeGreaterThan(0);
+    }
+  });
+
+  it('особенности локаций остаются в разумных пределах', () => {
+    for (const zone of ZONES) {
+      const mods = zone.modifiers ?? {};
+      if (mods.drift !== undefined) {
+        expect(Math.abs(mods.drift), zone.id).toBeLessThanOrEqual(1);
+      }
+      if (mods.junkShare !== undefined) {
+        // Локация мусора остаётся местом рыбалки: больше половины — уже свалка.
+        expect(mods.junkShare, zone.id).toBeGreaterThan(0.2);
+        expect(mods.junkShare, zone.id).toBeLessThanOrEqual(0.5);
+      }
+      if (mods.lineStrength !== undefined) {
+        expect(mods.lineStrength, zone.id).toBeGreaterThanOrEqual(0.8);
+        expect(mods.lineStrength, zone.id).toBeLessThanOrEqual(1.2);
+      }
+      if (mods.darkness !== undefined) {
+        expect(mods.darkness, zone.id).toBeGreaterThan(0);
+        expect(mods.darkness, zone.id).toBeLessThanOrEqual(0.7);
+      }
+    }
+  });
 });

@@ -11,6 +11,7 @@ export const STRINGS: Record<string, Localized> = {
   'shop.max': { ru: 'Максимум', en: 'Maxed' },
   'shop.locked': { ru: 'Не хватает', en: 'Not enough' },
   'hud.money': { ru: '₽', en: '₽' },
+  'hud.streak': { ru: 'серия ×{mult}', en: 'streak ×{mult}' },
   'hud.album': { ru: 'Виды', en: 'Species' },
   'toast.bought': { ru: 'Куплено: {name} ур. {level}', en: 'Bought: {name} lv. {level}' },
   'album.open': { ru: 'Альбом', en: 'Album' },
