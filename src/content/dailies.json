@@ -1,0 +1,47 @@
+{
+  "$comment": "Пул ежедневных дел. Три штуки в день выбираются по номеру дня — детерминированно, поэтому у всех игроков набор одинаковый и его можно воспроизвести в тесте.",
+  "tasks": [
+    {
+      "id": "daily_catch",
+      "title": { "ru": "Поймать {count} штук", "en": "Catch {count}" },
+      "goal": { "type": "catch_any", "count": 8 },
+      "reward": 120
+    },
+    {
+      "id": "daily_rare",
+      "title": { "ru": "Поймать редкий вариант", "en": "Catch a rare variant" },
+      "goal": { "type": "catch_rarity", "rarity": "rare", "count": 1 },
+      "reward": 220
+    },
+    {
+      "id": "daily_trick",
+      "title": { "ru": "Сделать {count} трюк-шота", "en": "Land {count} trick shots" },
+      "goal": { "type": "trickshot", "count": 3 },
+      "reward": 160
+    },
+    {
+      "id": "daily_junk",
+      "title": { "ru": "Достать {count} предмета мусора", "en": "Fish out {count} pieces of junk" },
+      "goal": { "type": "catch_kind", "kind": "junk", "count": 3 },
+      "reward": 110
+    },
+    {
+      "id": "daily_deep",
+      "title": { "ru": "Опуститься на {count} метров", "en": "Reach {count} metres" },
+      "goal": { "type": "reach_depth", "count": 60 },
+      "reward": 180
+    },
+    {
+      "id": "daily_subdue",
+      "title": { "ru": "Усмирить {count} буянов", "en": "Subdue {count} troublemakers" },
+      "goal": { "type": "subdue", "count": 4 },
+      "reward": 170
+    },
+    {
+      "id": "daily_earn",
+      "title": { "ru": "Заработать {count} ₽ за день", "en": "Earn {count} ₽ today" },
+      "goal": { "type": "earn", "count": 600 },
+      "reward": 240
+    }
+  ]
+}

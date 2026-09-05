@@ -11,7 +11,9 @@ import {
 
 const SEGMENTS = 24;
 const ITERATIONS = 6;
-const SLACK = 1.06;
+/** Провис в покое. Под натяжением леска выпрямляется — иначе висит петлёй. */
+const SLACK_LOOSE = 1.11;
+const SLACK_TAUT = 1.002;
 const GRAVITY = 3.2;
 const DRAG = 1.4;
 const THICKNESS = 0.018;
@@ -79,9 +81,11 @@ export class Line3D {
 
   step(dt: number, from: Vector3, to: Vector3, maxLength: number): void {
     const span = from.distanceTo(to);
-    const deployed = Math.min(span * SLACK, maxLength);
-    this.restLength = deployed / (SEGMENTS - 1);
     this.tension = maxLength > 0 ? Math.min(1, span / maxLength) : 0;
+    // Чем сильнее натянута, тем меньше провис: натянутая леска — прямая линия.
+    const slack = SLACK_LOOSE + (SLACK_TAUT - SLACK_LOOSE) * Math.min(1, this.tension * 1.6);
+    const deployed = Math.min(span * slack, maxLength);
+    this.restLength = deployed / (SEGMENTS - 1);
 
     const damping = Math.exp(-DRAG * dt);
     for (const point of this.points) {

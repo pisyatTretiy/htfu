@@ -6,10 +6,12 @@ import type { Album } from '../meta/Album';
 import type { Quests } from '../meta/Quests';
 import type { UnlockContext, Zones } from '../meta/Zones';
 import { BOSSES, type Bosses } from '../meta/Bosses';
+import type { Dailies } from '../meta/Dailies';
 
 export interface UiCallbacks {
   buy(id: BranchId): void;
   travel(zoneId: string): void;
+  claimDaily(taskId: string): void;
   /** Магазин открыт или закрыт: сцена ставит разметку геймплея на паузу. */
   shopToggled(open: boolean): void;
 }
@@ -21,6 +23,7 @@ export interface UiState {
   quests: Quests;
   zones: Zones;
   bosses: Bosses;
+  dailies: Dailies;
   unlock: UnlockContext;
   /** Панели открываются только в покое: в бою они прятали бы происходящее. */
   canShop: boolean;
@@ -42,6 +45,8 @@ export class GameUi {
   private readonly albumButton: HTMLButtonElement;
   private readonly map: HTMLElement;
   private readonly mapList: HTMLElement;
+  private readonly tasks: HTMLElement;
+  private readonly tasksList: HTMLElement;
   private readonly mapButton: HTMLButtonElement;
   private readonly questEl: HTMLElement;
   private readonly offer: HTMLButtonElement;
@@ -52,7 +57,7 @@ export class GameUi {
   private readonly gaugeSecond: HTMLElement;
   private readonly rows = new Map<BranchId, HTMLElement>();
 
-  private open: 'shop' | 'album' | 'map' | null = null;
+  private open: 'shop' | 'album' | 'map' | 'tasks' | null = null;
   private offerTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(
@@ -84,6 +89,13 @@ export class GameUi {
         </div>
         <div class="panel-list" id="ui-shop-list"></div>
       </div>
+      <div class="panel" id="ui-tasks" hidden>
+        <div class="panel-head">
+          <span>${i18n.t('daily.title')}</span>
+          <button class="btn ghost" id="ui-tasks-close" aria-label="${i18n.t('shop.close')}">×</button>
+        </div>
+        <div class="panel-list" id="ui-tasks-list"></div>
+      </div>
       <div class="panel" id="ui-map" hidden>
         <div class="panel-head">
           <span>${i18n.t('map.title')}</span>
@@ -106,6 +118,8 @@ export class GameUi {
     this.shop = must(document.getElementById('ui-shop'));
     this.album = must(document.getElementById('ui-album'));
     this.map = must(document.getElementById('ui-map'));
+    this.tasks = must(document.getElementById('ui-tasks'));
+    this.tasksList = must(document.getElementById('ui-tasks-list'));
     this.mapList = must(document.getElementById('ui-map-list'));
     this.mapButton = must(document.getElementById('ui-map-open')) as HTMLButtonElement;
     this.albumList = must(document.getElementById('ui-album-list'));
@@ -142,6 +156,17 @@ export class GameUi {
     must(document.getElementById('ui-map-close')).addEventListener('click', () =>
       this.toggle(null),
     );
+    must(document.getElementById('ui-tasks-close')).addEventListener('click', () =>
+      this.toggle(null),
+    );
+    // Панель дел открывается по строке задания сверху: отдельная кнопка
+    // в нижнем ряду не помещается на узком экране.
+    this.questEl.addEventListener('click', () => this.toggle('tasks'));
+    this.questEl.setAttribute('role', 'button');
+    this.questEl.tabIndex = 0;
+    this.questEl.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') this.toggle('tasks');
+    });
     must(document.getElementById('ui-shop-close')).addEventListener('click', () =>
       this.toggle(null),
     );
@@ -208,7 +233,7 @@ export class GameUi {
   }
 
   /** Открытая панель ставит симуляцию на паузу: это уже не геймплей. */
-  toggle(panel: 'shop' | 'album' | 'map' | null): void {
+  toggle(panel: 'shop' | 'album' | 'map' | 'tasks' | null): void {
     const next = this.open === panel ? null : panel;
     if (this.open === next) return;
 
@@ -216,11 +241,13 @@ export class GameUi {
     this.shop.hidden = next !== 'shop';
     this.album.hidden = next !== 'album';
     this.map.hidden = next !== 'map';
+    this.tasks.hidden = next !== 'tasks';
     this.callbacks.shopToggled(next !== null);
 
     if (next === 'shop') this.shop.querySelector('button')?.focus();
     else if (next === 'album') this.album.querySelector('button')?.focus();
     else if (next === 'map') this.map.querySelector('button')?.focus();
+    else if (next === 'tasks') this.tasks.querySelector('button')?.focus();
     else this.openButton.focus();
   }
 
@@ -232,6 +259,7 @@ export class GameUi {
     this.albumButton.textContent = `${i18n.t('album.open')} ${state.album.discovered}/${state.album.total}`;
 
     this.renderQuest(state);
+    this.renderTasks(state);
     this.renderAlbum(state);
     this.renderMap(state);
 
@@ -279,6 +307,56 @@ export class GameUi {
       `<span class="quest-npc">${i18n.pick(quest.npc)}</span>` +
       `<span class="quest-title">${i18n.pick(quest.title)}</span>` +
       `<span class="quest-progress">${Math.floor(state.quests.current)}/${state.quests.target}</span>`;
+  }
+
+  private renderTasks(state: UiState): void {
+    const dailies = state.dailies;
+    const quest = state.quests.active;
+
+    const chain = quest
+      ? `<div class="branch">
+           <div class="branch-top">
+             <span class="branch-name">${i18n.pick(quest.title)}</span>
+             <span class="dots">${Math.floor(state.quests.current)}/${state.quests.target}</span>
+           </div>
+           <div class="branch-hint">${i18n.t('quest.chain')} · ${i18n.pick(quest.npc)}</div>
+         </div>`
+      : '';
+
+    const rows = dailies.tasks
+      .map((task) => {
+        const progress = dailies.progressOf(task);
+        const done = dailies.isDone(task);
+        const claimed = dailies.isClaimed(task);
+        const title = i18n.pick(task.title).replace('{count}', String(task.goal.count));
+        const action = claimed
+          ? `<span class="zone-here">${i18n.t('daily.taken')}</span>`
+          : done
+            ? `<button class="btn claim" data-task="${task.id}">${i18n.t('daily.claim')}</button>`
+            : `<span class="branch-value">${progress}/${task.goal.count}</span>`;
+        return `
+          <div class="branch${claimed ? ' maxed' : ''}">
+            <div class="branch-top">
+              <span class="branch-name">${title}</span>
+              <span class="dots">+${task.reward} ₽</span>
+            </div>
+            <div class="branch-foot">${action}</div>
+          </div>`;
+      })
+      .join('');
+
+    const streak = `<div class="album-bonus">${i18n.t('daily.streak', {
+      days: dailies.currentStreak,
+      mult: dailies.streakMultiplier.toFixed(2),
+    })}</div>`;
+
+    this.tasksList.innerHTML = streak + chain + rows;
+    for (const button of this.tasksList.querySelectorAll<HTMLButtonElement>('.claim')) {
+      button.addEventListener('click', () => {
+        const id = button.dataset.task;
+        if (id) this.callbacks.claimDaily(id);
+      });
+    }
   }
 
   private renderMap(state: UiState): void {

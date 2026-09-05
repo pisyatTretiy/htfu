@@ -2,7 +2,7 @@ import type { IPlatform, SaveData } from '../platform';
 
 const KEY = 'htfu.save';
 /** Текущая версия схемы. Растёт вместе с миграциями. */
-export const SAVE_VERSION = 5;
+export const SAVE_VERSION = 6;
 /** Лимит площадки: setData — 100 запросов за 5 минут. Дебаунс держит запас. */
 const CLOUD_DEBOUNCE_MS = 10000;
 
@@ -15,6 +15,15 @@ export interface GameSave extends SaveData {
   quests: { index: number; progress: number };
   zone: string;
   bosses: { trophies: string[]; catches: Record<string, number> };
+  dailies: {
+    day: number;
+    progress: Record<string, number>;
+    claimed: string[];
+    streak: number;
+    lastCompletedDay: number;
+  };
+  /** Самый дорогой улов за всё время — он же результат в лидерборде. */
+  bestCatch: number;
 }
 
 export function emptySave(): GameSave {
@@ -27,6 +36,8 @@ export function emptySave(): GameSave {
     quests: { index: 0, progress: 0 },
     zone: 'dock',
     bosses: { trophies: [], catches: {} },
+    dailies: { day: 0, progress: {}, claimed: [], streak: 0, lastCompletedDay: -1 },
+    bestCatch: 0,
   };
 }
 
@@ -49,6 +60,13 @@ const MIGRATIONS: Record<number, Migration> = {
   // v5 добавила варианты редкости. Всё пойманное раньше считается обычным —
   // разбор старого формата живёт в Album.restore.
   4: (data) => ({ ...data, version: 5 }),
+  // v6 добавила ежедневные дела и рекорд улова.
+  5: (data) => ({
+    ...data,
+    dailies: { day: 0, progress: {}, claimed: [], streak: 0, lastCompletedDay: -1 },
+    bestCatch: 0,
+    version: 6,
+  }),
 };
 
 export function migrate(raw: Partial<GameSave> | null): GameSave {
@@ -97,6 +115,7 @@ export class SaveService {
     return {
       ...fresher,
       money: Math.max(fresher.money, other.money),
+      bestCatch: Math.max(fresher.bestCatch ?? 0, other.bestCatch ?? 0),
       album: mergeCounts(fresher.album, other.album),
     };
   }

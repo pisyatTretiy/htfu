@@ -9,6 +9,7 @@ import { Album } from '../meta/Album';
 import { Quests, type Quest } from '../meta/Quests';
 import { Zones, zoneCatchIds } from '../meta/Zones';
 import { Bosses, bossAsCatch } from '../meta/Bosses';
+import { Dailies, type DailyTask } from '../meta/Dailies';
 import { SaveService, emptySave, type GameSave } from '../services/SaveService';
 import { i18n } from '../services/I18n';
 import { AudioService } from '../services/AudioService';
@@ -57,6 +58,7 @@ export class App {
   private readonly quests = new Quests();
   private readonly zones = new Zones();
   private readonly bosses = new Bosses();
+  private readonly dailies = new Dailies();
   private readonly audio = new AudioService();
   private readonly save: SaveService;
   private readonly ads: AdManager;
@@ -120,6 +122,7 @@ export class App {
       {
         buy: (id) => this.buy(id),
         travel: (id) => void this.travel(id),
+        claimDaily: (id) => this.claimDaily(id),
         shopToggled: (open) => {
           this.scene.paused = open;
           if (open) this.platform.gameplayStop();
@@ -160,9 +163,14 @@ export class App {
 
     this.updateGauge();
 
-    const reached = this.quests.onDepth(this.scene.debugSnapshot.depth);
+    const depth = this.scene.debugSnapshot.depth;
+    const reached = this.quests.onDepth(depth);
     if (reached) {
       this.completeQuest(reached);
+      this.persist();
+    }
+    for (const task of this.dailies.onDepth(depth)) {
+      showToast(i18n.t('daily.done', { title: this.dailyTitle(task) }));
       this.persist();
     }
     if (this.scene.state !== lastState) this.renderUi();
@@ -202,6 +210,7 @@ export class App {
     this.quests.restore(this.state.quests);
     this.zones.restore(this.state.zone);
     this.bosses.restore(this.state.bosses);
+    this.dailies.restore(this.state.dailies);
   }
 
   /** Эффекты снасти плюс постоянные бонусы за заполнение альбома. */
@@ -238,6 +247,21 @@ export class App {
     this.lastReward = total;
     this.audio.play('coin');
 
+    // Дневные дела двигаются от того же события, что и альбом с квестами.
+    const wasSubdued = entry.mischief !== 'none';
+    for (const task of this.dailies.onCatch(entry, rarity, total, wasSubdued)) {
+      showToast(i18n.t('daily.done', { title: this.dailyTitle(task) }));
+    }
+    if (this.scene.trickShot) {
+      for (const task of this.dailies.onTrickShot()) {
+        showToast(i18n.t('daily.done', { title: this.dailyTitle(task) }));
+      }
+    }
+    if (total > this.state.bestCatch) {
+      this.state.bestCatch = total;
+      void this.platform.submitScore('best_catch', total);
+    }
+
     const record = this.album.record(entry.id, rarity);
     if (record.speciesCompleted) {
       showToast(i18n.t('toast.speciesDone', { name: i18n.pick(entry.name) }));
@@ -253,6 +277,24 @@ export class App {
         void this.doubleReward(total),
       );
     }
+  }
+
+  /** Название дела с подставленным числом из цели. */
+  private dailyTitle(task: DailyTask): string {
+    return i18n.pick(task.title).replace('{count}', String(task.goal.count));
+  }
+
+  private claimDaily(id: string): void {
+    const task = this.dailies.tasks.find((entry) => entry.id === id);
+    if (!task) return;
+
+    const reward = this.dailies.claim(task);
+    if (reward <= 0) return;
+
+    this.state.money += reward;
+    this.audio.play('coin');
+    showToast(i18n.t('daily.claimed', { reward, streak: this.dailies.currentStreak }));
+    this.persist();
   }
 
   private completeQuest(quest: Quest): void {
@@ -315,6 +357,7 @@ export class App {
     this.state.quests = this.quests.serialize();
     this.state.zone = this.zones.serialize();
     this.state.bosses = this.bosses.serialize();
+    this.state.dailies = this.dailies.serialize();
     this.save.save(this.state);
     this.renderUi();
   }
@@ -327,6 +370,7 @@ export class App {
       quests: this.quests,
       zones: this.zones,
       bosses: this.bosses,
+      dailies: this.dailies,
       unlock: this.unlockContext,
       canShop: this.scene.state === 'idle',
     });

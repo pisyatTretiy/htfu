@@ -50,6 +50,25 @@ describe('миграции сейва', () => {
     expect(save.money).toBe(400);
   });
 
+  it('сейв пятой версии получает ежедневки и рекорд', () => {
+    const v5 = {
+      version: 5,
+      updatedAt: 3,
+      money: 90,
+      upgrades: {},
+      album: { perch: { common: 1 } },
+      quests: { index: 1, progress: 0 },
+      zone: 'bay',
+      bosses: { trophies: ['boss_som'], catches: {} },
+    };
+    const save = migrate(v5 as never);
+    expect(save.version).toBe(SAVE_VERSION);
+    expect(save.dailies.streak).toBe(0);
+    expect(save.bestCatch).toBe(0);
+    expect(save.zone).toBe('bay');
+    expect(save.bosses.trophies).toEqual(['boss_som']);
+  });
+
   it('не ломает сейв из будущей версии — игрок мог откатиться', () => {
     const future = { ...emptySave(), version: SAVE_VERSION + 5, money: 99 };
     const save = migrate(future);

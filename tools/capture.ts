@@ -277,6 +277,15 @@ async function main(): Promise<void> {
   await page.mouse.wheel(0, -2600);
   await page.waitForTimeout(1200);
 
+  // Дела на сегодня: панель открывается по строке задания сверху.
+  await page.click('#ui-quest');
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: `${OUT}/8d-tasks.png` });
+  const tasksText = await page.locator('#ui-tasks-list').innerText();
+  if (!/\d/.test(tasksText)) throw new Error('Панель дел пуста');
+  await page.click('#ui-tasks-close');
+  await page.waitForTimeout(200);
+
   // Альбом: пойманные виды раскрыты, остальные скрыты за «???».
   await page.click('#ui-album-open');
   await page.waitForTimeout(300);

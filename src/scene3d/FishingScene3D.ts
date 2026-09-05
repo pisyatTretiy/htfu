@@ -12,6 +12,7 @@ import { Water3D } from './Water3D';
 import { Environment3D, shoreHeight } from './Environment3D';
 import { Pier3D } from './Pier3D';
 import { AmbientFish3D } from './AmbientFish3D';
+import { Splash3D } from './Splash3D';
 import { Hands3D } from './Hands3D';
 import { Hook3D } from './Hook3D';
 import { Line3D } from './Line3D';
@@ -38,6 +39,10 @@ const BITE_MAX = 2.1;
 /** Пределы наклона взгляда: вниз смотрим охотнее, чем вверх. */
 const PITCH_MIN = -1.15;
 const PITCH_MAX = 0.5;
+/** Сколько длится свеча рыбы и как часто она возможна. */
+const LEAP_TIME = 0.8;
+const LEAP_COOLDOWN = 3.2;
+
 /** Где стоит игрок и на какой высоте его глаза: на настиле причала. */
 const PLAYER_Z = -6;
 const EYE_HEIGHT = 1.62;
@@ -91,6 +96,7 @@ export class FishingScene3D {
   private readonly shore = new Environment3D();
   private readonly pier = new Pier3D();
   private readonly ambient = new AmbientFish3D();
+  private readonly splash = new Splash3D();
   private readonly hands = new Hands3D();
   private readonly sun = new DirectionalLight(0xffffff, 2.1);
   private readonly hook = new Hook3D();
@@ -113,6 +119,8 @@ export class FishingScene3D {
   private biteAt = BITE_MIN;
   private hitstop = 0;
   private shake = 0;
+  private leapTimer = 0;
+  private leapCooldown = LEAP_COOLDOWN;
   private power = 0;
   private charging = false;
 
@@ -123,7 +131,7 @@ export class FishingScene3D {
   constructor(private readonly hooks: SceneHooks) {
     this.pier.group.position.set(0, 0, 3.4);
     this.scene.add(this.sky.mesh, this.water.mesh, this.shore.group, this.pier.group);
-    this.scene.add(this.hook.object, this.line.mesh, this.ambient.group);
+    this.scene.add(this.hook.object, this.line.mesh, this.ambient.group, this.splash.group);
     this.camera.add(this.hands.group);
     this.scene.add(this.camera);
 
@@ -263,6 +271,7 @@ export class FishingScene3D {
 
     this.water.update(dt, this.camera.position);
     this.ambient.update(dt);
+    this.splash.update(dt);
     this.hooked?.update(dt, this.fight?.surge ?? 0.3);
     this.line.render(this.camera);
 
@@ -287,6 +296,8 @@ export class FishingScene3D {
           this.submergedFor = 0;
           this.biteAt = this.rng.range(BITE_MIN, BITE_MAX);
           this.hooks.sfx('splash');
+          // Всплеск в точке входа: без него заброс заканчивается в пустоте.
+          this.splash.burst(this.hook.position, 0.7);
         }
         this.applyLineLimit(tip);
         if (this.state === 'sinking') {
@@ -362,6 +373,7 @@ export class FishingScene3D {
     const fight = this.fight;
     if (!fight) return;
     const outcome = fight.step(dt);
+    this.stepLeap(dt);
 
     // Крючок ползёт от места поклёвки к вершинке по мере усталости рыбы:
     // положение — визуализация уже посчитанного боя, а не его причина.
@@ -369,6 +381,11 @@ export class FishingScene3D {
     this.hook.position.lerpVectors(this.bitePoint, tip, progress);
     this.hook.position.x += Math.sin(this.time * 9) * 0.25 * fight.surge;
     this.hook.position.z += Math.cos(this.time * 7) * 0.25 * fight.surge;
+    // Свеча: рыба выходит из воды дугой и падает обратно.
+    if (this.leapTimer > 0) {
+      const t = 1 - this.leapTimer / LEAP_TIME;
+      this.hook.position.y += Math.sin(t * Math.PI) * (0.9 + fight.surge * 0.8);
+    }
     this.hook.object.position.copy(this.hook.position);
 
     if (this.hooked) {
@@ -399,6 +416,34 @@ export class FishingScene3D {
     } else if (outcome === 'landed') {
       this.hitstop = 0.08;
       this.land();
+    }
+  }
+
+  /**
+   * Свеча: измотанная рыба выбрасывается из воды. Это и зрелище, и подсказка —
+   * игрок видит, кого тащит, и понимает, что бой идёт к концу.
+   */
+  private stepLeap(dt: number): void {
+    const fight = this.fight;
+    if (!fight) return;
+
+    if (this.leapTimer > 0) {
+      this.leapTimer -= dt;
+      if (this.leapTimer <= 0) {
+        this.splash.burst(this.hook.position, 0.9);
+        this.hooks.sfx('splash');
+      }
+      return;
+    }
+
+    this.leapCooldown -= dt;
+    const ready = this.leapCooldown <= 0 && fight.surge > 0.82 && fight.stamina < 0.75;
+    if (ready && this.rng.next() < 0.55) {
+      this.leapTimer = LEAP_TIME;
+      this.leapCooldown = LEAP_COOLDOWN;
+      this.splash.burst(this.hook.position, 0.85);
+      this.hooks.sfx('splash');
+      this.shake = Math.max(this.shake, 0.12);
     }
   }
 
@@ -545,6 +590,8 @@ export class FishingScene3D {
     this.fight = null;
     this.hookedEntry = null;
     this.charging = false;
+    this.leapTimer = 0;
+    this.leapCooldown = LEAP_COOLDOWN;
     this.power = 0;
     const tip = this.rodTip();
     this.hook.reset(tip);
@@ -605,6 +652,7 @@ export class FishingScene3D {
     this.shore.dispose();
     this.pier.dispose();
     this.ambient.dispose();
+    this.splash.dispose();
     this.hands.dispose();
     this.line.dispose();
     this.hook.dispose();
