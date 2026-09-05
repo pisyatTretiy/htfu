@@ -26,7 +26,7 @@ import type { CatchEntry, CatchShape } from '../content/types';
  */
 export interface CatchView {
   readonly group: Group;
-  setTint(color: number): void;
+  setTint(color: number, strength?: number): void;
   shade(color: Color, amount: number): void;
   update(dt: number, intensity: number): void;
   dispose(): void;
@@ -248,16 +248,15 @@ class PropView implements CatchView {
     this.group.add(barrel, neck, cap);
   }
 
-  setTint(color: number): void {
+  setTint(color: number, strength = 1): void {
     // Оттенок редкости ложится на весь предмет: у краба нет «тела», которое
-    // можно подкрасить отдельно от клешней. И именно **умножается** на
-    // собственный цвет: обычный вариант белый, и заменой цвета краб и медуза
-    // становились одинаково белыми.
+    // можно подкрасить отдельно от клешней. И именно подмешивается: заменой
+    // цвета краб и медуза становились одинаково белыми.
     this.tint.setHex(color);
     for (let i = 0; i < this.materials.length; i++) {
       const base = this.baseColors[i];
       const material = this.materials[i];
-      if (base && material) material.color.copy(base).multiply(this.tint);
+      if (base && material) material.color.copy(base).lerp(this.tint, strength);
     }
   }
 

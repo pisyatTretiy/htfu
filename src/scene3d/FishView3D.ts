@@ -92,14 +92,17 @@ export class FishView3D {
   /**
    * Оттенок редкости.
    *
-   * Умножаем на собственный цвет вида, а не заменяем его: обычный вариант
+   * Подмешиваем к собственному цвету вида, а не заменяем его: обычный вариант
    * красится белым, и до этой правки **каждая обычная рыба висела на леске
-   * белой** — окунь, плотва и краб выглядели одинаково.
+   * белой** — окунь, плотва и краб выглядели одинаково. Сила подмеса приходит
+   * из редкости: у обычного она ноль.
    */
-  setTint(color: number): void {
+  setTint(color: number, strength = 1): void {
     this.tint.setHex(color);
-    (this.body.material as MeshLambertMaterial).color.copy(this.baseColor).multiply(this.tint);
-    (this.tail.material as MeshLambertMaterial).color.copy(this.baseTailColor).multiply(this.tint);
+    (this.body.material as MeshLambertMaterial).color.copy(this.baseColor).lerp(this.tint, strength);
+    (this.tail.material as MeshLambertMaterial).color
+      .copy(this.baseTailColor)
+      .lerp(this.tint, strength);
   }
 
   /**

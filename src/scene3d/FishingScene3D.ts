@@ -23,7 +23,13 @@ import { createCatchView, type CatchView } from './CatchView3D';
 import { FightSystem } from '../gameplay/FightSystem';
 import { MischiefAct } from '../gameplay/Mischief';
 import { rollCatch } from '../gameplay/CatchPool';
-import { rarityPrice, rarityTint, rollRarity, type Rarity } from '../gameplay/Rarity';
+import {
+  rarityBlend,
+  rarityPrice,
+  rarityTint,
+  rollRarity,
+  type Rarity,
+} from '../gameplay/Rarity';
 import { CATCH_ENTRIES, entryName } from '../content/catalog';
 import { i18n } from '../services/I18n';
 import { clamp, damp } from '../core/world';
@@ -504,7 +510,7 @@ export class FishingScene3D {
     );
 
     this.hooked = createCatchView(entry);
-    this.hooked.setTint(rarityTint(this.rarity));
+    this.hooked.setTint(rarityTint(this.rarity), rarityBlend(this.rarity));
     this.scene.add(this.hooked.group);
     this.bitePoint.copy(this.hook.position);
     this.state = 'fighting';
@@ -583,7 +589,7 @@ export class FishingScene3D {
     this.fight.stamina *= RETRY_STAMINA;
 
     this.hooked = createCatchView(entry);
-    this.hooked.setTint(rarityTint(this.rarity));
+    this.hooked.setTint(rarityTint(this.rarity), rarityBlend(this.rarity));
     this.scene.add(this.hooked.group);
     // Крючок уже возвращается к вершинке — сажаем рыбу туда, где он сейчас.
     this.bitePoint.copy(this.hook.position);
@@ -777,7 +783,7 @@ export class FishingScene3D {
     );
     this.mischief.start({ x: 0, y: 0, halfWidth: 60, height: 90 });
     this.mischiefView = createCatchView(entry);
-    this.mischiefView.setTint(rarityTint(this.rarity));
+    this.mischiefView.setTint(rarityTint(this.rarity), rarityBlend(this.rarity));
     // Улов буянит в двух метрах от лица: в натуральную величину он закрывает
     // весь кадр, поэтому ужимаем. Но не слишком: по нему надо попасть пальцем,
     // а при 0.4 он терялся за удилищем.

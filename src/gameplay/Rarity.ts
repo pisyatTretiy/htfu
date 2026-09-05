@@ -19,6 +19,13 @@ const PRICE: Record<Rarity, number> = { common: 1, rare: 2.4, gold: 6 };
 
 /** Оттенок для меша: редкий отливает синевой, золотой — золотом. */
 const TINT: Record<Rarity, number> = { common: 0xffffff, rare: 0x9fe8ff, gold: 0xffd85c };
+/**
+ * Насколько сильно оттенок вмешивается в собственный цвет вида.
+ *
+ * Именно подмешивается, а не умножается: умножение синего окуня на золотой
+ * даёт грязно-зелёный, а не золото. Обычный вариант не трогаем вовсе.
+ */
+const BLEND: Record<Rarity, number> = { common: 0, rare: 0.45, gold: 0.8 };
 
 export function rollRarity(rng: Rng, luck = 1): Rarity {
   // Удача сдвигает шансы к редкому, не трогая суммарную вероятность.
@@ -32,3 +39,4 @@ export function rollRarity(rng: Rng, luck = 1): Rarity {
 
 export const rarityPrice = (rarity: Rarity): number => PRICE[rarity];
 export const rarityTint = (rarity: Rarity): number => TINT[rarity];
+export const rarityBlend = (rarity: Rarity): number => BLEND[rarity];

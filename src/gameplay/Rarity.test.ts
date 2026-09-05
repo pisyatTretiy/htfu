@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { rarityPrice, rollRarity, RARITIES } from './Rarity';
+import { rarityBlend, rarityPrice, rollRarity, RARITIES } from './Rarity';
 import { Rng } from '../core/Rng';
 
 describe('варианты редкости', () => {
@@ -35,5 +35,13 @@ describe('варианты редкости', () => {
     }
     expect(luckyRare).toBeGreaterThan(plainRare);
     expect(RARITIES).toHaveLength(3);
+  });
+
+  it('оттенок обычного варианта ничего не меняет', () => {
+    // Сила подмеса ноль — собственный цвет вида остаётся собственным. Пока
+    // оттенок заменял цвет, каждая обычная рыба висела на леске белой.
+    expect(rarityBlend('common')).toBe(0);
+    expect(rarityBlend('gold')).toBeGreaterThan(rarityBlend('rare'));
+    expect(rarityBlend('gold')).toBeLessThanOrEqual(1);
   });
 });
