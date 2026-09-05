@@ -1,4 +1,4 @@
-import { Group } from 'three';
+import { Color, Group } from 'three';
 import { FishView3D } from './FishView3D';
 import { Rng } from '../core/Rng';
 import { CATCH_ENTRIES } from '../content/catalog';
@@ -41,10 +41,20 @@ export class AmbientFish3D {
         radius: rng.range(4, 13),
         speed: rng.range(0.1, 0.28) * (rng.next() > 0.5 ? 1 : -1),
         phase: rng.range(0, Math.PI * 2),
-        depth: rng.range(-3.4, -0.7),
+        // Глубже, чем кажется нужным: на -0.7 рыбу выносило волной на
+        // поверхность, и она выглядела плавающей поверх воды.
+        depth: rng.range(-5.0, -1.4),
         centerX: rng.range(-14, 14),
         centerZ: rng.range(-30, -6),
       });
+    }
+  }
+
+  /** Цвет толщи воды локации: чем глубже рыба, тем сильнее она в него уходит. */
+  setWater(tint: string): void {
+    const color = new Color(tint);
+    for (const swimmer of this.swimmers) {
+      swimmer.view.shade(color, Math.min(0.72, Math.max(0.18, -swimmer.depth / 6)));
     }
   }
 

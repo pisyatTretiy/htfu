@@ -7,6 +7,7 @@ import {
   Scene,
   Vector3,
 } from 'three';
+import { Angler3D } from './Angler3D';
 import { Birds3D } from './Birds3D';
 import { Sky3D } from './Sky3D';
 import { Water3D } from './Water3D';
@@ -105,6 +106,7 @@ export class FishingScene3D {
 
   private readonly sky = new Sky3D();
   private readonly birds = new Birds3D();
+  private readonly angler = new Angler3D();
   private readonly water = new Water3D();
   private readonly shore = new Environment3D();
   private readonly pier = new Pier3D();
@@ -147,6 +149,11 @@ export class FishingScene3D {
     this.pier.group.position.set(0, 0, 3.4);
     this.scene.add(this.sky.mesh, this.water.mesh, this.shore.group, this.pier.group);
     this.scene.add(this.birds.group);
+    // Сосед сидит на левом краю причала, ближе к морю, чем игрок: он попадает
+    // в кадр, но не заслоняет ни воду, ни место заброса.
+    this.angler.group.position.set(-1.05, PIER_Y, -10.4);
+    this.angler.group.rotation.y = 0.5;
+    this.scene.add(this.angler.group);
     this.scene.add(this.hook.object, this.line.mesh, this.ambient.group, this.splash.group);
     this.camera.add(this.hands.group);
     this.scene.add(this.camera);
@@ -185,6 +192,7 @@ export class FishingScene3D {
     this.water.setShoreZ(SHORE_Z);
     this.water.setSun(this.sun.position);
     this.shore.setPalette(zone.sand, zone.foliage);
+    this.ambient.setWater(zone.tint);
     // Дымка на горизонте того же цвета, что и небо у линии воды.
     this.scene.fog = new Fog(new Color(zone.sky[0] ?? '#cfe6f5').getHex(), 45, 260);
   }
@@ -291,6 +299,7 @@ export class FishingScene3D {
 
     this.sky.update(dt);
     this.birds.update(dt);
+    this.angler.update(dt);
     this.water.update(dt, this.camera.position);
     this.ambient.update(dt);
     this.splash.update(dt);
@@ -761,6 +770,7 @@ export class FishingScene3D {
   dispose(): void {
     this.sky.dispose();
     this.birds.dispose();
+    this.angler.dispose();
     this.water.dispose();
     this.shore.dispose();
     this.pier.dispose();

@@ -22,6 +22,8 @@ export class FishView3D {
   private readonly body: Mesh;
   private readonly tail: Mesh;
   private readonly base: Float32Array;
+  private readonly baseColor: Color;
+  private readonly baseTailColor: Color;
   private time = 0;
 
   constructor(private readonly entry: CatchEntry) {
@@ -51,6 +53,9 @@ export class FishView3D {
     );
     pupil.position.set(length * 0.34, length * 0.1, length * 0.18);
 
+    this.baseColor = color.clone();
+    this.baseTailColor = color.clone().multiplyScalar(0.82);
+
     this.group.add(this.body, this.tail, eye, pupil);
     this.group.traverse((node) => {
       if (node instanceof Mesh) node.castShadow = true;
@@ -59,6 +64,20 @@ export class FishView3D {
 
   setTint(color: number): void {
     (this.body.material as MeshLambertMaterial).color.setHex(color);
+  }
+
+  /**
+   * Увести цвет в цвет воды. Рыбу под поверхностью видно сквозь толщу, и в
+   * своей «витринной» окраске она читается лежащей на воде, а не плывущей
+   * под ней. Считаем всегда от исходного цвета, чтобы повторный вызов при
+   * смене локации не затемнял рыбу второй раз.
+   */
+  shade(color: Color, amount: number): void {
+    const strength = Math.max(0, Math.min(1, amount));
+    (this.body.material as MeshLambertMaterial).color.copy(this.baseColor).lerp(color, strength);
+    (this.tail.material as MeshLambertMaterial).color
+      .copy(this.baseTailColor)
+      .lerp(color, strength);
   }
 
   /** @param intensity 0..1 — насколько резко бьётся */
