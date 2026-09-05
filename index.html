@@ -204,6 +204,13 @@
     #ui .album-list {
       display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 8px;
     }
+    /* Карта архипелага: острова кликабельны, поэтому слой ловит указатель. */
+    #ui .map-art { width: 100%; height: auto; border-radius: 12px; pointer-events: auto }
+    #ui .map-island { cursor: pointer }
+    #ui .map-island.locked, #ui .map-island.current { cursor: default }
+    #ui .map-island:focus-visible { outline: 3px solid #4fd6b4; outline-offset: 2px }
+    #ui .map-island:not(.locked):not(.current):hover polygon { filter: brightness(1.15) }
+
     #ui .album-icon { display: block; margin: 0 auto 2px; width: 100%; height: auto; max-width: 64px }
     #ui .album-item {
       background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12);

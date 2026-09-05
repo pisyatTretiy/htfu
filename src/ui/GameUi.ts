@@ -1,6 +1,7 @@
 import { i18n } from '../services/I18n';
 import { CATCH_ENTRIES, entryName } from '../content/catalog';
 import { catchIcon } from './CatchIcon';
+import { archipelagoSvg } from './ArchipelagoMap';
 import { RARITIES } from '../gameplay/Rarity';
 import type { BranchId, Progression } from '../meta/Progression';
 import type { Album } from '../meta/Album';
@@ -582,7 +583,13 @@ export class GameUi {
 
   private renderMap(state: UiState): void {
     const current = state.zones.current;
-    this.mapList.innerHTML = state.zones.all
+    const views = state.zones.all.map((zone) => ({
+      zone,
+      unlocked: state.zones.isUnlocked(zone, state.unlock),
+      current: zone.id === current.id,
+    }));
+
+    this.mapList.innerHTML = archipelagoSvg(views) + state.zones.all
       .map((zone) => {
         const unlocked = state.zones.isUnlocked(zone, state.unlock);
         const here = zone.id === current.id;
@@ -608,6 +615,18 @@ export class GameUi {
       button.addEventListener('click', () => {
         const id = button.dataset.zone;
         if (id) this.callbacks.travel(id);
+      });
+    }
+
+    // По острову на карте можно ткнуть — это первое, что игрок пробует сделать.
+    for (const node of this.mapList.querySelectorAll<SVGGElement>('.map-island:not(.locked)')) {
+      const go = (): void => {
+        const id = node.dataset.zone;
+        if (id) this.callbacks.travel(id);
+      };
+      node.addEventListener('click', go);
+      node.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') go();
       });
     }
   }
