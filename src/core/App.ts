@@ -264,7 +264,7 @@ export class App {
     };
   }
 
-  /** Полоса состояния под прицелом: заброс, бой или возня в лодке. */
+  /** Полоса состояния под прицелом: заброс, бой или возня на настиле. */
   private updateGauge(): void {
     const snapshot = this.scene.debugSnapshot;
     if (this.scene.chargePower > 0) {
