@@ -19,7 +19,8 @@
       "decor": {
         "pier": true,
         "shore": true,
-        "shelf": true
+        "shelf": true,
+        "set": "tropical"
       },
       "sky": [
         "#cfe6f5",
@@ -78,7 +79,8 @@
       "decor": {
         "pier": false,
         "shore": true,
-        "shelf": true
+        "shelf": true,
+        "set": "tropical"
       },
       "sky": [
         "#c6ddea",
@@ -142,7 +144,8 @@
       "decor": {
         "pier": false,
         "shore": false,
-        "shelf": false
+        "shelf": false,
+        "set": "wreck"
       },
       "sky": [
         "#cdd6d4",
@@ -206,7 +209,8 @@
       "decor": {
         "pier": false,
         "shore": true,
-        "shelf": false
+        "shelf": false,
+        "set": "ice"
       },
       "sky": [
         "#eaf3f8",
@@ -270,7 +274,8 @@
       "decor": {
         "pier": false,
         "shore": false,
-        "shelf": false
+        "shelf": false,
+        "set": "rift"
       },
       "sky": [
         "#8fa6b4",

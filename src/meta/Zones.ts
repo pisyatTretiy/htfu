@@ -2,10 +2,14 @@ import zones from '../content/zones.json';
 import { CATCH_ENTRIES } from '../content/catalog';
 import type { Localized } from '../services/I18n';
 
+/** Набор декора локации: чем застроен горизонт и берег. */
+export type ZoneDecorSet = 'tropical' | 'wreck' | 'ice' | 'rift';
+
 export interface ZoneDecor {
   pier: boolean;
   shore: boolean;
   shelf: boolean;
+  set: ZoneDecorSet;
 }
 
 export interface ZoneUnlock {

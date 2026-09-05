@@ -117,6 +117,20 @@ export class Sky3D {
     }
   }
 
+  /**
+   * Темнота локации: облака и солнце гаснут вместе с ней.
+   *
+   * Белые облака над чёрной водой разлома выглядели вырезанными из другой
+   * игры — небо должно темнеть целиком, а не только у горизонта.
+   */
+  setDarkness(value: number): void {
+    const light = 1 - Math.max(0, Math.min(1, value)) * 0.85;
+    this.cloudMaterial.color.setRGB(light, light, light);
+    this.cloudMaterial.emissive.setRGB(0.5 * light * light, 0.6 * light * light, 0.68 * light * light);
+    (this.sun.material as SpriteMaterial).opacity = 1 - value * 0.8;
+    (this.sun.material as SpriteMaterial).transparent = true;
+  }
+
   /** Медленный дрейф: полный оборот примерно за двадцать минут. */
   update(dt: number): void {
     this.clouds.rotation.y += dt * 0.005;

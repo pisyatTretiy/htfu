@@ -1,5 +1,6 @@
 import {
   BufferGeometry,
+  ConeGeometry,
   Color,
   CylinderGeometry,
   DodecahedronGeometry,
@@ -10,6 +11,7 @@ import {
   PlaneGeometry,
 } from 'three';
 import { Rng } from '../core/Rng';
+import type { Zone, ZoneDecorSet } from '../meta/Zones';
 
 /**
  * Берег локации: песок, камни, пальмы, трава, сарай.
@@ -22,7 +24,15 @@ export class Environment3D {
   readonly group = new Group();
 
   private readonly sand: Mesh;
+  /** Общий берег: камни у прибоя и острова на горизонте. Есть везде. */
   private readonly props = new Group();
+  /** Наборы декора локаций. Строятся один раз, дальше только показываются. */
+  private readonly sets: Record<ZoneDecorSet, Group> = {
+    tropical: new Group(),
+    wreck: new Group(),
+    ice: new Group(),
+    rift: new Group(),
+  };
 
   constructor() {
     this.sand = new Mesh(
@@ -35,7 +45,12 @@ export class Environment3D {
     );
     this.sand.receiveShadow = true;
     this.group.add(this.sand, this.props);
+    for (const set of Object.values(this.sets)) this.group.add(set);
     this.build();
+    this.buildWreck();
+    this.buildIce();
+    this.buildRift();
+    this.show('tropical');
   }
 
   private build(): void {
@@ -53,7 +68,7 @@ export class Environment3D {
       palm.position.set(x, shoreHeight(z), z);
       palm.rotation.y = rng.range(0, Math.PI * 2);
       palm.scale.setScalar(rng.range(0.85, 1.4));
-      this.props.add(palm);
+      this.sets.tropical.add(palm);
     }
 
     // Камни у кромки воды — граница между песком и морем.
@@ -80,7 +95,7 @@ export class Environment3D {
       tuft.position.set(rng.range(-26, 26), shoreHeight(z), z);
       tuft.rotation.y = rng.range(0, Math.PI);
       tuft.castShadow = true;
-      this.props.add(tuft);
+      this.sets.tropical.add(tuft);
     }
 
     // Мыс слева по курсу: игрок смотрит с причала в море, и без него кадр
@@ -118,7 +133,7 @@ export class Environment3D {
     cape.position.set(-13, -0.6, -40);
     cape.rotation.y = 0.4;
     cape.scale.setScalar(1.5);
-    this.props.add(cape);
+    this.sets.tropical.add(cape);
 
     // Острова на горизонте: пустое море впереди читается как недоделанная
     // сцена, а архипелаг — это ещё и сеттинг игры.
@@ -130,10 +145,12 @@ export class Environment3D {
       island.position.set(rng.range(-70, 70), rng.range(-4, -1), rng.range(-130, -70));
       island.scale.set(rng.range(1.4, 2.6), rng.range(0.35, 0.6), 1);
       island.rotation.y = rng.range(0, 3);
-      this.props.add(island);
+      // Зелёные острова — примета тропиков: во льдах и в разломе они выглядят
+      // чужими, поэтому живут в наборе, а не в общем берегу.
+      this.sets.tropical.add(island);
     }
 
-    this.props.add(this.shack());
+    this.sets.tropical.add(this.shack());
 
     // Плавник у кромки: обломки лодки и брёвна там, где кончается причал.
     for (let i = 0; i < 7; i++) {
@@ -145,7 +162,111 @@ export class Environment3D {
       log.position.set(rng.range(-16, 16), shoreHeight(z) + 0.1, z);
       log.rotation.set(Math.PI / 2, rng.range(0, Math.PI), rng.range(-0.3, 0.3));
       log.castShadow = true;
-      this.props.add(log);
+      this.sets.tropical.add(log);
+    }
+  }
+
+  /** Показать набор локации, спрятав остальные. */
+  private show(set: ZoneDecorSet): void {
+    for (const [name, group] of Object.entries(this.sets)) {
+      group.visible = name === set;
+    }
+  }
+
+  /**
+   * Затонувший корабль: остов, накренившийся в воде, и обломки вокруг.
+   *
+   * Локация обещана в дизайне как «мусор и зацепы»: без остова на горизонте
+   * она отличалась бы от причала только оттенком воды.
+   */
+  private buildWreck(): void {
+    const rng = new Rng(515);
+    const rust = new MeshLambertMaterial({ color: new Color('#7a4b39'), flatShading: true });
+    const deck = new MeshLambertMaterial({ color: new Color('#5c4638'), flatShading: true });
+
+    const hull = new Group();
+    const body = new Mesh(boxGeometry(26, 7, 9), rust);
+    body.castShadow = true;
+    const bow = new Mesh(new ConeGeometry(4.6, 9, 4), rust);
+    bow.rotation.z = Math.PI / 2;
+    bow.position.x = 16;
+    const cabin = new Mesh(boxGeometry(7, 4, 6), deck);
+    cabin.position.set(-4, 5, 0);
+    const mast = new Mesh(new CylinderGeometry(0.4, 0.5, 16, 6), deck);
+    mast.position.set(-2, 12, 0);
+    hull.add(body, bow, cabin, mast);
+    // Накренился и наполовину ушёл под воду: горизонт получает силуэт, по
+    // которому локация узнаётся с первого кадра.
+    hull.position.set(-16, -2.6, -52);
+    hull.rotation.set(0.12, 0.7, 0.22);
+    this.sets.wreck.add(hull);
+
+    // Дальние остовы и скалы: горизонт локации не должен быть пустым.
+    for (let i = 0; i < 3; i++) {
+      const far = new Mesh(new DodecahedronGeometry(rng.range(7, 14), 0), deck);
+      far.position.set(rng.range(-80, 80), rng.range(-5, -2), rng.range(-140, -80));
+      far.scale.set(rng.range(1.4, 2.4), rng.range(0.3, 0.5), 1);
+      this.sets.wreck.add(far);
+    }
+
+    for (let i = 0; i < 9; i++) {
+      const debris = new Mesh(
+        boxGeometry(rng.range(0.6, 1.8), rng.range(0.4, 1.1), rng.range(0.6, 1.6)),
+        i % 2 === 0 ? rust : deck,
+      );
+      debris.position.set(rng.range(-30, 30), rng.range(-0.3, 0.2), rng.range(-45, -8));
+      debris.rotation.set(rng.range(0, 3), rng.range(0, 3), rng.range(0, 3));
+      this.sets.wreck.add(debris);
+    }
+  }
+
+  /** Ледяной пролив: торосы вместо пальм. */
+  private buildIce(): void {
+    const rng = new Rng(717);
+    const ice = new MeshLambertMaterial({ color: new Color('#dff0f7'), flatShading: true });
+    const shade = new MeshLambertMaterial({ color: new Color('#a8cfe0'), flatShading: true });
+
+    for (let i = 0; i < 11; i++) {
+      const berg = new Group();
+      const size = rng.range(3, 11);
+      const top = new Mesh(new ConeGeometry(size, size * rng.range(1, 1.8), 5), ice);
+      top.position.y = size * 0.4;
+      top.castShadow = true;
+      const base = new Mesh(new DodecahedronGeometry(size * 0.9, 0), shade);
+      base.scale.set(1.3, 0.35, 1.1);
+      berg.add(base, top);
+      const near = i < 4;
+      berg.position.set(
+        rng.range(-60, 60),
+        -size * 0.25,
+        near ? rng.range(-46, -22) : rng.range(-120, -50),
+      );
+      berg.rotation.y = rng.range(0, 3);
+      this.sets.ice.add(berg);
+    }
+  }
+
+  /** Глубоководный разлом: чёрные скалы из воды и ни одного дерева. */
+  private buildRift(): void {
+    const rng = new Rng(919);
+    const stone = new MeshLambertMaterial({ color: new Color('#3b4148'), flatShading: true });
+    const wet = new MeshLambertMaterial({ color: new Color('#2a3036'), flatShading: true });
+
+    for (let i = 0; i < 13; i++) {
+      const height = rng.range(6, 26);
+      const spire = new Mesh(
+        new ConeGeometry(rng.range(1.4, 4.5), height, 5),
+        i % 3 === 0 ? wet : stone,
+      );
+      const near = i < 5;
+      spire.position.set(
+        rng.range(-55, 55),
+        height * 0.35 - 2,
+        near ? rng.range(-50, -26) : rng.range(-120, -55),
+      );
+      spire.rotation.set(rng.range(-0.1, 0.1), rng.range(0, 3), rng.range(-0.12, 0.12));
+      spire.castShadow = true;
+      this.sets.rift.add(spire);
     }
   }
 
@@ -201,10 +322,15 @@ export class Environment3D {
     return shack;
   }
 
-  /** Палитра берега меняется вместе с локацией. */
-  setPalette(sand: string, foliage: string): void {
+  /** Набор декора и палитра берега меняются вместе с локацией. */
+  applyZone(zone: Zone): void {
+    this.show(zone.decor.set);
+    this.setPalette(zone.sand, zone.foliage);
+  }
+
+  private setPalette(sand: string, foliage: string): void {
     (this.sand.material as MeshLambertMaterial).color.set(sand);
-    this.props.traverse((node) => {
+    this.sets.tropical.traverse((node) => {
       if (node instanceof Mesh) {
         const material = node.material as MeshLambertMaterial;
         if (material.color.getHexString() === '5f9e42' || material.color.getHexString() === '3f8f3a') {

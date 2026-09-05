@@ -544,6 +544,38 @@ async function main(): Promise<void> {
   if (closed !== 0) throw new Error('Back с пульта не закрыл панель');
   console.log(`Пульт: ${firstFocus} → ${secondFocus} → ${openedPanel} (${inPanel})`);
 
+  // --- каждая локация выглядит своим местом ---
+  // Пять вкладок с сейвом в нужной локации: набор декора, палитра и свет
+  // должны отличаться, а не только цвет воды.
+  for (const zoneId of ['bay', 'wreck', 'ice', 'abyss']) {
+    const view = await browser.newPage({ viewport: VIEWPORT, locale: 'ru-RU' });
+    await view.addInitScript((id) => {
+      localStorage.setItem(
+        'htfu.save',
+        JSON.stringify({
+          version: 10,
+          updatedAt: Date.now(),
+          money: 5000,
+          zone: id,
+          upgrades: { line: 4, reel: 3, rod: 3, net: 2 },
+          bosses: {
+            trophies: ['boss_som', 'boss_crab', 'boss_squid', 'boss_pike'],
+            catches: {},
+          },
+          onboarding: { step: 9, seen: ['subdue', 'retry'] },
+        }),
+      );
+    }, zoneId);
+    await view.goto(URL, { waitUntil: 'networkidle' });
+    await view.waitForTimeout(1600);
+    const state = await snapshot(view);
+    if (state.zone !== zoneId) throw new Error(`Локация не применилась: ${state.zone}`);
+    await view.keyboard.press('KeyH');
+    await view.screenshot({ path: `${OUT}/20-zone-${zoneId}.png` });
+    await view.close();
+  }
+  console.log('Локации сняты: bay, wreck, ice, abyss');
+
   // --- сверхширокий монитор: поле не растягивается, интерфейс не разъезжается ---
   // Площадка требует, чтобы длинная сторона активного поля не превышала
   // короткую больше чем вдвое.
