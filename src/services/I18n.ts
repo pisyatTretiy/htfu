@@ -55,6 +55,7 @@ export const STRINGS: Record<string, Localized> = {
     en: 'The browser reclaimed video memory while the tab was in the background. Progress is saved.',
   },
   'lost.reload': { ru: 'Продолжить', en: 'Continue' },
+  'boss.tag': { ru: 'Хозяин этих вод', en: 'Master of these waters' },
   'sound.toggle': { ru: 'Звук', en: 'Sound' },
   'boot.title': { ru: 'Клёв!', en: 'Hook & Home' },
   'toast.bite': { ru: 'Клюёт!', en: 'A bite!' },

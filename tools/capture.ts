@@ -208,6 +208,10 @@ async function main(): Promise<void> {
 
   await waitForState(page, ['fighting']);
   await page.screenshot({ path: `${OUT}/4-bite.png` });
+  // Карточка босса живёт две с половиной секунды и должна успеть показаться.
+  if (!(await page.locator('#ui-boss').isVisible())) {
+    throw new Error('Босс клюнул, а карточки нет — от обычной поклёвки не отличить');
+  }
   await page.waitForTimeout(500);
   await page.screenshot({ path: `${OUT}/5-fighting.png` });
 

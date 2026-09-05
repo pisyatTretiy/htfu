@@ -177,6 +177,27 @@
       border-radius: 999px; padding: 4px 11px; font-variant-numeric: tabular-nums;
     }
     #ui .lure[hidden] { display: none !important; }
+
+    /* Карточка босса: единственный момент, ради которого игрок копил уловы. */
+    #ui .boss {
+      position: absolute; left: 0; right: 0; top: 26%; pointer-events: none;
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      background: linear-gradient(90deg, rgba(120,20,14,0), rgba(120,20,14,.92), rgba(120,20,14,0));
+      padding: 12px 8px; text-align: center;
+    }
+    #ui .boss[hidden] { display: none !important; }
+    #ui .boss-tag {
+      font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; color: #ffd166;
+    }
+    #ui .boss-name {
+      font-size: 21px; font-weight: 700; color: #fff4e0; letter-spacing: .02em;
+      text-shadow: 0 2px 8px rgba(0,0,0,.55);
+    }
+    #ui .boss.show { animation: boss-in .5s cubic-bezier(.2,.9,.3,1.2) }
+    @keyframes boss-in {
+      from { opacity: 0; transform: scale(.86) }
+      to { opacity: 1; transform: scale(1) }
+    }
     #ui .lure-row { border-color: #4fd6b4 }
     #ui .lure-row[hidden] { display: none !important; }
     #ui .lure-row .buy { background: #4fd6b4; border-color: #06403a }
@@ -282,6 +303,7 @@
     @media (prefers-reduced-motion: reduce) {
       #boot .b i { animation: none; width: 100% }
       #ui .hint { animation: none }
+      #ui .boss.show { animation: none }
       #toast { transition: none }
     }
   </style>

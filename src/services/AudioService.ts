@@ -4,6 +4,7 @@ export type SoundName =
   | 'bite'
   | 'reel'
   | 'strain'
+  | 'boss'
   | 'snap'
   | 'coin'
   | 'bounce';
@@ -181,6 +182,13 @@ export class AudioService {
         break;
       case 'reel':
         this.sweep(160, 200, 0.08, 'sawtooth', 0.18);
+        break;
+      case 'boss':
+        // Низкий гул на две трети секунды: у босса должен быть свой звук,
+        // иначе его появление отличается от обычной поклёвки только текстом.
+        this.sweep(120, 52, 0.75, 'sawtooth', 0.34);
+        this.sweep(240, 96, 0.6, 'triangle', 0.18, 0.06);
+        this.noise(0.4, 320, 0.35);
         break;
       case 'strain':
         // Скрип снасти на пределе: игроку дана доля секунды, и он должен

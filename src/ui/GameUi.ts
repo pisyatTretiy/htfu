@@ -69,6 +69,8 @@ export class GameUi {
   private readonly questEl: HTMLElement;
   private readonly hintEl: HTMLElement;
   private readonly lureEl: HTMLElement;
+  private readonly bossEl: HTMLElement;
+  private bossTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly lureRow: HTMLElement;
   private readonly storeList: HTMLElement;
   /** Что уже нарисовано в блоке покупок: каталог приходит с задержкой. */
@@ -101,6 +103,10 @@ export class GameUi {
       <div class="questbar" id="ui-quest"></div>
       <div class="hint" id="ui-hint" hidden></div>
       <div class="lure" id="ui-lure" hidden></div>
+      <div class="boss" id="ui-boss" hidden>
+        <span class="boss-tag" id="ui-boss-tag"></span>
+        <span class="boss-name" id="ui-boss-name"></span>
+      </div>
       <div class="topbar" id="ui-topbar">
         <div class="stat" id="ui-money"></div>
         <button class="btn icon" id="ui-sound" aria-label="${i18n.t('sound.toggle')}"></button>
@@ -160,6 +166,7 @@ export class GameUi {
     this.questEl = must(document.getElementById('ui-quest'));
     this.hintEl = must(document.getElementById('ui-hint'));
     this.lureEl = must(document.getElementById('ui-lure'));
+    this.bossEl = must(document.getElementById('ui-boss'));
     this.lureRow = must(document.getElementById('ui-lure-row'));
     this.storeList = must(document.getElementById('ui-store-list'));
     this.lureState = must(document.getElementById('ui-lure-state'));
@@ -326,6 +333,28 @@ export class GameUi {
       accept();
     };
     this.offerTimer = setTimeout(() => this.hideOffer(), seconds * 1000);
+  }
+
+  /**
+   * Карточка босса.
+   *
+   * Появление босса до сих пор отличалось от обычной поклёвки только текстом
+   * всплывающей подписи — а это единственный момент в игре, ради которого
+   * игрок копил уловы.
+   */
+  showBoss(tag: string, name: string): void {
+    if (this.bossTimer) clearTimeout(this.bossTimer);
+    must(document.getElementById('ui-boss-tag')).textContent = tag;
+    must(document.getElementById('ui-boss-name')).textContent = name;
+    this.bossEl.hidden = false;
+    // Перезапуск анимации: без этого второй босс подряд появился бы молча.
+    this.bossEl.classList.remove('show');
+    void this.bossEl.offsetWidth;
+    this.bossEl.classList.add('show');
+    this.bossTimer = setTimeout(() => {
+      this.bossEl.hidden = true;
+      this.bossTimer = null;
+    }, 2600);
   }
 
   /** Значок звука. Состоянием владеет звук, интерфейс только показывает его. */

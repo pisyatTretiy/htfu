@@ -417,6 +417,10 @@ export class App {
     if (!this.bosses.isReady(zone.id)) return null;
     const boss = this.bosses.bossOf(zone.id);
     if (!boss) return null;
+    // Босс клюнул именно сейчас: сцена вызывает этот метод в момент поклёвки.
+    this.ui.showBoss(i18n.t('boss.tag'), i18n.pick(boss.name));
+    this.audio.play('boss');
+
     return {
       entry: bossAsCatch(boss),
       phases: boss.phases,
