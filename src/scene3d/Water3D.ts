@@ -202,8 +202,13 @@ export class Water3D {
   update(dt: number, cameraPosition: { x: number; y: number; z: number }): void {
     this.time += dt;
     if (this.material.uniforms.uTime) this.material.uniforms.uTime.value = this.time;
-    if (this.material.uniforms.uCamera) {
-      this.material.uniforms.uCamera.value = [cameraPosition.x, cameraPosition.y, cameraPosition.z];
+    // Пишем в существующий массив, а не создаём новый: uniform обновляется
+    // каждый кадр, и новый массив на кадр — это мусор на ровном месте.
+    const camera = this.material.uniforms.uCamera?.value as number[] | undefined;
+    if (camera) {
+      camera[0] = cameraPosition.x;
+      camera[1] = cameraPosition.y;
+      camera[2] = cameraPosition.z;
     }
   }
 

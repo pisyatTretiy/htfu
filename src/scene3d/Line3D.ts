@@ -31,6 +31,11 @@ interface RopePoint {
  * толщину почти везде, а тонкая леска в 3D иначе просто не видна.
  */
 export class Line3D {
+  // Рабочие векторы разворота ленты: render зовётся каждый кадр.
+  private readonly toCamera = new Vector3();
+  private readonly along = new Vector3();
+  private readonly side = new Vector3();
+
   readonly mesh: Mesh;
 
   private readonly points: RopePoint[] = [];
@@ -130,9 +135,9 @@ export class Line3D {
 
   /** Разворачиваем ленту к камере: иначе леска исчезает при взгляде вдоль неё. */
   render(camera: Camera): void {
-    const toCamera = new Vector3();
-    const along = new Vector3();
-    const side = new Vector3();
+    const toCamera = this.toCamera;
+    const along = this.along;
+    const side = this.side;
 
     for (let i = 0; i < this.points.length; i++) {
       const current = this.points[i]?.now;
