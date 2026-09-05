@@ -95,23 +95,29 @@ class PropView implements CatchView {
 
     for (const side of [-1, 1]) {
       const arm = new Group();
-      const claw = new Mesh(new BoxGeometry(size * 0.3, size * 0.16, size * 0.16), trim);
-      claw.position.x = size * 0.3;
-      const jaw = new Mesh(new ConeGeometry(size * 0.11, size * 0.24, 4), trim);
+      // Плечо — перемычка от панциря к клешне. Без него клешня висела в
+      // воздухе на расстоянии в четверть краба.
+      const upper = new Mesh(new BoxGeometry(size * 0.24, size * 0.08, size * 0.08), outline);
+      upper.position.x = size * 0.12;
+      const claw = new Mesh(new BoxGeometry(size * 0.26, size * 0.16, size * 0.15), trim);
+      claw.position.x = size * 0.36;
+      const jaw = new Mesh(new ConeGeometry(size * 0.1, size * 0.22, 4), trim);
       jaw.rotation.z = -Math.PI / 2;
-      jaw.position.x = size * 0.5;
-      arm.add(claw, jaw);
-      arm.position.set(size * 0.32, 0, side * size * 0.3);
+      jaw.position.x = size * 0.55;
+      arm.add(upper, claw, jaw);
+      arm.position.set(size * 0.26, 0, side * size * 0.24);
       arm.rotation.y = side * -0.5;
       this.group.add(arm);
       this.limbs.push(arm);
     }
 
+    // Ноги торчат поперёк, а не вдоль: вдоль они целиком прятались под
+    // панцирем, и краб выглядел камнем с клешнями.
     for (let i = 0; i < 6; i++) {
-      const leg = new Mesh(new BoxGeometry(size * 0.34, size * 0.06, size * 0.06), outline);
+      const leg = new Mesh(new BoxGeometry(size * 0.07, size * 0.05, size * 0.34), outline);
       const side = i < 3 ? 1 : -1;
-      leg.position.set(size * (0.1 - (i % 3) * 0.22), -size * 0.08, side * size * 0.34);
-      leg.rotation.y = side * 0.4;
+      leg.position.set(size * (0.12 - (i % 3) * 0.2), -size * 0.04, side * size * 0.44);
+      leg.rotation.set(side * 0.45, side * (0.25 - (i % 3) * 0.25), 0);
       this.group.add(leg);
     }
   }
@@ -145,8 +151,10 @@ class PropView implements CatchView {
     trim: MeshLambertMaterial,
     outline: MeshLambertMaterial,
   ): void {
+    // Остриё мантии смотрит назад, к хвосту. С обратным поворотом конус
+    // сходился к голове, и головоногое читалось комком без направления.
     const mantle = new Mesh(new ConeGeometry(size * 0.3, size * 0.8, 7), body);
-    mantle.rotation.z = -Math.PI / 2;
+    mantle.rotation.z = Math.PI / 2;
     mantle.position.x = -size * 0.2;
     this.group.add(mantle);
 
@@ -154,20 +162,34 @@ class PropView implements CatchView {
     head.position.x = size * 0.24;
     this.group.add(head);
 
+    // Глаз сидит на поверхности головы. Утопленный внутрь, он читался
+    // пробоиной в мантии, а не глазом.
     for (const side of [-1, 1]) {
       const eye = new Mesh(new SphereGeometry(size * 0.08, 8, 6), outline);
-      eye.position.set(size * 0.34, size * 0.04, side * size * 0.18);
+      eye.position.set(size * 0.32, size * 0.08, side * size * 0.24);
       this.group.add(eye);
     }
 
     for (let i = 0; i < 8; i++) {
+      // Две вложенные группы: внешняя разводит руку в сторону раз и навсегда,
+      // внутренней шевелит update(). В одной группе поворот наружу стирался
+      // анимацией на первом же кадре, все восемь рук ложились вдоль оси и
+      // головоногое читалось комком.
+      const socket = new Group();
       const arm = new Group();
       const strand = new Mesh(new BoxGeometry(size * 0.5, size * 0.06, size * 0.06), trim);
       strand.position.x = size * 0.25;
       arm.add(strand);
+      socket.add(arm);
+
       const angle = (i / 8) * Math.PI * 2;
-      arm.position.set(size * 0.42, Math.cos(angle) * size * 0.14, Math.sin(angle) * size * 0.14);
-      this.group.add(arm);
+      socket.position.set(
+        size * 0.34,
+        Math.cos(angle) * size * 0.18,
+        Math.sin(angle) * size * 0.18,
+      );
+      socket.rotation.set(0, -Math.sin(angle) * 0.7, Math.cos(angle) * 0.7);
+      this.group.add(socket);
       this.limbs.push(arm);
     }
   }
@@ -238,13 +260,26 @@ class PropView implements CatchView {
     trim: MeshLambertMaterial,
     outline: MeshLambertMaterial,
   ): void {
-    const barrel = new Mesh(new CylinderGeometry(size * 0.24, size * 0.26, size * 0.52, 8), body);
-    barrel.rotation.set(0.2, 0, 1.2);
-    const neck = new Mesh(new CylinderGeometry(size * 0.09, size * 0.12, size * 0.22, 6), trim);
-    neck.position.set(size * 0.3, size * 0.12, 0);
-    neck.rotation.z = 1.2;
-    const cap = new Mesh(new DodecahedronGeometry(size * 0.1, 0), outline);
-    cap.position.set(size * 0.38, size * 0.16, 0);
+    // Горлышко и пробка сидят на оси бутылки, а не рядом с ней: раньше их
+    // ставили по своим координатам, горлышко оказывалось у донышка, и вся
+    // ёмкость читалась комком.
+    const tilt = 0.4;
+    const axis = { x: -Math.sin(tilt), y: Math.cos(tilt) };
+    const along = (distance: number, mesh: Mesh): Mesh => {
+      mesh.position.set(axis.x * size * distance, axis.y * size * distance, 0);
+      mesh.rotation.z = tilt;
+      return mesh;
+    };
+
+    const barrel = along(
+      0,
+      new Mesh(new CylinderGeometry(size * 0.22, size * 0.25, size * 0.5, 8), body),
+    );
+    const neck = along(
+      0.35,
+      new Mesh(new CylinderGeometry(size * 0.08, size * 0.14, size * 0.2, 6), trim),
+    );
+    const cap = along(0.48, new Mesh(new DodecahedronGeometry(size * 0.09, 0), outline));
     this.group.add(barrel, neck, cap);
   }
 

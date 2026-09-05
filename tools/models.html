@@ -2,8 +2,18 @@
 <meta charset="utf-8" />
 <title>Модели улова</title>
 <style>
-  body { margin: 0; background: #0f2430; }
+  body { margin: 0; background: #3a4a54; overflow: hidden; }
   canvas { display: block; }
+  .label {
+    position: fixed;
+    transform: translate(-50%, 0);
+    color: #dff;
+    font: 12px/1.3 monospace;
+    text-align: center;
+    text-shadow: 0 1px 2px #000;
+    pointer-events: none;
+    white-space: nowrap;
+  }
 </style>
 <script type="module">
   import {
@@ -11,28 +21,46 @@
     Color,
     DirectionalLight,
     PerspectiveCamera,
+    Box3,
     Scene,
+    Vector3,
     WebGLRenderer,
   } from 'three';
   import { createCatchView } from '/src/scene3d/CatchView3D.ts';
   import { CATCH_ENTRIES } from '/src/content/catalog.ts';
+  import { rarityBlend, rarityTint } from '/src/gameplay/Rarity.ts';
 
-  // Лист моделей: по одному представителю каждой формы. Открывается в
-  // `npm run dev` по адресу /tools/models.html — в сборку игры не попадает.
-  const WANTED = ['perch', 'eel', 'crab', 'jelly', 'octopus', 'starfish', 'boot', 'tire', 'bottle', 'fridge', 'pike', 'vampsquid'];
+  // Лист моделей: по одному представителю каждой формы плюс три варианта
+  // редкости одного вида. Открывается в `npm run dev` по адресу
+  // /tools/models.html — в сборку игры страница не попадает.
+  const WANTED = [
+    { id: 'perch', rarity: 'common' },
+    { id: 'perch', rarity: 'rare' },
+    { id: 'perch', rarity: 'gold' },
+    { id: 'pike' },
+    { id: 'eel' },
+    { id: 'crab' },
+    { id: 'jelly' },
+    { id: 'octopus' },
+    { id: 'starfish' },
+    { id: 'boot' },
+    { id: 'tire' },
+    { id: 'bottle' },
+  ];
   const COLUMNS = 4;
+  // Фиксированный разворот в три четверти: вращение красиво, но два снимка
+  // подряд оказывались несравнимы. Пробел включает вращение вручную.
+  const YAW = -0.6;
+  let spinning = false;
+  addEventListener('keydown', (event) => {
+    if (event.code === 'Space') spinning = !spinning;
+  });
+  const CELL_X = 3;
+  const CELL_Y = 3.4;
 
   const renderer = new WebGLRenderer({ antialias: true });
-  renderer.setSize(innerWidth, innerHeight);
-  renderer.setClearColor(new Color('#0f2430'));
+  renderer.setClearColor(new Color('#3a4a54'));
   document.body.appendChild(renderer.domElement);
-
-  // Подписи: без них лист моделей — просто набор фигур.
-  const legend = document.createElement('div');
-  legend.style.cssText =
-    'position:fixed;inset:auto 0 8px 0;color:#dff;font:13px/1.4 monospace;text-align:center';
-  legend.textContent = WANTED.join(' · ');
-  document.body.appendChild(legend);
 
   const scene = new Scene();
   scene.add(new AmbientLight(0xffffff, 1.1));
@@ -40,28 +68,73 @@
   sun.position.set(-4, 6, 6);
   scene.add(sun);
 
-  const camera = new PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 100);
-  camera.position.set(0, 0, 13);
+  const camera = new PerspectiveCamera(45, 1, 0.1, 100);
 
-  const views = [];
-  WANTED.forEach((id, index) => {
-    const entry = CATCH_ENTRIES.find((item) => item.id === id);
+  const cells = [];
+  WANTED.forEach((wanted, index) => {
+    const entry = CATCH_ENTRIES.find((item) => item.id === wanted.id);
     if (!entry) return;
     const view = createCatchView(entry);
+    const rarity = wanted.rarity ?? 'common';
+    view.setTint(rarityTint(rarity), rarityBlend(rarity));
+
+    // Ужимаем то, что не влезает в ячейку: угорь в натуральную величину лез
+    // в соседнюю колонку и накрывал её подпись.
+    const box = new Box3().setFromObject(view.group);
+    const span = box.getSize(new Vector3());
+    const fit = Math.min(1, (CELL_X * 0.88) / (span.x || 1), (CELL_Y * 0.62) / (span.y || 1));
+    view.group.scale.setScalar(fit);
+
     const column = index % COLUMNS;
     const row = Math.floor(index / COLUMNS);
-    view.group.position.set((column - (COLUMNS - 1) / 2) * 3, 1.8 - row * 3.4, 0);
+    const rows = Math.ceil(WANTED.length / COLUMNS);
+    view.group.position.set(
+      (column - (COLUMNS - 1) / 2) * CELL_X,
+      ((rows - 1) / 2 - row) * CELL_Y,
+      0,
+    );
+    view.group.rotation.y = YAW;
     scene.add(view.group);
-    views.push(view);
+
+    // Подпись под моделью: без неё лист — просто набор фигур. Позицию берём
+    // проекцией, чтобы она не разъезжалась при изменении размера окна.
+    const label = document.createElement('div');
+    label.className = 'label';
+    label.textContent = `${entry.id} · ${entry.body.shape ?? 'fish'} · ${entry.body.length}см${
+      wanted.rarity ? ` · ${wanted.rarity}` : ''
+    }`;
+    document.body.appendChild(label);
+
+    cells.push({ view, label, anchor: new Vector3() });
   });
+
+  function resize() {
+    const rows = Math.ceil(WANTED.length / COLUMNS);
+    renderer.setSize(innerWidth, innerHeight);
+    camera.aspect = innerWidth / innerHeight;
+
+    // Отодвигаем камеру ровно настолько, чтобы сетка влезла и по высоте, и по
+    // ширине: иначе на узком окне крайние колонки уезжают за кадр.
+    const half = Math.tan((camera.fov * Math.PI) / 360);
+    const byHeight = (rows * CELL_Y) / 2 / half;
+    const byWidth = (COLUMNS * CELL_X) / 2 / (half * camera.aspect);
+    camera.position.set(0, 0, Math.max(byHeight, byWidth) * 1.05);
+    camera.updateProjectionMatrix();
+  }
+  addEventListener('resize', resize);
+  resize();
 
   let last = performance.now();
   function frame(now) {
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
-    for (const view of views) {
-      view.update(dt, 0.4);
-      view.group.rotation.y += dt * 0.5;
+    for (const cell of cells) {
+      cell.view.update(dt, 0.4);
+      if (spinning) cell.view.group.rotation.y += dt * 0.5;
+
+      cell.anchor.set(0, -CELL_Y / 2 + 0.5, 0).add(cell.view.group.position).project(camera);
+      cell.label.style.left = `${((cell.anchor.x + 1) / 2) * innerWidth}px`;
+      cell.label.style.top = `${((1 - cell.anchor.y) / 2) * innerHeight}px`;
     }
     renderer.render(scene, camera);
     requestAnimationFrame(frame);

@@ -56,29 +56,43 @@ export class FishView3D {
       finGeometry(length * (eel ? 0.3 : 0.42), length * (eel ? 0.2 : 0.38), !eel),
       finMaterial,
     );
-    this.tail.position.x = -length * (eel ? 0.95 : 0.52);
+    // Хвост чуть заходит на тело: поставленный ровно на кончик, он висел с
+    // просветом — тело у самого носа сходится в иглу, и стык было видно.
+    this.tail.position.x = -length * (eel ? 0.82 : 0.44);
 
+    // Спинной плавник лежит в той же плоскости, что и хвост: длина вдоль тела,
+    // высота вверх. Поворот на четверть оборота ставил его на попа, и вместо
+    // плавника у щуки со спины торчал шип в половину её длины, а у угря —
+    // зелёный парус.
     const dorsal = new Mesh(
-      finGeometry(length * (eel ? 0.9 : 0.3), length * (eel ? 0.1 : 0.22), false),
+      finGeometry(length * (eel ? 0.95 : 0.3), length * (eel ? 0.08 : 0.22), false),
       finMaterial,
     );
-    dorsal.position.set(-length * (eel ? 0.3 : 0.04), length * (eel ? 0.15 : 0.28), 0);
-    dorsal.rotation.z = -Math.PI / 2;
+    dorsal.position.set(length * (eel ? 0.35 : -0.02), length * (eel ? 0.14 : 0.26), 0);
 
     const pectoral = new Mesh(finGeometry(length * 0.2, length * 0.14, false), finMaterial);
     pectoral.position.set(length * (eel ? 0.5 : 0.1), -length * 0.06, length * 0.1);
     pectoral.rotation.set(Math.PI / 2, 0, -0.5);
 
+    // Зрачок выносим на поверхность белка, а не рядом с его центром: шар
+    // радиусом в половину глаза, смещённый на треть радиуса, целиком помещался
+    // внутри — и вся рыба в игре смотрела бельмом.
+    const eyeRadius = length * (eel ? 0.055 : 0.09);
+    const eyeAt = {
+      x: length * (eel ? 0.82 : 0.3),
+      y: length * 0.06,
+      z: length * (eel ? 0.07 : 0.1),
+    };
     const eye = new Mesh(
-      new SphereGeometry(length * 0.09, 10, 8),
+      new SphereGeometry(eyeRadius, 10, 8),
       new MeshLambertMaterial({ color: new Color('#f4ffff') }),
     );
-    eye.position.set(length * (eel ? 0.82 : 0.3), length * 0.06, length * 0.1);
+    eye.position.set(eyeAt.x, eyeAt.y, eyeAt.z);
     const pupil = new Mesh(
-      new SphereGeometry(length * 0.045, 8, 6),
+      new SphereGeometry(eyeRadius * 0.5, 8, 6),
       new MeshLambertMaterial({ color: new Color(entry.body.outline) }),
     );
-    pupil.position.set(length * (eel ? 0.86 : 0.34), length * 0.06, length * 0.13);
+    pupil.position.set(eyeAt.x + eyeRadius * 0.3, eyeAt.y, eyeAt.z + eyeRadius * 0.72);
 
     this.baseColor = color.clone();
     this.baseTailColor = color.clone().multiplyScalar(0.82);
