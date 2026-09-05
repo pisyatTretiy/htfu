@@ -39,6 +39,9 @@ const BITE_MAX = 2.1;
 /** Пределы наклона взгляда: вниз смотрим охотнее, чем вверх. */
 const PITCH_MIN = -1.15;
 const PITCH_MAX = 0.5;
+/** Сколько улов висит на леске перед игроком, прежде чем уйти в лодку. */
+const SHOWCASE_TIME = 1.6;
+
 /** Сколько длится свеча рыбы и как часто она возможна. */
 const LEAP_TIME = 0.8;
 const LEAP_COOLDOWN = 3.2;
@@ -57,6 +60,7 @@ export type CastState =
   | 'flying'
   | 'sinking'
   | 'fighting'
+  | 'showcase'
   | 'onboard'
   | 'reeling';
 
@@ -84,7 +88,9 @@ export interface SceneHooks {
  */
 export class FishingScene3D {
   readonly scene = new Scene();
-  readonly camera = new PerspectiveCamera(62, 1, 0.05, 1200);
+  // Угол шире обычного: в портретном кадре по горизонтали видно вдвое меньше,
+  // чем по вертикали, и при 62° сцена превращается в замочную скважину.
+  readonly camera = new PerspectiveCamera(70, 1, 0.05, 1200);
 
   state: CastState = 'idle';
   paused = false;
@@ -121,6 +127,7 @@ export class FishingScene3D {
   private shake = 0;
   private leapTimer = 0;
   private leapCooldown = LEAP_COOLDOWN;
+  private showcaseTimer = 0;
   private power = 0;
   private charging = false;
 
@@ -272,7 +279,7 @@ export class FishingScene3D {
     this.water.update(dt, this.camera.position);
     this.ambient.update(dt);
     this.splash.update(dt);
-    this.hooked?.update(dt, this.fight?.surge ?? 0.3);
+    this.hooked?.update(dt, this.state === 'showcase' ? 0.9 : (this.fight?.surge ?? 0.3));
     this.line.render(this.camera);
 
     if (this.charging) {
@@ -308,6 +315,9 @@ export class FishingScene3D {
       }
       case 'fighting':
         this.stepFight(dt, tip);
+        break;
+      case 'showcase':
+        this.stepShowcase(dt, tip);
         break;
       case 'onboard':
         this.stepMischief(dt);
@@ -415,8 +425,45 @@ export class FishingScene3D {
       this.state = 'reeling';
     } else if (outcome === 'landed') {
       this.hitstop = 0.08;
-      this.land();
+      this.beginShowcase();
     }
+  }
+
+  /**
+   * Улов повисает на леске перед игроком.
+   *
+   * Без этого пойманное существо игрок не видит вовсе: был бой — и сразу
+   * всплывающая надпись. Именно этот кадр в рыбалке и есть награда.
+   */
+  private beginShowcase(): void {
+    if (!this.hooked) {
+      this.finishLanding();
+      return;
+    }
+    this.showcaseTimer = SHOWCASE_TIME;
+    this.state = 'showcase';
+    this.splash.burst(this.hook.position, 0.6);
+    this.hooks.sfx('splash');
+  }
+
+  private stepShowcase(dt: number, tip: Vector3): void {
+    this.showcaseTimer -= dt;
+
+    // Крючок подтягивается к вершинке, улов покачивается под ним.
+    this.hook.position.lerp(tip, Math.min(1, dt * 6));
+    this.hook.object.position.copy(this.hook.position);
+
+    if (this.hooked) {
+      const sway = Math.sin(this.time * 4) * 0.12;
+      this.hooked.group.scale.setScalar(0.55);
+      this.hooked.group.position.copy(this.hook.position);
+      this.hooked.group.position.y -= 0.34;
+      this.hooked.group.position.x += sway * 0.3;
+      // Рыба висит головой вверх и медленно поворачивается к игроку.
+      this.hooked.group.rotation.set(0, this.time * 0.9, Math.PI / 2 + sway);
+    }
+
+    if (this.showcaseTimer <= 0) this.finishLanding();
   }
 
   /**
@@ -447,7 +494,7 @@ export class FishingScene3D {
     }
   }
 
-  private land(): void {
+  private finishLanding(): void {
     const entry = this.hookedEntry;
     const fight = this.fight;
     this.dropHooked();
@@ -482,6 +529,9 @@ export class FishingScene3D {
     this.mischief.start({ x: 0, y: 0, halfWidth: 60, height: 90 });
     this.mischiefView = new FishView3D(entry);
     this.mischiefView.setTint(rarityTint(this.rarity));
+    // Улов буянит в двух метрах от лица: в натуральную величину он закрывает
+    // весь кадр, поэтому ужимаем — как и в двумерной версии.
+    this.mischiefView.group.scale.setScalar(0.4);
     this.scene.add(this.mischiefView.group);
     this.state = 'onboard';
     this.hooks.toast(`${this.label(entry)} в лодке!`);
@@ -499,10 +549,15 @@ export class FishingScene3D {
       this.shake = Math.max(this.shake, 0.08);
     }
 
-    // Плоские координаты пакости раскладываем в лодку перед камерой.
+    // Плоские координаты пакости раскладываем в пространство перед игроком.
     if (this.mischiefView) {
-      this.mischiefView.group.position.set(act.x / 60, 0.2 - act.y / 90, -1.6);
+      this.mischiefView.group.position.set(
+        clamp(act.x / 90, -0.75, 0.75),
+        clamp(-0.55 - act.y / 150, -0.95, -0.1),
+        -2.4,
+      );
       this.mischiefView.group.position.applyMatrix4(this.camera.matrixWorld);
+      this.mischiefView.group.rotation.set(0, this.time * 2.2, Math.sin(this.time * 6) * 0.5);
       this.mischiefView.update(dt, act.intensity);
     }
 
@@ -590,6 +645,7 @@ export class FishingScene3D {
     this.fight = null;
     this.hookedEntry = null;
     this.charging = false;
+    this.showcaseTimer = 0;
     this.leapTimer = 0;
     this.leapCooldown = LEAP_COOLDOWN;
     this.power = 0;

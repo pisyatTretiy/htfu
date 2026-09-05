@@ -79,6 +79,30 @@ export class Environment3D {
       this.props.add(tuft);
     }
 
+    // Мыс слева по курсу: игрок смотрит с причала в море, и без него кадр
+    // симметричен и пуст. Мыс даёт асимметрию и точку отсчёта расстояния.
+    const cape = new Group();
+    const capeRock = new Mesh(
+      new DodecahedronGeometry(7, 0),
+      new MeshLambertMaterial({ color: new Color('#6e7a5e'), flatShading: true }),
+    );
+    capeRock.scale.set(2.4, 0.5, 1.6);
+    capeRock.castShadow = true;
+    capeRock.receiveShadow = true;
+    cape.add(capeRock);
+    for (let i = 0; i < 5; i++) {
+      const palm = this.palm(rng);
+      palm.position.set(rng.range(-11, 8), 2.6, rng.range(-6, 6));
+      palm.scale.setScalar(rng.range(0.8, 1.2));
+      cape.add(palm);
+    }
+    // Ближе к оси взгляда, чем кажется нужным: в портретном кадре по
+    // горизонтали видно всего около сорока градусов.
+    cape.position.set(-13, -0.6, -40);
+    cape.rotation.y = 0.4;
+    cape.scale.setScalar(1.5);
+    this.props.add(cape);
+
     // Острова на горизонте: пустое море впереди читается как недоделанная
     // сцена, а архипелаг — это ещё и сеттинг игры.
     for (let i = 0; i < 4; i++) {
