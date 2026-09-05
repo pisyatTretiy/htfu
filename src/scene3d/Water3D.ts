@@ -1,4 +1,5 @@
 import { Color, DoubleSide, Mesh, PlaneGeometry, ShaderMaterial } from 'three';
+import { resolveQuality } from '../core/Quality';
 
 /**
  * Волны в два слоя.
@@ -146,7 +147,7 @@ export class Water3D {
   private readonly material: ShaderMaterial;
   private time = 0;
 
-  constructor(size = 700, segments = 190) {
+  constructor(size = 700, segments = resolveQuality().waterSegments) {
     this.material = new ShaderMaterial({
       vertexShader: VERTEX,
       fragmentShader: FRAGMENT,

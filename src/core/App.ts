@@ -169,7 +169,13 @@ export class App {
 
     this.hud = new PerfHud(this.quality, () => ({
       sprites: countNodes(this.scene),
-      rows: this.scene.metrics,
+      rows: [
+        ...this.scene.metrics,
+        // Вызовы отрисовки — то, во что упирается бюджетный телефон раньше,
+        // чем в число треугольников.
+        ['вызовов', String(this.renderer.info.render.calls)],
+        ['треугольников', String(this.renderer.info.render.triangles)],
+      ],
     }));
 
     // На телевизоре указателя нет: фокус сразу в верхнем ряду, иначе до

@@ -17,6 +17,15 @@ export interface QualityProfile {
   motes: number;
   /** Сегментов в линии поверхности воды. */
   waveSegments: number;
+  /**
+   * Сторона сетки поверхности воды.
+   *
+   * Мелкая рябь живёт во фрагментном шейдере, поэтому геометрии нужно
+   * представить только длинную зыбь: четырёх-восьми четырёхугольников на
+   * длину волны хватает. При 190 сегментах вода одна давала 72 тысячи
+   * треугольников — девять десятых всей сцены.
+   */
+  waterSegments: number;
   targetFps: number;
 }
 
@@ -28,6 +37,7 @@ const PROFILES: Record<QualityTier, QualityProfile> = {
     godrays: 2,
     motes: 60,
     waveSegments: 24,
+    waterSegments: 80,
     targetFps: 30,
   },
   high: {
@@ -37,6 +47,7 @@ const PROFILES: Record<QualityTier, QualityProfile> = {
     godrays: 4,
     motes: 200,
     waveSegments: 48,
+    waterSegments: 140,
     targetFps: 50,
   },
 };
