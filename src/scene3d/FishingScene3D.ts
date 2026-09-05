@@ -171,6 +171,11 @@ export class FishingScene3D {
   private readonly bitePoint = new Vector3();
   private readonly surfacePoint = new Vector3();
   private readonly tipWorld = new Vector3();
+  /** Рабочие векторы кадра: без них каждый кадр рождал по горстке объектов. */
+  private readonly pullLocal = new Vector3();
+  private readonly frameTip = new Vector3();
+  private readonly lineDelta = new Vector3();
+  private readonly rightAxis = new Vector3();
   private readonly forward = new Vector3();
 
   constructor(private readonly hooks: SceneHooks) {
@@ -308,14 +313,14 @@ export class FishingScene3D {
     this.applyLook();
 
     if (this.state === 'sinking') {
-      const right = new Vector3(Math.cos(this.yaw), 0, -Math.sin(this.yaw));
+      const right = this.rightAxis.set(Math.cos(this.yaw), 0, -Math.sin(this.yaw));
       this.hook.steer.copy(right).multiplyScalar(clamp(-deltaX * 0.02, -1, 1));
     }
   }
 
   steer(direction: number): void {
     if (this.state !== 'sinking') return;
-    const right = new Vector3(Math.cos(this.yaw), 0, -Math.sin(this.yaw));
+    const right = this.rightAxis.set(Math.cos(this.yaw), 0, -Math.sin(this.yaw));
     this.hook.steer.copy(right).multiplyScalar(clamp(direction, -1, 1));
   }
 
@@ -379,7 +384,9 @@ export class FishingScene3D {
       return;
     }
 
-    const tip = this.rodTip();
+    // Копия на кадр: rodTip() отдаёт общий вектор, а внутри шага его могут
+    // позвать снова (например, rest()), и тогда tip поменялся бы под ногами.
+    const tip = this.frameTip.copy(this.rodTip());
     switch (this.state) {
       case 'flying':
       case 'sinking': {
@@ -436,7 +443,7 @@ export class FishingScene3D {
         this.hook.reset(tip);
     }
 
-    const pull = this.camera.worldToLocal(this.hook.position.clone());
+    const pull = this.camera.worldToLocal(this.pullLocal.copy(this.hook.position));
     const tension = this.fight ? Math.max(this.line.tension, this.fight.tensionRatio) : this.line.tension;
     this.hands.update(tension, pull.sub(this.hands.tipLocal));
 
@@ -450,7 +457,7 @@ export class FishingScene3D {
 
   private applyLineLimit(tip: Vector3): void {
     const max = this.maxLineUnits();
-    const delta = this.hook.position.clone().sub(tip);
+    const delta = this.lineDelta.copy(this.hook.position).sub(tip);
     const distance = delta.length();
     if (distance <= max) return;
 
@@ -813,9 +820,16 @@ export class FishingScene3D {
 
   // --- служебное -----------------------------------------------------------
 
+  /**
+   * Вершинка удилища в мире.
+   *
+   * Возвращает **общий** вектор, а не копию: метод зовётся по нескольку раз
+   * за кадр, и раньше каждый вызов создавал новый Vector3. Значение
+   * действительно до следующего вызова — все, кому нужно дольше, копируют.
+   */
   private rodTip(): Vector3 {
     this.tipWorld.copy(this.hands.tipLocal);
-    return this.camera.localToWorld(this.tipWorld.clone());
+    return this.camera.localToWorld(this.tipWorld);
   }
 
   private applyLook(): void {

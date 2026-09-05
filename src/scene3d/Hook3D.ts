@@ -83,8 +83,11 @@ export class Hook3D {
   /** Сила бокового течения локации. Ноль — спокойная вода. */
   current = 0;
 
+  /** Рабочий вектор подмотки: считается каждый кадр, аллокация не нужна. */
+  private readonly scratch = new Vector3();
+
   reelTo(target: Vector3, speed: number, dt: number): boolean {
-    const delta = target.clone().sub(this.position);
+    const delta = this.scratch.copy(target).sub(this.position);
     const distance = delta.length();
     if (distance < 0.2) return true;
 
