@@ -82,6 +82,7 @@ export class GameUi {
   private bossTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly lureRow: HTMLElement;
   private readonly storeList: HTMLElement;
+  private readonly storeTitle: HTMLElement;
   /** Что уже нарисовано в блоке покупок: каталог приходит с задержкой. */
   private storeSignature = '';
   private lastMoney = 0;
@@ -136,7 +137,10 @@ export class GameUi {
           <span>${i18n.t('shop.title')}</span>
           <button class="btn ghost" id="ui-shop-close" aria-label="${i18n.t('shop.close')}">×</button>
         </div>
-        <div class="panel-list" id="ui-store-list" hidden></div>
+        <!-- Порядок в панели: сначала то, за чем игрок сюда пришёл. Панель
+             называется «Снасти», а открывалась пятью платными предложениями
+             до единой строчки про удочку и леску. -->
+        <div class="panel-list" id="ui-shop-list"></div>
         <div class="branch lure-row" id="ui-lure-row">
           <div class="branch-top">
             <span class="branch-name">${i18n.t('lure.title')}</span>
@@ -148,7 +152,8 @@ export class GameUi {
             <button class="btn buy" id="ui-lure-buy">${i18n.t('lure.watch')}</button>
           </div>
         </div>
-        <div class="panel-list" id="ui-shop-list"></div>
+        <div class="panel-sub" id="ui-store-title" hidden>${i18n.t('store.title')}</div>
+        <div class="panel-list" id="ui-store-list" hidden></div>
       </div>
       <div class="panel" id="ui-tasks" hidden>
         <div class="panel-head">
@@ -181,6 +186,8 @@ export class GameUi {
     this.bossEl = must(document.getElementById('ui-boss'));
     this.lureRow = must(document.getElementById('ui-lure-row'));
     this.storeList = must(document.getElementById('ui-store-list'));
+    this.storeTitle = must(document.getElementById('ui-store-title'));
+    this.storeTitle = must(document.getElementById('ui-store-title'));
     this.lureState = must(document.getElementById('ui-lure-state'));
     this.lureButton = must(document.getElementById('ui-lure-buy')) as HTMLButtonElement;
     this.lureButton.addEventListener('click', () => this.callbacks.watchLure());
@@ -553,6 +560,7 @@ export class GameUi {
     this.storeSignature = signature;
 
     this.storeList.hidden = available.length === 0;
+    this.storeTitle.hidden = this.storeList.hidden;
     this.storeList.innerHTML = available
       .map((product) => {
         const entry = state.store.all.find((item) => item.id === product.id);
