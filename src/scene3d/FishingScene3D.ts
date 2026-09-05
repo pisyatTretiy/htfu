@@ -56,6 +56,12 @@ const LEAP_COOLDOWN = 3.2;
 /** Сколько крючок должен пробыть в воде, прежде чем на него начнут наводиться. */
 const AIM_DELAY = 0.35;
 
+/**
+ * Базовый угол обзора. В портретном кадре по горизонтали видно вдвое меньше,
+ * чем по вертикали, и при 62° сцена превращалась в замочную скважину.
+ */
+const BASE_FOV = 70;
+
 /** Направление на солнце. Один источник правды для света, неба и блика. */
 const SUN_POSITION = new Vector3(-16, 20, -20);
 
@@ -110,7 +116,7 @@ export class FishingScene3D {
   readonly scene = new Scene();
   // Угол шире обычного: в портретном кадре по горизонтали видно вдвое меньше,
   // чем по вертикали, и при 62° сцена превращается в замочную скважину.
-  readonly camera = new PerspectiveCamera(70, 1, 0.05, 1200);
+  readonly camera = new PerspectiveCamera(BASE_FOV, 1, 0.05, 1200);
 
   state: CastState = 'idle';
   paused = false;
@@ -152,6 +158,8 @@ export class FishingScene3D {
   private biteAt = BITE_MIN;
   private hitstop = 0;
   private shake = 0;
+  /** Завал горизонта в сторону рывка, радианы. */
+  private roll = 0;
   private leapTimer = 0;
   private leapCooldown = LEAP_COOLDOWN;
   private showcaseTimer = 0;
@@ -360,6 +368,7 @@ export class FishingScene3D {
     this.camera.position.y =
       PIER_Y + EYE_HEIGHT + this.shakeOffset() * (this.calmMotion ? 0.25 : 1);
     this.shake *= Math.pow(0.02, dt);
+    this.leanCamera(dt);
     if (this.strain > 0) this.strain -= dt;
 
     this.sky.update(dt);
@@ -502,6 +511,34 @@ export class FishingScene3D {
     this.shake = boss ? 0.18 : 0.07;
     this.hooks.sfx('bite');
     this.hooks.toast(boss ? boss.taunt : i18n.t('toast.bite'));
+  }
+
+  /**
+   * Кадр реагирует на рывок: угол обзора чуть распахивается, а горизонт
+   * заваливается в ту сторону, куда тянет рыба.
+   *
+   * Оба движения маленькие и не спорят с игроком — прицел он крутит сам, а
+   * это только отдача. Без них бой ощущается как «полоска меняет длину».
+   */
+  private leanCamera(dt: number): void {
+    const fight = this.state === 'fighting' ? this.fight : null;
+    const surge = fight?.surge ?? 0;
+    const calm = this.calmMotion ? 0.3 : 1;
+
+    const wantedFov = BASE_FOV + surge * 3.4 * calm + (fight && this.isBossFight ? 1.2 : 0);
+    if (Math.abs(this.camera.fov - wantedFov) > 0.01) {
+      this.camera.fov += (wantedFov - this.camera.fov) * Math.min(1, dt * 6);
+      this.camera.updateProjectionMatrix();
+    }
+
+    // Куда тянет: боковая составляющая направления на крючок в осях камеры.
+    let side = 0;
+    if (fight) {
+      const local = this.camera.worldToLocal(this.pullLocal.copy(this.hook.position));
+      side = clamp(local.x / 3, -1, 1);
+    }
+    this.roll += (side * 0.05 * calm - this.roll) * Math.min(1, dt * 4);
+    this.camera.rotation.z = this.roll;
   }
 
   /**
