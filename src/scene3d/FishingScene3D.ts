@@ -790,9 +790,10 @@ export class FishingScene3D {
 
   private label(entry: CatchEntry): string {
     const name = entryName(entry);
-    if (this.rarity === 'gold') return `Золотой ${name.toLowerCase()}`;
-    if (this.rarity === 'rare') return `Редкий ${name.toLowerCase()}`;
-    return name;
+    if (this.rarity === 'common') return name;
+    // Прилагательное согласуется с языком, а не приклеивается к имени:
+    // «Редкий boot» английский игрок видел ровно до этой правки.
+    return i18n.t(`rarity.${this.rarity}`, { name: name.toLowerCase() });
   }
 
   private dropHooked(): void {

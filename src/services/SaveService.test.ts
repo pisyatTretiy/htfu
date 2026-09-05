@@ -31,7 +31,9 @@ describe('миграции сейва', () => {
     expect(save.version).toBe(SAVE_VERSION);
     expect(save.money).toBe(780);
     expect(save.upgrades).toEqual({ line: 3, net: 1 });
-    expect(save.album).toEqual({ perch: 12 });
+    // Альбом до версии 5 хранил число вместо разбивки по вариантам: приведение
+    // к новому виду делает sanitize, и Album.restore получает уже его.
+    expect(save.album).toEqual({ perch: { common: 12 } });
     expect(save.quests).toEqual({ index: 0, progress: 0 });
   });
 
@@ -94,5 +96,52 @@ describe('миграции сейва', () => {
     const save = migrate(partial);
     expect(save.album).toEqual({});
     expect(save.upgrades).toEqual({});
+  });
+
+  it('мусор в сейве не ломает игру', () => {
+    const broken = {
+      version: SAVE_VERSION,
+      updatedAt: 'вчера',
+      money: Number.NaN,
+      bestCatch: -40,
+      upgrades: { line: 'три', reel: 2 },
+      album: { perch: null, crab: { common: 'много', gold: 1 } },
+      quests: null,
+      zone: 42,
+      bosses: { trophies: ['boss_som', 7], catches: null },
+      dailies: { day: Number.POSITIVE_INFINITY, progress: null, claimed: 'нет' },
+      onboarding: { step: -3, seen: [1, 'cast'] },
+      boosts: { lureUntil: 'скоро' },
+      store: { owned: null },
+    };
+
+    const save = migrate(broken as never);
+    expect(save.money).toBe(0);
+    expect(save.bestCatch).toBe(0);
+    expect(save.updatedAt).toBe(0);
+    expect(save.upgrades).toEqual({ reel: 2 });
+    expect(save.album).toEqual({ crab: { gold: 1 } });
+    expect(save.quests).toEqual({ index: 0, progress: 0 });
+    expect(save.zone).toBe('dock');
+    expect(save.bosses).toEqual({ trophies: ['boss_som'], catches: {} });
+    expect(save.dailies.day).toBe(0);
+    expect(save.dailies.claimed).toEqual([]);
+    expect(save.dailies.lastCompletedDay).toBe(-1);
+    expect(save.onboarding).toEqual({ step: 0, seen: ['cast'] });
+    expect(save.boosts).toEqual({ lureUntil: 0 });
+    expect(save.store).toEqual({ owned: [] });
+  });
+
+  it('целый сейв проходит через проверку без изменений', () => {
+    const good = {
+      ...emptySave(),
+      money: 1200,
+      bestCatch: 340,
+      upgrades: { line: 2, rod: 1 },
+      album: { perch: { common: 4, gold: 1 } },
+      zone: 'bay',
+      bosses: { trophies: ['boss_som'], catches: { dock: 9 } },
+    };
+    expect(migrate(good)).toEqual({ ...good, updatedAt: 0 });
   });
 });

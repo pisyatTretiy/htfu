@@ -48,6 +48,8 @@ export const STRINGS: Record<string, Localized> = {
   'toast.newVariant': { ru: 'Новый вариант в альбоме!', en: 'New variant in the album!' },
   'toast.speciesDone': { ru: '{name}: все варианты собраны! +25 % к цене', en: '{name}: all variants collected! +25% price' },
   'album.bonus': { ru: 'Собрано {percent} % · цена +{price} % · леска +{line} %', en: 'Filled {percent}% · price +{price}% · line +{line}%' },
+  'rarity.rare': { ru: 'Редкий {name}', en: 'Rare {name}' },
+  'rarity.gold': { ru: 'Золотой {name}', en: 'Golden {name}' },
   'boot.title': { ru: 'Клёв!', en: 'Hook & Home' },
   'toast.bite': { ru: 'Клюёт!', en: 'A bite!' },
   'toast.trick': { ru: 'Трюк-шот!', en: 'Trick shot!' },

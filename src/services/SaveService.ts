@@ -113,7 +113,89 @@ export function migrate(raw: Partial<GameSave> | null): GameSave {
   }
   // Сейв из будущей версии игры (игрок откатился) — не ломаем, берём как есть.
   data.version = Math.max(data.version, SAVE_VERSION);
-  return data;
+  return sanitize(data);
+}
+
+/**
+ * Привести сейв к вменяемому виду.
+ *
+ * Облачный сейв приходит извне: его мог записать другой клиент, недописать
+ * оборванный запрос или испортить игрок вручную. Игра не имеет права падать
+ * или показывать «NaN ₽» — поля с мусором просто заменяются значениями по
+ * умолчанию, а всё остальное сохраняется.
+ */
+function sanitize(data: GameSave): GameSave {
+  const empty = emptySave();
+  const dailies = data.dailies ?? empty.dailies;
+  return {
+    ...data,
+    money: count(data.money),
+    bestCatch: count(data.bestCatch),
+    updatedAt: count(data.updatedAt),
+    upgrades: numbers(data.upgrades),
+    album: nested(data.album),
+    quests: {
+      index: count(data.quests?.index),
+      progress: count(data.quests?.progress),
+    },
+    zone: typeof data.zone === 'string' && data.zone ? data.zone : empty.zone,
+    bosses: {
+      trophies: strings(data.bosses?.trophies),
+      catches: numbers(data.bosses?.catches),
+    },
+    dailies: {
+      day: count(dailies.day),
+      progress: numbers(dailies.progress),
+      claimed: strings(dailies.claimed),
+      streak: count(dailies.streak),
+      // Единственное поле, у которого -1 осмысленнее нуля: «ещё ни разу».
+      lastCompletedDay: Number.isFinite(dailies.lastCompletedDay)
+        ? Math.trunc(dailies.lastCompletedDay)
+        : -1,
+      chestDay: Number.isFinite(dailies.chestDay) ? Math.trunc(dailies.chestDay) : -1,
+    },
+    onboarding: {
+      step: count(data.onboarding?.step),
+      seen: strings(data.onboarding?.seen),
+    },
+    boosts: { lureUntil: count(data.boosts?.lureUntil) },
+    store: { owned: strings(data.store?.owned) },
+  };
+}
+
+/** Неотрицательное целое или ноль. */
+function count(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0
+    ? Math.floor(value)
+    : 0;
+}
+
+function strings(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
+}
+
+function numbers(value: unknown): Record<string, number> {
+  if (!value || typeof value !== 'object') return {};
+  const result: Record<string, number> = {};
+  for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
+    if (typeof item === 'number' && Number.isFinite(item)) result[key] = Math.floor(item);
+  }
+  return result;
+}
+
+function nested(value: unknown): Record<string, Record<string, number>> {
+  if (!value || typeof value !== 'object') return {};
+  const result: Record<string, Record<string, number>> = {};
+  for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
+    // Формат до версии 5 хранил число вместо разбивки по вариантам —
+    // разбор старого вида живёт в Album.restore, здесь его не трогаем.
+    if (typeof item === 'number' && Number.isFinite(item)) {
+      result[key] = { common: Math.floor(item) };
+    } else if (item && typeof item === 'object') {
+      result[key] = numbers(item);
+    }
+  }
+  return result;
 }
 
 /**
