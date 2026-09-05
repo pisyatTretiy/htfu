@@ -51,6 +51,14 @@ export const STRINGS: Record<string, Localized> = {
   'album.bonus': { ru: 'Собрано {percent} % · цена +{price} % · леска +{line} %', en: 'Filled {percent}% · price +{price}% · line +{line}%' },
   'rarity.rare': { ru: 'Редкий {name}', en: 'Rare {name}' },
   'rarity.gold': { ru: 'Золотой {name}', en: 'Golden {name}' },
+  'boot.noWebgl': {
+    ru: 'Браузер не поддерживает трёхмерную графику. Попробуйте другой браузер или устройство.',
+    en: 'This browser has no 3D graphics support. Try another browser or device.',
+  },
+  'boot.failed': {
+    ru: 'Не удалось запустить игру. Прогресс сохранён — попробуйте перезагрузить страницу.',
+    en: 'The game failed to start. Progress is saved — try reloading the page.',
+  },
   'lost.text': {
     ru: 'Браузер освободил видеопамять, пока вкладка была в фоне. Прогресс сохранён.',
     en: 'The browser reclaimed video memory while the tab was in the background. Progress is saved.',

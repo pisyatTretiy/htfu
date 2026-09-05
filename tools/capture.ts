@@ -546,6 +546,26 @@ async function main(): Promise<void> {
   if (closed !== 0) throw new Error('Back с пульта не закрыл панель');
   console.log(`Пульт: ${firstFocus} → ${secondFocus} → ${openedPanel} (${inPanel})`);
 
+  // --- нет WebGL: игрок должен получить объяснение, а не чёрный экран ---
+  const noGl = await browser.newPage({ viewport: VIEWPORT, locale: 'ru-RU' });
+  // Отключаем WebGL так же, как это делает браузер на старом устройстве.
+  // Скрипт передаём строкой: сборщик добавляет к именованным функциям свой
+  // хелпер, и в странице такой скрипт падает с ReferenceError.
+  await noGl.addInitScript({
+    content:
+      "Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', " +
+      '{ configurable: true, value: function () { return null; } });',
+  });
+  await noGl.goto(URL, { waitUntil: 'networkidle' });
+  await noGl.waitForTimeout(900);
+  const explained = await noGl.locator('#lost').isVisible();
+  const reloadShown = await noGl.locator('#lost-reload').isVisible();
+  if (!explained) throw new Error('Без WebGL игра молчит: игрок видит пустой экран');
+  if (reloadShown) throw new Error('Без WebGL предлагаем перезагрузку — чинить нечего');
+  await noGl.screenshot({ path: `${OUT}/21-no-webgl.png` });
+  await noGl.close();
+  console.log('Без WebGL: игроку объяснили, перезагрузку не предлагаем');
+
   // --- каждая локация выглядит своим местом ---
   // Пять вкладок с сейвом в нужной локации: набор декора, палитра и свет
   // должны отличаться, а не только цвет воды.
