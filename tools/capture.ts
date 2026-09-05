@@ -360,8 +360,11 @@ async function main(): Promise<void> {
     snapped = true;
     await page.screenshot({ path: `${OUT}/8e-retry.png` });
     await retryOffer.click();
-    await page.waitForTimeout(1200);
-    const back = await readState(page);
+    // Ждём состояние, а не фиксированную паузу: между нажатием и возвратом
+    // рыбы стоит ролик за награду (в заглушке 400 мс) и сброс сейва, и на
+    // загруженной машине они не укладывались в отмеренную секунду — проверка
+    // падала на исправной игре.
+    const back = await waitForState(page, ['fighting'], 15000).catch(() => readState(page));
     if (back !== 'fighting') {
       throw new Error(`Вторая попытка не вернула рыбу на крючок: ${back}`);
     }

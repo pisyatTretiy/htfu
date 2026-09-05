@@ -88,6 +88,10 @@ function island(view: MapZoneView, spot?: { x: number; y: number; r: number }): 
       ).toFixed(1)}`;
     }).join(' ');
 
+  // Острова верхнего ряда подписываются сверху: снизу подпись «Скалистая
+  // бухта» наезжала на соседний остров нижнего ряда и на кольцо «вы здесь».
+  const labelY = spot.y < HEIGHT / 2 ? spot.y - spot.r - 8 : spot.y + spot.r + 16;
+
   return `
     <g class="map-island${current ? ' current' : ''}${unlocked ? '' : ' locked'}"
        data-zone="${zone.id}" tabindex="${unlocked && !current ? '0' : '-1'}"
@@ -98,7 +102,7 @@ function island(view: MapZoneView, spot?: { x: number; y: number; r: number }): 
         stroke="#ffd166" stroke-width="2.5"/>` : ''}
       ${unlocked ? '' : `<text x="${spot.x}" y="${spot.y + 5}" text-anchor="middle"
         font-size="15">🔒</text>`}
-      <text x="${spot.x}" y="${spot.y + spot.r + 14}" text-anchor="middle" font-size="11"
+      <text x="${spot.x}" y="${labelY}" text-anchor="middle" font-size="11"
         fill="#eafffb" font-weight="600">${label}</text>
     </g>`;
 }
