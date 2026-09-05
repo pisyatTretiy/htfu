@@ -14,7 +14,8 @@
     "test": "vitest run",
     "shot": "tsx tools/shot.ts",
     "balance": "tsx tools/balance.ts",
-    "tune-fights": "tsx tools/tune-fights.ts"
+    "tune-fights": "tsx tools/tune-fights.ts",
+    "promo": "tsx tools/promo.ts"
   },
   "dependencies": {
     "three": "^0.185.1"
