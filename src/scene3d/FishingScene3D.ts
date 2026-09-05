@@ -69,6 +69,9 @@ const AIM_DELAY = 0.35;
 const BASE_FOV = 70;
 
 /** Направление на солнце. Один источник правды для света, неба и блика. */
+/** Белый для подмешивания: цвет, а не оттенок сцены. */
+const WHITE = new Color('#ffffff');
+
 const SUN_POSITION = new Vector3(-16, 20, -20);
 
 /** Где стоит игрок и на какой высоте его глаза: на настиле причала. */
@@ -241,7 +244,11 @@ export class FishingScene3D {
     // это цвет толщи воды под поверхностью, и на поверхности они выглядели
     // не морем, а асфальтом.
     const deep = zone.water[2] ?? zone.water[0];
-    if (shallow && deep) this.water.setPalette(shallow, deep, '#eef7fb');
+    // Пена берёт цвет неба у горизонта и высветляется до белого наполовину:
+    // жёстко заданный белый висел ярким пятном на чёрной воде разлома, потому
+    // что пена — это отражённое небо, а небо у каждой локации своё.
+    const foam = new Color(zone.sky[0] ?? '#cfe6f5').lerp(WHITE, 0.45);
+    if (shallow && deep) this.water.setPalette(shallow, deep, `#${foam.getHexString()}`);
     this.water.setHorizon(zone.sky[0] ?? '#cfe6f5');
     this.water.setShoreZ(SHORE_Z);
     this.water.setSun(SUN_POSITION);
@@ -266,6 +273,7 @@ export class FishingScene3D {
       260 - darkness * 150,
     );
     this.sky.setDarkness(darkness);
+    this.birds.setDarkness(darkness, new Color(zone.sky[2] ?? '#2f8fd8'));
     this.sun.intensity = 2.1 * (1 - darkness * 0.55);
     this.ambientLight.intensity = 1.15 * (1 - darkness * 0.45);
   }

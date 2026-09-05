@@ -30,6 +30,8 @@ export class Birds3D {
   readonly group = new Group();
   private readonly gulls: Gull[] = [];
   private readonly material: MeshLambertMaterial;
+  private readonly baseColor: Color;
+  private readonly baseGlow: Color;
   private time = 0;
 
   constructor(count = 5) {
@@ -41,6 +43,9 @@ export class Birds3D {
       // на чаек именно снизу.
       side: DoubleSide,
     });
+
+    this.baseColor = this.material.color.clone();
+    this.baseGlow = this.material.emissive.clone();
 
     const rng = new Rng(7717);
     for (let i = 0; i < count; i++) {
@@ -97,6 +102,17 @@ export class Birds3D {
       gull.wings[0].rotation.x = Math.PI / 2 + beat;
       gull.wings[1].rotation.x = Math.PI / 2 - beat;
     }
+  }
+
+  /**
+   * Чайки темнеют вместе с небом локации: белая птица над чёрной водой
+   * разлома — из другой игры, как и белое облако.
+   */
+  setDarkness(value: number, sky: Color): void {
+    const dark = Math.max(0, Math.min(1, value));
+    const light = 1 - dark * 0.75;
+    this.material.color.copy(this.baseColor).lerp(sky, dark * 0.7).multiplyScalar(light);
+    this.material.emissive.copy(this.baseGlow).lerp(sky, dark * 0.7).multiplyScalar(light * light);
   }
 
   dispose(): void {

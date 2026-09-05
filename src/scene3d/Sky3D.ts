@@ -37,6 +37,10 @@ const FRAGMENT = /* glsl */ `
   }
 `;
 
+/** Дневной цвет облака и его подсветка снизу. */
+const CLOUD_DAY = new Color('#ffffff');
+const CLOUD_GLOW = new Color('#b9d3e6');
+
 /** Небесный купол. Градиент в шейдере — ни одной текстуры и ни одного байта веса. */
 export class Sky3D {
   readonly mesh: Mesh;
@@ -45,6 +49,9 @@ export class Sky3D {
   private readonly clouds = new Group();
   private readonly sunDistance: number;
   private readonly cloudMaterial: MeshLambertMaterial;
+  /** Цвет зенита локации: в него уводятся облака, когда небо темнеет. */
+  private readonly zenith = new Color('#2f8fd8');
+  private darkness = 0;
 
   constructor(radius = 900) {
     this.material = new ShaderMaterial({
@@ -71,10 +78,10 @@ export class Sky3D {
     // Облака — единственная деталь в верхней трети кадра. Без них небо
     // читается как пустая заливка, а с ними появляется масштаб и глубина.
     this.cloudMaterial = new MeshLambertMaterial({
-      color: new Color('#ffffff'),
+      color: CLOUD_DAY.clone(),
       // Подсветка снизу: иначе теневая сторона облака чернеет и весь стиль
       // рассыпается — низкополигональному облаку нужна плоская светлая изнанка.
-      emissive: new Color('#b9d3e6'),
+      emissive: CLOUD_GLOW.clone(),
       flatShading: true,
       // Туман работает на 260 метрах, облака стоят дальше: без выключения
       // они растворились бы в дымке целиком.
@@ -124,11 +131,30 @@ export class Sky3D {
    * игры — небо должно темнеть целиком, а не только у горизонта.
    */
   setDarkness(value: number): void {
-    const light = 1 - Math.max(0, Math.min(1, value)) * 0.85;
-    this.cloudMaterial.color.setRGB(light, light, light);
-    this.cloudMaterial.emissive.setRGB(0.5 * light * light, 0.6 * light * light, 0.68 * light * light);
-    (this.sun.material as SpriteMaterial).opacity = 1 - value * 0.8;
+    this.darkness = Math.max(0, Math.min(1, value));
+    this.applyClouds();
+    (this.sun.material as SpriteMaterial).opacity = 1 - this.darkness * 0.8;
     (this.sun.material as SpriteMaterial).transparent = true;
+  }
+
+  /**
+   * Цвет облаков по темноте локации.
+   *
+   * Гасить их в серый было мало: свет сцены в разломе всё ещё силён, и серое
+   * облако выходило из освещения обратно белым — над чёрной водой висели
+   * облака из солнечной игры. Теперь цвет уводится в зенит локации, поэтому
+   * облако принадлежит своему небу, а не общему.
+   */
+  private applyClouds(): void {
+    const light = 1 - this.darkness * 0.9;
+    this.cloudMaterial.color
+      .copy(CLOUD_DAY)
+      .lerp(this.zenith, this.darkness * 0.8)
+      .multiplyScalar(light);
+    this.cloudMaterial.emissive
+      .copy(CLOUD_GLOW)
+      .lerp(this.zenith, this.darkness * 0.8)
+      .multiplyScalar(light * light);
   }
 
   /** Медленный дрейф: полный оборот примерно за двадцать минут. */
@@ -153,7 +179,11 @@ export class Sky3D {
     const [bottom, middle, top] = colors;
     if (bottom) (this.material.uniforms.uBottom?.value as Color).set(bottom);
     if (middle) (this.material.uniforms.uMiddle?.value as Color).set(middle);
-    if (top) (this.material.uniforms.uTop?.value as Color).set(top);
+    if (top) {
+      (this.material.uniforms.uTop?.value as Color).set(top);
+      this.zenith.set(top);
+    }
+    this.applyClouds();
   }
 
   dispose(): void {
