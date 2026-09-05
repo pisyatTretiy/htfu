@@ -531,6 +531,24 @@ async function main(): Promise<void> {
   if (closed !== 0) throw new Error('Back с пульта не закрыл панель');
   console.log(`Пульт: ${firstFocus} → ${secondFocus} → ${openedPanel} (${inPanel})`);
 
+  // --- сверхширокий монитор: поле не растягивается, интерфейс не разъезжается ---
+  // Площадка требует, чтобы длинная сторона активного поля не превышала
+  // короткую больше чем вдвое.
+  const wide = await browser.newPage({ viewport: { width: 2560, height: 1080 }, locale: 'ru-RU' });
+  await wide.goto(URL, { waitUntil: 'networkidle' });
+  await wide.waitForTimeout(1200);
+  const field = await wide.locator('#app canvas').boundingBox();
+  if (!field) throw new Error('Поле игры не найдено');
+  const aspect = Math.max(field.width, field.height) / Math.min(field.width, field.height);
+  if (aspect > 2.01) throw new Error(`Поле вытянуто ${aspect.toFixed(2)} : 1 — площадка требует ≤ 2`);
+  const uiBox = await wide.locator('#ui').boundingBox();
+  if (!uiBox || uiBox.width > field.width + 1) {
+    throw new Error('Интерфейс шире поля: на широком мониторе кнопки уедут за сцену');
+  }
+  await wide.screenshot({ path: `${OUT}/19-wide.png` });
+  await wide.close();
+  console.log(`Сверхширокий монитор: поле ${Math.round(field.width)}×${Math.round(field.height)}`);
+
   // --- узкий телефон: нижний ряд не должен уезжать за край ---
   // 360 CSS-пикселей — это обычный Android, а шестизначный кошелёк — обычная
   // середина игры. Вместе они и выталкивали «Снасти» за экран.

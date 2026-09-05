@@ -19,7 +19,10 @@
       font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
       -webkit-tap-highlight-color: transparent;
     }
-    #app { position: fixed; inset: 0; touch-action: none; }
+    /* Поле игры центрируется: на сверхшироком мониторе оно ограничено по
+       ширине, и по краям видно фон страницы, а не растянутую сцену. */
+    #app { position: fixed; inset: 0; touch-action: none; background: #0a1a22; }
+    #app canvas { position: absolute; top: 0; }
     #app canvas { display: block; width: 100%; height: 100%; }
 
     #boot {
@@ -47,7 +50,10 @@
 
     /* Интерфейс поверх канваса. Слой не перехватывает касания — их ловят
        только сами кнопки, иначе по игре нельзя было бы тапать. */
-    #ui { position: fixed; inset: 0; z-index: 8; pointer-events: none; }
+    #ui {
+      position: fixed; top: 0; bottom: 0; z-index: 8; pointer-events: none;
+      left: var(--field-x, 0); width: var(--field-w, 100%);
+    }
     #ui .topbar {
       position: absolute; left: 0; right: 0; bottom: 0;
       display: flex; align-items: center; gap: 6px;
@@ -78,7 +84,9 @@
     #ui .btn:active:not(:disabled) { transform: translateY(3px); box-shadow: none; }
     #ui .btn:disabled { opacity: .45; cursor: default; }
     #ui .btn:focus-visible { outline: 3px solid #4fd6b4; outline-offset: 2px; }
-    #ui .topbar .btn { margin-left: auto; }
+    /* Кнопки держатся вместе справа, а не расползаются по ряду: на широком
+       экране «Карта» и «Снасти» иначе оказываются в разных концах поля. */
+    #ui #ui-map-open { margin-left: auto; }
     /* Значок звука стоит рядом с кошельком и не растягивает ряд кнопок. */
     #ui .btn.icon {
       margin-left: 0; padding: 6px 9px; font-size: 15px; line-height: 1;
@@ -242,7 +250,8 @@
     #ui .branch-foot .btn { padding: 6px 14px; font-size: 12.5px }
 
     #toast {
-      position: fixed; left: 50%; top: 18%; z-index: 12;
+      position: fixed; left: calc(var(--field-x, 0px) + var(--field-w, 100%) / 2);
+      top: 18%; z-index: 12;
       transform: translate(-50%, -8px); opacity: 0; pointer-events: none;
       font-size: 15px; letter-spacing: .1em; text-transform: uppercase; color: #eafffb;
       background: rgba(4, 20, 26, .8); border: 1px solid #2f7d74; border-radius: 999px;

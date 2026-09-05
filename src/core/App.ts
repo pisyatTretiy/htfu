@@ -23,6 +23,9 @@ import { Leaderboards } from '../services/Leaderboards';
 import type { CatchEntry, FightPhase } from '../content/types';
 import type { Rarity } from '../gameplay/Rarity';
 
+/** Предел вытянутости поля: требование площадки к активной области. */
+const MAX_ASPECT = 2;
+
 /** Касание короче этого и без сдвига считается тапом, а не свайпом. */
 const TAP_MS = 200;
 const TAP_SLOP = 10;
@@ -608,12 +611,29 @@ export class App {
 
   // --- ввод и фокус --------------------------------------------------------
 
+  /**
+   * Размер поля игры.
+   *
+   * Площадка требует, чтобы длинная сторона активного поля не превышала
+   * короткую больше чем вдвое. На сверхшироком мониторе (21:9 и шире) окно
+   * этого условия не выполняет, поэтому поле ограничивается по ширине и
+   * центрируется — по краям остаётся фон страницы, а не растянутая сцена.
+   */
   private resize(): void {
-    const width = innerWidth;
     const height = innerHeight;
+    const width = Math.min(innerWidth, Math.round(height * MAX_ASPECT));
     this.renderer.setSize(width, height, false);
-    this.renderer.domElement.style.width = '100%';
-    this.renderer.domElement.style.height = '100%';
+
+    const canvas = this.renderer.domElement;
+    canvas.style.width = `${width}px`;
+    canvas.style.height = `${height}px`;
+    const left = Math.round((innerWidth - width) / 2);
+    canvas.style.left = `${left}px`;
+    // Интерфейс живёт в тех же границах, что и поле: иначе на сверхшироком
+    // мониторе кошелёк уезжает в один край экрана, а «Снасти» — в другой.
+    const root = document.documentElement.style;
+    root.setProperty('--field-w', `${width}px`);
+    root.setProperty('--field-x', `${left}px`);
     this.scene.setViewport(width, height);
   }
 
