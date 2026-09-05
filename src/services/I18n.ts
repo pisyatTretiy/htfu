@@ -19,6 +19,7 @@ export const STRINGS: Record<string, Localized> = {
   'album.unknown': { ru: 'Не пойман', en: 'Not caught yet' },
   'album.times': { ru: '{count} шт.', en: '×{count}' },
   'album.kind.fish': { ru: 'рыба', en: 'fish' },
+  'album.kind.critter': { ru: 'живность', en: 'critter' },
   'album.kind.junk': { ru: 'мусор', en: 'junk' },
   'quest.label': { ru: 'Задание', en: 'Quest' },
   'daily.title': { ru: 'Дела на сегодня', en: "Today's tasks" },

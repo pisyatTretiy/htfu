@@ -1,5 +1,5 @@
 import { i18n } from '../services/I18n';
-import { CATCH_ENTRIES, entryName } from '../content/catalog';
+import { CATCH_ENTRIES, catchCategory, entryName } from '../content/catalog';
 import { catchIcon } from './CatchIcon';
 import { archipelagoSvg } from './ArchipelagoMap';
 import { RARITIES } from '../gameplay/Rarity';
@@ -764,7 +764,7 @@ export class GameUi {
           <div class="album-item${count > 0 ? '' : ' unknown'}${complete ? ' complete' : ''}">
             ${catchIcon(entry, count > 0)}
             <div class="album-name">${title}</div>
-            <div class="album-meta">${i18n.t(`album.kind.${entry.kind}`)} · ${note}</div>
+            <div class="album-meta">${i18n.t(`album.kind.${catchCategory(entry)}`)} · ${note}</div>
             <div class="album-slots">${slots}</div>
           </div>`;
       }).join('');

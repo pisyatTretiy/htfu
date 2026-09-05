@@ -1,0 +1,37 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Значки альбома</title>
+<style>
+  body { margin: 0; padding: 16px; background: #16323f; color: #dff; font: 12px/1.4 monospace; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 10px; }
+  .cell {
+    background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12);
+    border-radius: 12px; padding: 8px; text-align: center;
+  }
+  .cell.unknown { opacity: .7 }
+  svg { display: block; margin: 0 auto 4px; width: 100%; height: auto; max-width: 64px }
+  h2 { font-size: 13px; font-weight: normal; opacity: .8; margin: 18px 0 8px }
+</style>
+<script type="module">
+  import { catchIcon } from '/src/ui/CatchIcon.ts';
+  import { CATCH_ENTRIES } from '/src/content/catalog.ts';
+
+  // Лист значков альбома: те же карточки, что видит игрок, но все разом.
+  // Открывается в `npm run dev` по адресу /tools/icons.html — в сборку игры
+  // страница не попадает. ?unknown=1 — как выглядят нераскрытые виды.
+  const known = !new URLSearchParams(location.search).has('unknown');
+
+  const heading = document.createElement('h2');
+  heading.textContent = known
+    ? `Раскрытые виды: ${CATCH_ENTRIES.length}. ?unknown=1 — силуэты`
+    : `Силуэты нераскрытых видов: ${CATCH_ENTRIES.length}`;
+  document.body.appendChild(heading);
+
+  const grid = document.createElement('div');
+  grid.className = 'grid';
+  grid.innerHTML = CATCH_ENTRIES.map(
+    (entry) => `<div class="cell${known ? '' : ' unknown'}">${catchIcon(entry, known)}
+      ${known ? `${entry.id}<br><span style="opacity:.6">${entry.body.shape ?? entry.kind}</span>` : '???'}</div>`,
+  ).join('');
+  document.body.appendChild(grid);
+</script>
