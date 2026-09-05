@@ -272,8 +272,17 @@ async function main(): Promise<void> {
   const offer = page.locator('#ui-offer');
   // Кнопка живёт шесть секунд после улова, поэтому не ждём её, а ловим дальше,
   // пока она не появится: иначе проверка зависит от того, повезло ли с боем.
-  const offerDeadline = Date.now() + 120000;
-  while (!(await offer.isVisible()) && Date.now() < offerDeadline) {
+  const offerDeadline = Date.now() + 150000;
+  const isDoubleOffer = async (): Promise<boolean> =>
+    (await offer.isVisible()) && (await offer.innerText()).trim().startsWith('Удвоить');
+  while (!(await isDoubleOffer()) && Date.now() < offerDeadline) {
+    // Кнопка одна на все предложения: если сейчас на ней «Вторая попытка»,
+    // это не то, что мы ловим, — забираем и ловим дальше.
+    if (await offer.isVisible()) {
+      await offer.click();
+      await page.waitForTimeout(900);
+      continue;
+    }
     const state = await readState(page);
     if (state === 'idle') {
       await cast(page);
