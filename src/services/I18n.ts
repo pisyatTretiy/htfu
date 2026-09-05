@@ -30,6 +30,7 @@ export const STRINGS: Record<string, Localized> = {
   'daily.streak': { ru: 'Серия {days} дн. · награды ×{mult}', en: '{days}-day streak · rewards ×{mult}' },
   'quest.chain': { ru: 'Цепочка причала', en: 'Dock chain' },
   'gauge.power': { ru: 'Сила заброса', en: 'Cast power' },
+  'gauge.depth': { ru: 'Глубина {depth} из {limit} м', en: 'Depth {depth} of {limit} m' },
   'gauge.tension': { ru: 'Натяжение лески', en: 'Line tension' },
   'gauge.patience': { ru: 'Улов вырывается', en: 'The catch is escaping' },
   'map.open': { ru: 'Карта', en: 'Map' },

@@ -78,6 +78,7 @@ export class GameUi {
   private readonly storeList: HTMLElement;
   /** Что уже нарисовано в блоке покупок: каталог приходит с задержкой. */
   private storeSignature = '';
+  private lastMoney = 0;
   private readonly lureState: HTMLElement;
   private readonly lureButton: HTMLButtonElement;
   private readonly offer: HTMLButtonElement;
@@ -410,10 +411,11 @@ export class GameUi {
    * удилища читается плохо на маленьком экране, а цена ошибки высокая.
    */
   setGauge(
-    kind: 'none' | 'power' | 'tension' | 'patience',
+    kind: 'none' | 'power' | 'tension' | 'patience' | 'depth',
     value: number,
     secondary = 0,
     danger = 0,
+    label?: string,
   ): void {
     if (kind === 'none') {
       this.gauge.hidden = true;
@@ -421,7 +423,7 @@ export class GameUi {
     }
     this.gauge.hidden = false;
     this.gauge.dataset.kind = kind;
-    this.gaugeLabel.textContent = i18n.t(`gauge.${kind}`);
+    this.gaugeLabel.textContent = label ?? i18n.t(`gauge.${kind}`);
     this.gaugeFill.style.width = `${Math.round(Math.min(1, Math.max(0, value)) * 100)}%`;
     // Зелёная зона трюк-шота показывается только на шкале заброса.
     this.gaugeZone.hidden = kind !== 'power';
@@ -457,7 +459,19 @@ export class GameUi {
   }
 
   render(state: UiState): void {
-    this.moneyEl.textContent = `${state.money} ${i18n.t('hud.money')}`;
+    // Кошелёк вздрагивает при пополнении: без этого улов и продажа
+    // отличаются только цифрой, которая меняется где-то внизу экрана.
+    const wallet = `${state.money} ${i18n.t('hud.money')}`;
+    if (this.moneyEl.textContent !== wallet) {
+      const grew = state.money > this.lastMoney;
+      this.lastMoney = state.money;
+      this.moneyEl.textContent = wallet;
+      if (grew) {
+        this.moneyEl.classList.remove('bump');
+        void this.moneyEl.offsetWidth;
+        this.moneyEl.classList.add('bump');
+      }
+    }
 
     // Серия показывается, только когда уже что-то значит: «×1.00» на экране —
     // это шум, а не награда.

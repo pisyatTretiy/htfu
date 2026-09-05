@@ -89,6 +89,12 @@
     #ui #ui-map-open { margin-left: auto; }
     /* Значок звука стоит рядом с кошельком и не растягивает ряд кнопок. */
     #ui .stat[hidden] { display: none !important; }
+    #ui .stat.bump { animation: bump .32s cubic-bezier(.2,.9,.3,1.4) }
+    @keyframes bump {
+      0% { transform: scale(1) }
+      40% { transform: scale(1.16); color: #ffd166 }
+      100% { transform: scale(1) }
+    }
     /* Серия и приманка — временные метки, а не часть нижнего ряда: в ряду они
        выталкивали «Снасти» за край на узком экране. */
     #ui .streak {
@@ -123,6 +129,7 @@
     #ui .gauge-track.thin i { background: #ffd166 }
     #ui .gauge[data-kind="tension"] .gauge-track i { background: linear-gradient(90deg, #4fd6b4, #ffd166 62%, #ff5f4d) }
     #ui .gauge[data-kind="patience"] .gauge-track i { background: #ffd166 }
+    #ui .gauge[data-kind="depth"] .gauge-track i { background: linear-gradient(90deg, #7fd3ee, #2f6f9e) }
     #ui .gauge-zone {
       position: absolute; left: 72%; width: 16%; top: 0; bottom: 0;
       background: rgba(79, 214, 180, .45);
@@ -320,6 +327,7 @@
       #boot .b i { animation: none; width: 100% }
       #ui .hint { animation: none }
       #ui .boss.show { animation: none }
+      #ui .stat.bump { animation: none }
       #toast { transition: none }
     }
   </style>

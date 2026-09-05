@@ -203,6 +203,12 @@ async function main(): Promise<void> {
   await page.screenshot({ path: `${OUT}/2-flying.png` });
 
   await waitForState(page, ['sinking']);
+  // Глубина — правило игры: чем глубже, тем ценнее улов, — и игрок должен её
+  // видеть. Читаем сразу: поклёвка иногда случается через полсекунды.
+  const depthLabel = (await page.locator('#ui-gauge-label').innerText()).trim();
+  if ((await readState(page)) === 'sinking' && !/\d+/.test(depthLabel)) {
+    throw new Error(`Глубина не показана игроку: «${depthLabel}»`);
+  }
   await page.waitForTimeout(400);
   await page.screenshot({ path: `${OUT}/3-splash.png` });
 

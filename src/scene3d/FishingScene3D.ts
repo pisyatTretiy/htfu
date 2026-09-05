@@ -883,12 +883,15 @@ export class FishingScene3D {
     danger: number;
     patience: number;
     depth: number;
+    /** До какой глубины достаёт леска в этой локации, м. */
+    depthLimit: number;
     onHook: string;
     rarity: Rarity;
   } {
     return {
       state: this.state,
       depth: this.hook.depthMeters,
+      depthLimit: Math.min(this.hooks.effects().maxLineM, this.hooks.zoneDepth()),
       tension: this.fight?.tensionRatio ?? 0,
       stamina: this.fight?.stamina ?? 1,
       danger: this.state === 'fighting' ? (this.fight?.danger ?? 0) : 0,

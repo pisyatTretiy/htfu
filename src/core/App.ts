@@ -267,6 +267,17 @@ export class App {
       this.ui.setGauge('tension', snapshot.tension, 1 - snapshot.stamina, snapshot.danger);
     } else if (snapshot.state === 'onboard') {
       this.ui.setGauge('patience', snapshot.patience);
+    } else if (snapshot.state === 'sinking' || snapshot.state === 'flying') {
+      // Глубина решает, что клюнет, и упирается в длину лески — но до сих пор
+      // игрок видел её только в отладочном HUD.
+      const limit = Math.max(1, Math.round(snapshot.depthLimit));
+      this.ui.setGauge(
+        'depth',
+        snapshot.depth / limit,
+        0,
+        0,
+        i18n.t('gauge.depth', { depth: Math.round(snapshot.depth), limit }),
+      );
     } else {
       this.ui.setGauge('none', 0);
     }
