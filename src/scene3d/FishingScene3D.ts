@@ -25,6 +25,7 @@ import { MischiefAct } from '../gameplay/Mischief';
 import { rollCatch } from '../gameplay/CatchPool';
 import { rarityPrice, rarityTint, rollRarity, type Rarity } from '../gameplay/Rarity';
 import { CATCH_ENTRIES, entryName } from '../content/catalog';
+import { i18n } from '../services/I18n';
 import { clamp, damp } from '../core/world';
 import { Rng } from '../core/Rng';
 import type { CatchEntry, FightPhase } from '../content/types';
@@ -78,7 +79,7 @@ export type CastState =
 
 export interface SceneHooks {
   toast(text: string): void;
-  sfx(name: 'cast' | 'splash' | 'bite' | 'strain' | 'snap' | 'bounce' | 'coin'): void;
+  sfx(name: 'cast' | 'splash' | 'bite' | 'reel' | 'strain' | 'snap' | 'bounce' | 'coin'): void;
   zoneCatches(): readonly string[];
   zoneDepth(): number;
   bossBite(): {
@@ -153,6 +154,8 @@ export class FishingScene3D {
   private showcaseTimer = 0;
   /** Отсчёт до следующего скрипа лески: без него звук трещал бы каждый кадр. */
   private strain = 0;
+  /** Отсчёт до следующего щелчка катушки. */
+  private clicker = 0;
   private power = 0;
   private charging = false;
 
@@ -257,7 +260,11 @@ export class FishingScene3D {
       this.hooks.sfx('cast');
       this.state = 'flying';
       if (this.trickShot) {
-        this.hooks.toast(this.trickStreak > 1 ? `Трюк-шот ×${this.trickStreak}` : 'Трюк-шот!');
+        this.hooks.toast(
+          this.trickStreak > 1
+            ? i18n.t('toast.trickStreak', { count: this.trickStreak })
+            : i18n.t('toast.trick'),
+        );
       }
       return;
     }
@@ -457,7 +464,7 @@ export class FishingScene3D {
     this.state = 'fighting';
     this.shake = boss ? 0.18 : 0.07;
     this.hooks.sfx('bite');
-    this.hooks.toast(boss ? boss.taunt : 'Клюёт!');
+    this.hooks.toast(boss ? boss.taunt : i18n.t('toast.bite'));
   }
 
   /**
@@ -509,7 +516,7 @@ export class FishingScene3D {
     this.state = 'fighting';
     this.shake = 0.12;
     this.hooks.sfx('bite');
-    this.hooks.toast(`${this.label(entry)} вернулась!`);
+    this.hooks.toast(i18n.t('toast.returned', { name: this.label(entry) }));
     return true;
   }
 
@@ -538,6 +545,18 @@ export class FishingScene3D {
       this.hooked.group.lookAt(this.camera.position);
     }
 
+    // Щелчки катушки, пока игрок тянет: подмотка — единственное действие в
+    // бою, и она должна звучать, иначе палец не связан с происходящим.
+    if (fight.reeling) {
+      this.clicker -= dt;
+      if (this.clicker <= 0) {
+        this.clicker = 0.11;
+        this.hooks.sfx('reel');
+      }
+    } else {
+      this.clicker = 0;
+    }
+
     this.line.setTint(tensionTint(fight.tensionRatio));
     this.markSurface(tip, Math.max(fight.surge, fight.tensionRatio * 0.5));
 
@@ -556,11 +575,11 @@ export class FishingScene3D {
       this.shake = 0.22;
       this.hitstop = 0.09;
       this.hooks.sfx('snap');
-      this.hooks.toast(`Он разозлился! Фаза ${fight.phase + 1}`);
+      this.hooks.toast(i18n.t('toast.phase', { phase: fight.phase + 1 }));
     }
 
     if (outcome === 'snapped' || outcome === 'escaped') {
-      this.hooks.toast(outcome === 'snapped' ? 'Леска лопнула!' : 'Сорвалась!');
+      this.hooks.toast(i18n.t(outcome === 'snapped' ? 'toast.snapped' : 'toast.escaped'));
       this.hooks.sfx('snap');
       this.hitstop = 0.12;
       this.shake = 0.2;
@@ -668,7 +687,7 @@ export class FishingScene3D {
     if (entry.mischief === 'none') {
       const reward = this.rewardFor(fight);
       this.hooks.onCatch(entry, reward, this.rarity);
-      this.hooks.toast(`${this.label(entry)}! +${reward} ₽`);
+      this.hooks.toast(i18n.t('toast.caught', { name: this.label(entry), reward }));
       this.rest();
       return;
     }
@@ -686,7 +705,7 @@ export class FishingScene3D {
     this.mischiefView.group.scale.setScalar(0.4);
     this.scene.add(this.mischiefView.group);
     this.state = 'onboard';
-    this.hooks.toast(`${this.label(entry)} в лодке!`);
+    this.hooks.toast(i18n.t('toast.inBoat', { name: this.label(entry) }));
   }
 
   private stepMischief(dt: number): void {
@@ -716,11 +735,11 @@ export class FishingScene3D {
     if (result === 'subdued') {
       const reward = Math.max(1, Math.round(this.rewardFor(fight) * (1 - act.damage)));
       this.hooks.onCatch(entry, reward, this.rarity);
-      this.hooks.toast(`${this.label(entry)} усмирён! +${reward} ₽`);
+      this.hooks.toast(i18n.t('toast.subdued', { name: this.label(entry), reward }));
       this.clearMischief();
       this.rest();
     } else if (result === 'escaped') {
-      this.hooks.toast(`${this.label(entry)} ушёл за борт!`);
+      this.hooks.toast(i18n.t('toast.overboard', { name: this.label(entry) }));
       this.shake = 0.16;
       this.clearMischief();
       this.rest();

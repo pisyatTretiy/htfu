@@ -531,6 +531,32 @@ async function main(): Promise<void> {
   if (/[А-Яа-я]/.test(englishText)) {
     throw new Error(`В английском интерфейсе осталась кириллица: ${englishText}`);
   }
+
+  // Всплывающие подписи живут вне #ui, и именно они дольше всего оставались
+  // русскими: имя улова, обрыв лески, фазы босса. Ловим их отдельно.
+  // Открытая панель ставит сцену на паузу: закрываем именно ту, что открыта.
+  await english.keyboard.press('Escape');
+  await english.waitForTimeout(200);
+  const toasts: string[] = [];
+  const untilToast = Date.now() + 60000;
+  await cast(english);
+  while (Date.now() < untilToast) {
+    const text = (await english.locator('#toast').innerText()).trim();
+    // Подпись висит секунду и опрашивается каждые 150 мс: считаем только
+    // смену текста, иначе четыре «замера» — это одна и та же надпись.
+    if (text && text !== toasts[toasts.length - 1]) toasts.push(text);
+    const state = await readState(english);
+    if (state === 'idle') await cast(english);
+    else if (state === 'fighting') await fightOnce(english);
+    else if (state === 'onboard') await subdue(english);
+    if (toasts.length >= 4) break;
+    await english.waitForTimeout(150);
+  }
+  const cyrillic = toasts.filter((text) => /[А-Яа-я]/.test(text));
+  if (cyrillic.length > 0) {
+    throw new Error(`В английских подписях осталась кириллица: ${cyrillic.join(' · ')}`);
+  }
+  console.log(`Английские подписи: ${[...new Set(toasts)].slice(0, 4).join(' · ')}`);
   await english.close();
 
   await browser.close();

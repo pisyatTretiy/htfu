@@ -119,6 +119,9 @@ export class App {
     host.appendChild(this.renderer.domElement);
 
     i18n.setLang(this.platform.lang());
+    // Экран загрузки нарисован в разметке и до этой строки говорит по-русски.
+    const bootTitle = document.querySelector('#boot .t');
+    if (bootTitle) bootTitle.textContent = i18n.t('boot.title');
     await this.restore();
 
     this.scene = new FishingScene3D({
