@@ -1,8 +1,9 @@
 import type { IPlatform, SaveData } from '../platform';
+import { ONBOARDING_CHAIN, type OnboardingState } from '../meta/Onboarding';
 
 const KEY = 'htfu.save';
 /** Текущая версия схемы. Растёт вместе с миграциями. */
-export const SAVE_VERSION = 6;
+export const SAVE_VERSION = 7;
 /** Лимит площадки: setData — 100 запросов за 5 минут. Дебаунс держит запас. */
 const CLOUD_DEBOUNCE_MS = 10000;
 
@@ -24,6 +25,8 @@ export interface GameSave extends SaveData {
   };
   /** Самый дорогой улов за всё время — он же результат в лидерборде. */
   bestCatch: number;
+  /** Пройденные шаги обучения: игрока не учат дважды. */
+  onboarding: OnboardingState;
 }
 
 export function emptySave(): GameSave {
@@ -38,6 +41,7 @@ export function emptySave(): GameSave {
     bosses: { trophies: [], catches: {} },
     dailies: { day: 0, progress: {}, claimed: [], streak: 0, lastCompletedDay: -1 },
     bestCatch: 0,
+    onboarding: { step: 0, seen: [] },
   };
 }
 
@@ -66,6 +70,13 @@ const MIGRATIONS: Record<number, Migration> = {
     dailies: { day: 0, progress: {}, claimed: [], streak: 0, lastCompletedDay: -1 },
     bestCatch: 0,
     version: 6,
+  }),
+  // v7 добавила обучение первых десяти минут. Тем, кто уже играл, оно не
+  // нужно: сейв этой версии есть только у них.
+  6: (data) => ({
+    ...data,
+    onboarding: { step: ONBOARDING_CHAIN.length, seen: ['subdue', 'retry'] },
+    version: 7,
   }),
 };
 

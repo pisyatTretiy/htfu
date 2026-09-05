@@ -33,6 +33,7 @@ interface Snapshot {
   trophies?: number;
   platform?: string;
   lastReward?: number;
+  onboarding?: number;
 }
 
 const EMPTY: Snapshot = {
@@ -95,6 +96,15 @@ async function fightOnce(page: Page): Promise<string> {
   return readState(page);
 }
 
+/** Улов буянит: тапаем по всей площади лодки — он прыгает, с первого раза не попасть. */
+async function subdue(page: Page): Promise<void> {
+  for (let i = 0; i < 16; i++) {
+    await page.mouse.click(BOAT_X + ((i % 5) - 2) * 22, WATER_Y - 14 - (i % 5) * 20);
+    await page.waitForTimeout(70);
+  }
+  await page.waitForTimeout(400);
+}
+
 async function cast(page: Page): Promise<void> {
   await page.keyboard.down('Space');
   await page.waitForTimeout(420);
@@ -146,6 +156,40 @@ async function main(): Promise<void> {
   page.on('console', (message) => {
     if (message.type() === 'error') errors.push(message.text());
   });
+
+  // --- новичок: обучение ведёт одной строкой ---
+  // Отдельная вкладка: у неё своё localStorage, поэтому игра считает её
+  // первым запуском и показывает обучение с нулевого шага.
+  const rookie = await browser.newPage({ viewport: VIEWPORT, locale: 'ru-RU' });
+  rookie.on('pageerror', (error) => errors.push(String(error)));
+  rookie.on('console', (message) => {
+    if (message.type() === 'error') errors.push(message.text());
+  });
+  await rookie.goto(URL, { waitUntil: 'networkidle' });
+  await rookie.waitForTimeout(900);
+
+  // HUD разработчика закрывает верх кадра — для журнала он не нужен.
+  await rookie.keyboard.press('KeyH');
+  const hint = rookie.locator('#ui-hint');
+  await hint.waitFor({ state: 'visible', timeout: 8000 });
+  const castHint = (await hint.innerText()).trim();
+  if (!castHint) throw new Error('Первая подсказка обучения пуста');
+  await rookie.screenshot({ path: `${OUT}/0-onboarding.png` });
+
+  await cast(rookie);
+  await waitForState(rookie, ['sinking', 'fighting'], 15000);
+  await rookie.waitForTimeout(300);
+  const afterCast = await snapshot(rookie);
+  if ((afterCast.onboarding ?? 0) < 1) {
+    throw new Error(`Заброс не закрыл первый шаг обучения: ${afterCast.onboarding}`);
+  }
+  const nextHint = (await hint.innerText()).trim();
+  if (nextHint === castHint) {
+    throw new Error(`Подсказка не сменилась после заброса: «${castHint}»`);
+  }
+  await rookie.screenshot({ path: `${OUT}/0b-onboarding-next.png` });
+  console.log(`Обучение: «${castHint}» → «${nextHint}»`);
+  await rookie.close();
 
   await page.goto(URL, { waitUntil: 'networkidle' });
   await page.waitForTimeout(900);
@@ -200,12 +244,7 @@ async function main(): Promise<void> {
     await page.screenshot({ path: `${OUT}/6-onboard.png` });
     await page.waitForTimeout(900);
     await page.screenshot({ path: `${OUT}/7-mischief.png` });
-    // Тапаем по всей площади лодки: улов прыгает, попасть с первого раза нельзя.
-    for (let i = 0; i < 16; i++) {
-      await page.mouse.click(BOAT_X + ((i % 5) - 2) * 22, WATER_Y - 14 - (i % 5) * 20);
-      await page.waitForTimeout(70);
-    }
-    await page.waitForTimeout(400);
+    await subdue(page);
     await page.screenshot({ path: `${OUT}/8-subdued.png` });
   } else {
     console.warn(`⚠ За 6 попыток буянящий улов не попался, последнее состояние: ${landed}`);
@@ -227,7 +266,22 @@ async function main(): Promise<void> {
   // Ловим до первой награды и проверяем, что кнопка «Удвоить» появляется и
   // деньги после неё растут ровно на величину награды.
   const offer = page.locator('#ui-offer');
-  await offer.waitFor({ state: 'visible', timeout: 60000 }).catch(() => undefined);
+  // Кнопка живёт шесть секунд после улова, поэтому не ждём её, а ловим дальше,
+  // пока она не появится: иначе проверка зависит от того, повезло ли с боем.
+  const offerDeadline = Date.now() + 120000;
+  while (!(await offer.isVisible()) && Date.now() < offerDeadline) {
+    const state = await readState(page);
+    if (state === 'idle') {
+      await cast(page);
+      await page.waitForTimeout(400);
+    } else if (state === 'fighting') {
+      await fightOnce(page);
+    } else if (state === 'onboard') {
+      await subdue(page);
+    } else {
+      await page.waitForTimeout(250);
+    }
+  }
   if (await offer.isVisible()) {
     await page.screenshot({ path: `${OUT}/8-offer.png` });
     // Снимок берём в момент показа кнопки: до него lastReward — от прошлого улова.

@@ -121,6 +121,22 @@
     #ui .quest-title { flex: 1 1 auto; min-width: 0 }
     #ui .quest-progress { color: #4fd6b4; font-variant-numeric: tabular-nums; font-weight: 600 }
 
+    /* Обучение: одна строка под заданием. Правило дизайна — подсказка
+       никогда не занимает больше строки и никогда не перекрывает игру
+       (docs/03, § 3.6). */
+    #ui .hint {
+      position: absolute; left: 50%; top: 52px; transform: translateX(-50%);
+      max-width: min(340px, 88vw); pointer-events: none;
+      background: rgba(255, 209, 102, .94); color: #06231f;
+      border: 2px solid #5a2a14; border-radius: 999px;
+      padding: 6px 14px; font-size: 12.5px; font-weight: 600;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      box-shadow: 0 3px 0 rgba(90, 42, 20, .55);
+      animation: hint-in .22s ease-out;
+    }
+    #ui .hint[hidden] { display: none !important; }
+    @keyframes hint-in { from { transform: translate(-50%, -6px); opacity: 0 } to { transform: translate(-50%, 0); opacity: 1 } }
+
     #ui .panel {
       pointer-events: auto; position: absolute; inset: auto 8px 62px 8px;
       max-width: 460px; margin: 0 auto; max-height: 70vh; overflow-y: auto;
@@ -196,147 +212,8 @@
 
     @media (prefers-reduced-motion: reduce) {
       #boot .b i { animation: none; width: 100% }
-      /* Интерфейс поверх канваса. Слой не перехватывает касания — их ловят
-       только сами кнопки, иначе по игре нельзя было бы тапать. */
-    #ui { position: fixed; inset: 0; z-index: 8; pointer-events: none; }
-    #ui .topbar {
-      position: absolute; left: 0; right: 0; bottom: 0;
-      display: flex; align-items: center; gap: 8px;
-      padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
-    }
-    #ui .stat {
-      pointer-events: none; font-size: 13px; color: #f2fbf8; font-weight: 500;
-      background: rgba(4, 20, 26, .62); border: 2px solid rgba(255,255,255,.14);
-      border-radius: 999px; padding: 6px 12px; backdrop-filter: blur(3px);
-      font-variant-numeric: tabular-nums;
-    }
-    #ui .btn {
-      pointer-events: auto; font: inherit; font-size: 13px; font-weight: 600;
-      color: #06231f; background: #ffd166; border: 2px solid #5a2a14;
-      border-radius: 999px; padding: 8px 16px; cursor: pointer;
-      box-shadow: 0 3px 0 #5a2a14; transition: transform .08s, box-shadow .08s;
-    }
-    #ui .btn:active:not(:disabled) { transform: translateY(3px); box-shadow: none; }
-    #ui .btn:disabled { opacity: .45; cursor: default; }
-    #ui .btn:focus-visible { outline: 3px solid #4fd6b4; outline-offset: 2px; }
-    #ui .topbar .btn { margin-left: auto; }
-
-    #ui .gauge {
-      position: absolute; left: 50%; bottom: 118px; transform: translateX(-50%);
-      width: min(280px, 74vw); display: flex; flex-direction: column; gap: 5px;
-      pointer-events: none;
-    }
-    #ui .gauge[hidden] { display: none !important; }
-    #ui .gauge-label {
-      font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase;
-      color: #eafffb; text-align: center; text-shadow: 0 1px 3px rgba(0,0,0,.6);
-    }
-    #ui .gauge-track {
-      position: relative; height: 12px; border-radius: 999px; overflow: hidden;
-      background: rgba(4, 20, 26, .62); border: 2px solid rgba(255,255,255,.22);
-    }
-    #ui .gauge-track.thin { height: 6px }
-    #ui .gauge-track i { display: block; height: 100%; background: #4fd6b4; transition: width .05s linear }
-    #ui .gauge-track.thin i { background: #ffd166 }
-    #ui .gauge[data-kind="tension"] .gauge-track i { background: linear-gradient(90deg, #4fd6b4, #ffd166 62%, #ff5f4d) }
-    #ui .gauge[data-kind="patience"] .gauge-track i { background: #ffd166 }
-    #ui .gauge-zone {
-      position: absolute; left: 72%; width: 16%; top: 0; bottom: 0;
-      background: rgba(79, 214, 180, .45);
-    }
-    #ui .gauge-zone[hidden] { display: none !important; }
-
-    #ui .offer {
-      position: absolute; left: 50%; bottom: 68px; transform: translateX(-50%);
-      background: #4fd6b4; border-color: #06403a; box-shadow: 0 3px 0 #06403a;
-      color: #04231f; font-size: 14px; padding: 10px 20px;
-      animation: pop .2s ease-out;
-    }
-    #ui .offer[hidden] { display: none !important; }
-    @keyframes pop { from { transform: translate(-50%, 8px); opacity: 0 } to { transform: translate(-50%, 0); opacity: 1 } }
-    @media (prefers-reduced-motion: reduce) { #ui .offer { animation: none } }
-
-    #ui .questbar {
-      position: absolute; left: 8px; right: 8px; top: 8px;
-      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-      background: rgba(4, 20, 26, .62); border: 2px solid rgba(255,255,255,.14);
-      border-radius: 12px; padding: 7px 12px; font-size: 12.5px; color: #eafffb;
-      backdrop-filter: blur(3px);
-    }
-    #ui .questbar.done { color: #8fb3b0; justify-content: center }
-    #ui .questbar { pointer-events: auto; cursor: pointer }
-    #ui .questbar:focus-visible { outline: 3px solid #4fd6b4; outline-offset: 2px }
-    #ui .quest-npc {
-      font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: #ffd166;
-    }
-    #ui .quest-title { flex: 1 1 auto; min-width: 0 }
-    #ui .quest-progress { color: #4fd6b4; font-variant-numeric: tabular-nums; font-weight: 600 }
-
-    #ui .panel {
-      pointer-events: auto; position: absolute; inset: auto 8px 62px 8px;
-      max-width: 460px; margin: 0 auto; max-height: 70vh; overflow-y: auto;
-      background: rgba(6, 28, 36, .95); border: 2px solid #2f7d74; border-radius: 16px;
-      padding: 12px; display: flex; flex-direction: column; gap: 10px;
-    }
-    #ui .panel[hidden] { display: none !important; }
-    #ui .panel-head {
-      display: flex; align-items: center; justify-content: space-between;
-      font-size: 15px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
-      color: #eafffb;
-    }
-    #ui .btn.ghost {
-      background: transparent; color: #eafffb; border-color: rgba(255,255,255,.28);
-      box-shadow: none; padding: 2px 12px; font-size: 18px; line-height: 1.2;
-    }
-    #ui .panel-list { display: flex; flex-direction: column; gap: 8px; }
-    #ui .album-list {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 8px;
-    }
-    #ui .album-item {
-      background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12);
-      border-radius: 12px; padding: 9px 11px; display: flex; flex-direction: column; gap: 2px;
-    }
-    #ui .album-item.unknown { opacity: .45 }
-    #ui .album-bonus {
-      grid-column: 1 / -1; font-size: 11.5px; color: #4fd6b4;
-      background: rgba(79,214,180,.1); border: 1px solid rgba(79,214,180,.3);
-      border-radius: 10px; padding: 7px 10px; font-variant-numeric: tabular-nums;
-    }
-    #ui .album-slots { display: flex; gap: 4px; margin-top: 4px }
-    #ui .slot {
-      width: 10px; height: 10px; border-radius: 50%;
-      border: 1.5px solid rgba(255,255,255,.25); background: transparent;
-    }
-    #ui .slot.has.common { background: #cfe4e2; border-color: #cfe4e2 }
-    #ui .slot.has.rare { background: #9fe8ff; border-color: #9fe8ff }
-    #ui .slot.has.gold { background: #ffd85c; border-color: #ffd85c }
-    #ui .album-item.complete { border-color: rgba(255,216,92,.55) }
-    #ui .album-section {
-      grid-column: 1 / -1; font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase;
-      color: #ffd166; margin-top: 4px;
-    }
-    #ui .album-item.trophy { border-color: rgba(255,209,102,.4) }
-    #ui .zone.current { border-color: #4fd6b4; background: rgba(79,214,180,.1) }
-    #ui .zone.locked { opacity: .55 }
-    #ui .zone .branch-foot { justify-content: flex-end }
-    #ui .zone-here { font-size: 12px; color: #4fd6b4; font-weight: 600 }
-    #ui .zone-locked { font-size: 12px; color: #d9a441 }
-    #ui .album-name { font-size: 13.5px; font-weight: 600; color: #f2fbf8 }
-    #ui .album-meta { font-size: 11px; color: #8fb3b0 }
-    #ui .branch {
-      background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12);
-      border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px;
-    }
-    #ui .branch.maxed { opacity: .6 }
-    #ui .branch-top { display: flex; align-items: center; justify-content: space-between; }
-    #ui .branch-name { font-size: 14px; font-weight: 600; color: #f2fbf8 }
-    #ui .dots { color: #ffd166; letter-spacing: 2px; font-size: 11px }
-    #ui .branch-hint { font-size: 11.5px; color: #8fb3b0; line-height: 1.35 }
-    #ui .branch-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 2px }
-    #ui .branch-value { font-size: 12.5px; color: #4fd6b4; font-variant-numeric: tabular-nums }
-    #ui .branch-foot .btn { padding: 6px 14px; font-size: 12.5px }
-
-    #toast { transition: none }
+      #ui .hint { animation: none }
+      #toast { transition: none }
     }
   </style>
 </head>

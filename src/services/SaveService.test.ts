@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { migrate, emptySave, SAVE_VERSION } from './SaveService';
+import { ONBOARDING_CHAIN } from '../meta/Onboarding';
 
 describe('миграции сейва', () => {
   it('пустой вход даёт валидный сейв текущей версии', () => {
@@ -67,6 +68,18 @@ describe('миграции сейва', () => {
     expect(save.bestCatch).toBe(0);
     expect(save.zone).toBe('bay');
     expect(save.bosses.trophies).toEqual(['boss_som']);
+  });
+
+  it('старому игроку обучение не показывают заново', () => {
+    const v6 = { version: 6, updatedAt: 9, money: 1200, upgrades: { rod: 2 } };
+    const save = migrate(v6 as never);
+    expect(save.version).toBe(SAVE_VERSION);
+    expect(save.onboarding.step).toBe(ONBOARDING_CHAIN.length);
+    expect(save.money).toBe(1200);
+  });
+
+  it('новый игрок начинает обучение с первого шага', () => {
+    expect(emptySave().onboarding).toEqual({ step: 0, seen: [] });
   });
 
   it('не ломает сейв из будущей версии — игрок мог откатиться', () => {

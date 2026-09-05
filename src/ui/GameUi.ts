@@ -49,6 +49,7 @@ export class GameUi {
   private readonly tasksList: HTMLElement;
   private readonly mapButton: HTMLButtonElement;
   private readonly questEl: HTMLElement;
+  private readonly hintEl: HTMLElement;
   private readonly offer: HTMLButtonElement;
   private readonly gauge: HTMLElement;
   private readonly gaugeLabel: HTMLElement;
@@ -70,6 +71,7 @@ export class GameUi {
 
     this.root.innerHTML = `
       <div class="questbar" id="ui-quest"></div>
+      <div class="hint" id="ui-hint" hidden></div>
       <div class="topbar">
         <div class="stat" id="ui-money"></div>
         <button class="btn" id="ui-map-open">${i18n.t('map.open')}</button>
@@ -113,6 +115,7 @@ export class GameUi {
 
     this.moneyEl = must(document.getElementById('ui-money'));
     this.questEl = must(document.getElementById('ui-quest'));
+    this.hintEl = must(document.getElementById('ui-hint'));
     this.openButton = must(document.getElementById('ui-shop-open')) as HTMLButtonElement;
     this.albumButton = must(document.getElementById('ui-album-open')) as HTMLButtonElement;
     this.shop = must(document.getElementById('ui-shop'));
@@ -192,6 +195,17 @@ export class GameUi {
       accept();
     };
     this.offerTimer = setTimeout(() => this.hideOffer(), seconds * 1000);
+  }
+
+  /**
+   * Строка обучения. Ровно одна и ровно в одну строку — правило из
+   * docs/03, § 3.6: никаких модальных окон и стен текста.
+   */
+  setHint(text: string | null): void {
+    const next = text ?? '';
+    if (this.hintEl.textContent === next) return;
+    this.hintEl.textContent = next;
+    this.hintEl.hidden = next === '';
   }
 
   hideOffer(): void {

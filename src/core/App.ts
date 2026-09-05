@@ -10,6 +10,7 @@ import { Quests, type Quest } from '../meta/Quests';
 import { Zones, zoneCatchIds } from '../meta/Zones';
 import { Bosses, bossAsCatch } from '../meta/Bosses';
 import { Dailies, type DailyTask } from '../meta/Dailies';
+import { Onboarding, type OnboardingContext } from '../meta/Onboarding';
 import { SaveService, emptySave, type GameSave } from '../services/SaveService';
 import { i18n } from '../services/I18n';
 import { AudioService } from '../services/AudioService';
@@ -29,6 +30,8 @@ export type DebugSnapshot = FishingScene3D['debugSnapshot'] & {
   trophies: number;
   platform: string;
   lastReward: number;
+  /** Шаг обучения: автотест проверяет, что подсказки закрываются игрой. */
+  onboarding: number;
 };
 
 declare global {
@@ -59,10 +62,17 @@ export class App {
   private readonly zones = new Zones();
   private readonly bosses = new Bosses();
   private readonly dailies = new Dailies();
+  private readonly onboarding = new Onboarding();
   private readonly audio = new AudioService();
   private readonly save: SaveService;
   private readonly ads: AdManager;
   private state: GameSave = emptySave();
+  /**
+   * Состояние сцены на конец прошлого кадра. Сравнивать надо именно с ним:
+   * заброс и подсечка меняют состояние из обработчика ввода, то есть между
+   * кадрами, и локальная переменная внутри кадра такой переход не увидит.
+   */
+  private lastSceneState = 'idle';
   private lastReward = 0;
 
   constructor(private readonly platform: IPlatform) {
@@ -156,7 +166,6 @@ export class App {
     this.lastFrame = now;
     if (!this.running) return;
 
-    const lastState = this.scene.state;
     this.scene.update(delta);
     this.renderer.render(this.scene.scene, this.scene.camera);
     this.hud?.update(delta);
@@ -173,7 +182,13 @@ export class App {
       showToast(i18n.t('daily.done', { title: this.dailyTitle(task) }));
       this.persist();
     }
-    if (this.scene.state !== lastState) this.renderUi();
+    if (this.scene.state !== this.lastSceneState) {
+      const from = this.lastSceneState;
+      this.lastSceneState = this.scene.state;
+      this.onSceneState(from, this.scene.state);
+      this.renderUi();
+    }
+    this.updateHint();
 
     window.__htfu = {
       ...this.scene.debugSnapshot,
@@ -184,6 +199,7 @@ export class App {
       trophies: this.bosses.trophyCount,
       platform: this.platform.name,
       lastReward: this.lastReward,
+      onboarding: this.onboarding.serialize().step,
     };
   }
 
@@ -211,6 +227,50 @@ export class App {
     this.zones.restore(this.state.zone);
     this.bosses.restore(this.state.bosses);
     this.dailies.restore(this.state.dailies);
+    this.onboarding.restore(this.state.onboarding);
+  }
+
+  /**
+   * Обучение слушает те же переходы состояний, что и всё остальное: отдельных
+   * скриптовых сцен нет, поэтому обучение невозможно рассинхронизировать с игрой.
+   */
+  private onSceneState(from: string, to: string): void {
+    let moved = false;
+    if (from === 'idle' && to === 'flying') moved = this.onboarding.signal('cast') || moved;
+    if (to === 'fighting') moved = this.onboarding.signal('bite') || moved;
+    if (from === 'fighting' && to === 'reeling') {
+      moved = this.onboarding.signal('snapped') || moved;
+    }
+    if (from === 'onboard' && to !== 'onboard') {
+      moved = this.onboarding.signal('subdued') || moved;
+    }
+    // Обучение переживает F5 наравне с деньгами: повторять пройденный шаг
+    // после перезагрузки — худшее, что может сделать обучение.
+    if (moved) this.persist();
+  }
+
+  /** Одна строка подсказки под заданием — или ничего. */
+  private updateHint(): void {
+    const text = this.onboarding.hint(this.onboardingContext);
+    this.ui.setHint(text ? i18n.pick(text) : null);
+  }
+
+  private get onboardingContext(): OnboardingContext {
+    const money = this.state.money;
+    const canAfford = this.progression.branches.some((branch) => {
+      const price = this.progression.nextPrice(branch.id);
+      return price !== null && price <= money;
+    });
+    const context = this.unlockContext;
+    const hasNewZone = this.zones.all.some(
+      (zone) => zone.id !== this.zones.current.id && this.zones.isUnlocked(zone, context),
+    );
+    return {
+      state: this.scene.state,
+      canAfford,
+      hasNewZone,
+      panelOpen: this.ui.isShopOpen,
+    };
   }
 
   /** Эффекты снасти плюс постоянные бонусы за заполнение альбома. */
@@ -262,6 +322,8 @@ export class App {
       void this.platform.submitScore('best_catch', total);
     }
 
+    this.onboarding.signal('landed');
+
     const record = this.album.record(entry.id, rarity);
     if (record.speciesCompleted) {
       showToast(i18n.t('toast.speciesDone', { name: i18n.pick(entry.name) }));
@@ -298,6 +360,7 @@ export class App {
   }
 
   private completeQuest(quest: Quest): void {
+    this.onboarding.signal('quest');
     this.state.money += quest.reward;
     this.audio.play('coin');
     showToast(i18n.t('quest.reward', { title: i18n.pick(quest.title), reward: quest.reward }));
@@ -318,6 +381,7 @@ export class App {
 
     this.state.money -= price;
     this.progression.levelUp(id);
+    this.onboarding.signal('bought');
     const branch = this.progression.branches.find((entry) => entry.id === id);
     showToast(
       i18n.t('toast.bought', {
@@ -337,6 +401,7 @@ export class App {
     this.ui.toggle(null);
     await this.ads.interstitial();
 
+    this.onboarding.signal('traveled');
     this.scene.resetToSurface();
     this.scene.applyZone(zone);
     showToast(i18n.pick(zone.name));
@@ -358,6 +423,7 @@ export class App {
     this.state.zone = this.zones.serialize();
     this.state.bosses = this.bosses.serialize();
     this.state.dailies = this.dailies.serialize();
+    this.state.onboarding = this.onboarding.serialize();
     this.save.save(this.state);
     this.renderUi();
   }
