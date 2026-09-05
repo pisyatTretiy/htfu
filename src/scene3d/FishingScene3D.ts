@@ -7,6 +7,7 @@ import {
   Scene,
   Vector3,
 } from 'three';
+import { Birds3D } from './Birds3D';
 import { Sky3D } from './Sky3D';
 import { Water3D } from './Water3D';
 import { Environment3D, shoreHeight } from './Environment3D';
@@ -98,6 +99,7 @@ export class FishingScene3D {
   trickStreak = 0;
 
   private readonly sky = new Sky3D();
+  private readonly birds = new Birds3D();
   private readonly water = new Water3D();
   private readonly shore = new Environment3D();
   private readonly pier = new Pier3D();
@@ -138,6 +140,7 @@ export class FishingScene3D {
   constructor(private readonly hooks: SceneHooks) {
     this.pier.group.position.set(0, 0, 3.4);
     this.scene.add(this.sky.mesh, this.water.mesh, this.shore.group, this.pier.group);
+    this.scene.add(this.birds.group);
     this.scene.add(this.hook.object, this.line.mesh, this.ambient.group, this.splash.group);
     this.camera.add(this.hands.group);
     this.scene.add(this.camera);
@@ -167,8 +170,12 @@ export class FishingScene3D {
   applyZone(zone: Zone): void {
     this.sky.setPalette(zone.sky);
     const [shallow] = zone.water;
-    const deep = zone.water[zone.water.length - 3] ?? zone.water[0];
-    if (shallow && deep) this.water.setPalette(shallow, deep, zone.sky[0] ?? '#eef7fb');
+    // Третий оттенок палитры, а не предпоследний: самые тёмные её ступени —
+    // это цвет толщи воды под поверхностью, и на поверхности они выглядели
+    // не морем, а асфальтом.
+    const deep = zone.water[2] ?? zone.water[0];
+    if (shallow && deep) this.water.setPalette(shallow, deep, '#eef7fb');
+    this.water.setHorizon(zone.sky[0] ?? '#cfe6f5');
     this.water.setShoreZ(SHORE_Z);
     this.water.setSun(this.sun.position);
     this.shore.setPalette(zone.sand, zone.foliage);
@@ -276,6 +283,8 @@ export class FishingScene3D {
     this.camera.position.y = PIER_Y + EYE_HEIGHT + this.shakeOffset();
     this.shake *= Math.pow(0.02, dt);
 
+    this.sky.update(dt);
+    this.birds.update(dt);
     this.water.update(dt, this.camera.position);
     this.ambient.update(dt);
     this.splash.update(dt);
@@ -704,6 +713,7 @@ export class FishingScene3D {
 
   dispose(): void {
     this.sky.dispose();
+    this.birds.dispose();
     this.water.dispose();
     this.shore.dispose();
     this.pier.dispose();

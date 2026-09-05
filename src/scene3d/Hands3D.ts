@@ -60,7 +60,24 @@ export class Hands3D {
     reel.add(body, ring);
     reel.position.copy(GRIP).add(new Vector3(-0.02, -0.085, 0.04));
 
-    this.group.add(reel);
+    // Пробковая рукоять: без неё удилище — чёрная палка через весь кадр,
+    // а тёплое пятно у нижней рамки сразу читается как «в руках снасть».
+    const rest = new Vector3(0.1, 0.46, -0.88).normalize();
+    const grip = new Mesh(
+      new CylinderGeometry(0.032, 0.028, 0.34, 8),
+      new MeshLambertMaterial({ color: new Color('#c39a63'), flatShading: true }),
+    );
+    grip.quaternion.setFromUnitVectors(new Vector3(0, 1, 0), rest);
+    grip.position.copy(GRIP).addScaledVector(rest, 0.14);
+
+    const butt = new Mesh(
+      new CylinderGeometry(0.036, 0.036, 0.07, 8),
+      new MeshLambertMaterial({ color: new Color('#2a2f36'), flatShading: true }),
+    );
+    butt.quaternion.copy(grip.quaternion);
+    butt.position.copy(GRIP).addScaledVector(rest, -0.05);
+
+    this.group.add(reel, grip, butt);
     for (const node of this.group.children) node.frustumCulled = false;
   }
 

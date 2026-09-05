@@ -82,11 +82,24 @@ export class Environment3D {
     // Мыс слева по курсу: игрок смотрит с причала в море, и без него кадр
     // симметричен и пуст. Мыс даёт асимметрию и точку отсчёта расстояния.
     const cape = new Group();
+    // Два слоя: песчаная отмель шире и ниже зелёной шапки, поэтому у воды
+    // остаётся светлая кромка пляжа. Без неё мыс читался куском газона,
+    // воткнутым в море.
+    const capeBeach = new Mesh(
+      new DodecahedronGeometry(7.6, 0),
+      new MeshLambertMaterial({ color: new Color('#e2cda0'), flatShading: true }),
+    );
+    capeBeach.scale.set(2.5, 0.3, 1.8);
+    capeBeach.position.y = -0.55;
+    capeBeach.receiveShadow = true;
+    cape.add(capeBeach);
+
     const capeRock = new Mesh(
       new DodecahedronGeometry(7, 0),
-      new MeshLambertMaterial({ color: new Color('#6e7a5e'), flatShading: true }),
+      new MeshLambertMaterial({ color: new Color('#6f8a5c'), flatShading: true }),
     );
-    capeRock.scale.set(2.4, 0.5, 1.6);
+    capeRock.scale.set(2.2, 0.5, 1.45);
+    capeRock.position.y = 0.25;
     capeRock.castShadow = true;
     capeRock.receiveShadow = true;
     cape.add(capeRock);

@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "zip": "node --experimental-strip-types tools/build-zip.ts",
     "capture": "node --experimental-strip-types tools/capture.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "shot": "node --experimental-strip-types tools/shot.ts"
   },
   "dependencies": {
     "three": "^0.185.1"

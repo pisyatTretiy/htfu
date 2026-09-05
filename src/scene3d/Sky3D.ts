@@ -1,13 +1,17 @@
 import {
   BackSide,
   Color,
+  Group,
+  IcosahedronGeometry,
   Mesh,
+  MeshLambertMaterial,
   ShaderMaterial,
   SphereGeometry,
   Sprite,
   SpriteMaterial,
   Texture,
 } from 'three';
+import { Rng } from '../core/Rng';
 
 const VERTEX = /* glsl */ `
   varying vec3 vWorld;
@@ -38,6 +42,8 @@ export class Sky3D {
   readonly mesh: Mesh;
   private readonly material: ShaderMaterial;
   private readonly sun: Sprite;
+  private readonly clouds = new Group();
+  private readonly cloudMaterial: MeshLambertMaterial;
 
   constructor(radius = 900) {
     this.material = new ShaderMaterial({
@@ -59,6 +65,59 @@ export class Sky3D {
     this.sun.scale.setScalar(120);
     this.sun.position.set(-220, 190, -520);
     this.mesh.add(this.sun);
+
+    // Облака — единственная деталь в верхней трети кадра. Без них небо
+    // читается как пустая заливка, а с ними появляется масштаб и глубина.
+    this.cloudMaterial = new MeshLambertMaterial({
+      color: new Color('#ffffff'),
+      // Подсветка снизу: иначе теневая сторона облака чернеет и весь стиль
+      // рассыпается — низкополигональному облаку нужна плоская светлая изнанка.
+      emissive: new Color('#b9d3e6'),
+      flatShading: true,
+      // Туман работает на 260 метрах, облака стоят дальше: без выключения
+      // они растворились бы в дымке целиком.
+      fog: false,
+    });
+    this.buildClouds(radius * 0.55);
+    this.mesh.add(this.clouds);
+  }
+
+  /**
+   * Кучевые облака из низкополигональных комков.
+   *
+   * Каждое — три-шесть сплюснутых икосаэдров: та же грамматика формы, что у
+   * камней и пальм на берегу, поэтому небо не выпадает из стиля.
+   */
+  private buildClouds(distance: number): void {
+    const rng = new Rng(90210);
+    for (let i = 0; i < 11; i++) {
+      const cloud = new Group();
+      const puffs = rng.int(3, 6);
+      for (let p = 0; p < puffs; p++) {
+        const puff = new Mesh(new IcosahedronGeometry(rng.range(11, 20), 0), this.cloudMaterial);
+        puff.position.set(rng.range(-26, 26), rng.range(-4, 6), rng.range(-9, 9));
+        puff.scale.set(1, rng.range(0.5, 0.72), 1);
+        cloud.add(puff);
+      }
+      // Гуще над морем: игрок смотрит с причала вперёд, за спину он
+      // оборачивается редко.
+      const angle = rng.range(-1.5, 1.5) + (i % 3 === 0 ? Math.PI : 0);
+      const radius = distance * rng.range(0.75, 1.15);
+      cloud.position.set(
+        Math.sin(angle) * radius,
+        rng.range(55, 150),
+        -Math.cos(angle) * radius,
+      );
+      // Крупнее, чем кажется правильным: на портретном экране облако
+      // «нормального» размера превращается в белую крапину у верхней рамки.
+      cloud.scale.setScalar(rng.range(1.6, 3.2));
+      this.clouds.add(cloud);
+    }
+  }
+
+  /** Медленный дрейф: полный оборот примерно за двадцать минут. */
+  update(dt: number): void {
+    this.clouds.rotation.y += dt * 0.005;
   }
 
   /** Палитра приходит из данных локации: небо меняется вместе с водой. */
@@ -72,6 +131,10 @@ export class Sky3D {
   dispose(): void {
     this.mesh.geometry.dispose();
     this.material.dispose();
+    this.cloudMaterial.dispose();
+    this.clouds.traverse((node) => {
+      if (node instanceof Mesh) node.geometry.dispose();
+    });
   }
 }
 
