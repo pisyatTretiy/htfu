@@ -1,11 +1,11 @@
 import { Color, Group, Vector3 } from 'three';
-import { FishView3D } from './FishView3D';
+import { createCatchView, type CatchView } from './CatchView3D';
 import { Rng } from '../core/Rng';
 import { CATCH_ENTRIES } from '../content/catalog';
 import type { CatchEntry } from '../content/types';
 
 interface Swimmer {
-  view: FishView3D;
+  view: CatchView;
   entryId: string;
   radius: number;
   speed: number;
@@ -70,7 +70,7 @@ export class AmbientFish3D {
     for (let i = 0; i < this.count; i++) {
       const id = ids[rng.int(0, ids.length - 1)] as string;
       const entry = CATCH_ENTRIES.find((candidate) => candidate.id === id) as CatchEntry;
-      const view = new FishView3D(entry);
+      const view = createCatchView(entry);
       view.group.scale.setScalar(rng.range(0.7, 1.4));
       this.group.add(view.group);
       this.swimmers.push({

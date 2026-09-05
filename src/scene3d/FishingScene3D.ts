@@ -19,7 +19,7 @@ import { Splash3D } from './Splash3D';
 import { Hands3D } from './Hands3D';
 import { Hook3D } from './Hook3D';
 import { Line3D } from './Line3D';
-import { FishView3D } from './FishView3D';
+import { createCatchView, type CatchView } from './CatchView3D';
 import { FightSystem } from '../gameplay/FightSystem';
 import { MischiefAct } from '../gameplay/Mischief';
 import { rollCatch } from '../gameplay/CatchPool';
@@ -136,10 +136,10 @@ export class FishingScene3D {
   private readonly rng = new Rng(Date.now() & 0xffff);
 
   private fight: FightSystem | null = null;
-  private hooked: FishView3D | null = null;
+  private hooked: CatchView | null = null;
   private hookedEntry: CatchEntry | null = null;
   private mischief: MischiefAct | null = null;
-  private mischiefView: FishView3D | null = null;
+  private mischiefView: CatchView | null = null;
   private isBossFight = false;
   private lostEntry: CatchEntry | null = null;
   private rarity: Rarity = 'common';
@@ -494,7 +494,7 @@ export class FishingScene3D {
         : {},
     );
 
-    this.hooked = new FishView3D(entry);
+    this.hooked = createCatchView(entry);
     this.hooked.setTint(rarityTint(this.rarity));
     this.scene.add(this.hooked.group);
     this.bitePoint.copy(this.hook.position);
@@ -545,7 +545,7 @@ export class FishingScene3D {
     this.fight = new FightSystem(entry, this.rng.int(1, 1 << 20), { reelPower, lineStrength });
     this.fight.stamina *= RETRY_STAMINA;
 
-    this.hooked = new FishView3D(entry);
+    this.hooked = createCatchView(entry);
     this.hooked.setTint(rarityTint(this.rarity));
     this.scene.add(this.hooked.group);
     // Крючок уже возвращается к вершинке — сажаем рыбу туда, где он сейчас.
@@ -739,7 +739,7 @@ export class FishingScene3D {
       this.hooks.effects().subdueSeconds,
     );
     this.mischief.start({ x: 0, y: 0, halfWidth: 60, height: 90 });
-    this.mischiefView = new FishView3D(entry);
+    this.mischiefView = createCatchView(entry);
     this.mischiefView.setTint(rarityTint(this.rarity));
     // Улов буянит в двух метрах от лица: в натуральную величину он закрывает
     // весь кадр, поэтому ужимаем. Но не слишком: по нему надо попасть пальцем,

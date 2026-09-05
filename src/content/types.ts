@@ -39,6 +39,27 @@ export interface FightParams {
   patience?: number;
 }
 
+/**
+ * Форма модели улова.
+ *
+ * Раньше всё, что попадало на крючок, рисовалось рыбой: краб, медуза, морская
+ * звезда и даже сапог отличались только цветом и длиной. Форма берётся из
+ * данных, потому что это свойство вида, а не рендера.
+ */
+export type CatchShape =
+  | 'fish'
+  | 'eel'
+  | 'crab'
+  | 'jelly'
+  | 'squid'
+  | 'star'
+  /** Свёрток: сапог, ящик, зонт — всё, у чего нет своей узнаваемой формы. */
+  | 'junk'
+  /** Кольцо: покрышка, обод. */
+  | 'ring'
+  /** Ёмкость: банка, бутылка, чайник. */
+  | 'can';
+
 export interface BodyParams {
   length: number;
   /** Длин волны по телу — крупнее число, мельче извивы. */
@@ -47,6 +68,8 @@ export interface BodyParams {
   amp: number;
   fill: string;
   outline: string;
+  /** Форма модели. По умолчанию — рыба. */
+  shape?: CatchShape;
 }
 
 export interface CatchEntry {

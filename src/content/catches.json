@@ -245,7 +245,8 @@
         "wave": 1.2,
         "amp": 0.07,
         "fill": "#ff7a4d",
-        "outline": "#5c1d0c"
+        "outline": "#5c1d0c",
+        "shape": "crab"
       },
       "mischief": "steal"
     },
@@ -462,7 +463,8 @@
         "wave": 0.8,
         "amp": 0.05,
         "fill": "#ff9f6b",
-        "outline": "#63290f"
+        "outline": "#63290f",
+        "shape": "star"
       },
       "mischief": "steal"
     },
@@ -493,7 +495,8 @@
         "wave": 1.6,
         "amp": 0.24,
         "fill": "#d69bf0",
-        "outline": "#4a2260"
+        "outline": "#4a2260",
+        "shape": "jelly"
       },
       "mischief": "grab"
     },
@@ -524,7 +527,8 @@
         "wave": 5.2,
         "amp": 0.22,
         "fill": "#5c8f4a",
-        "outline": "#1d3315"
+        "outline": "#1d3315",
+        "shape": "eel"
       },
       "mischief": "grab"
     },
@@ -555,7 +559,8 @@
         "wave": 2.2,
         "amp": 0.18,
         "fill": "#a05a8c",
-        "outline": "#3a1a30"
+        "outline": "#3a1a30",
+        "shape": "squid"
       },
       "mischief": "steal"
     },
@@ -617,7 +622,8 @@
         "wave": 4.8,
         "amp": 0.2,
         "fill": "#6a7a3a",
-        "outline": "#242a12"
+        "outline": "#242a12",
+        "shape": "eel"
       },
       "mischief": "grab"
     },
@@ -1144,7 +1150,8 @@
         "wave": 5.6,
         "amp": 0.24,
         "fill": "#c8d4dc",
-        "outline": "#3a444c"
+        "outline": "#3a444c",
+        "shape": "eel"
       },
       "mischief": "flop"
     },
@@ -1237,7 +1244,8 @@
         "wave": 2.6,
         "amp": 0.2,
         "fill": "#7a2a3a",
-        "outline": "#280c12"
+        "outline": "#280c12",
+        "shape": "squid"
       },
       "mischief": "steal"
     },
@@ -1267,7 +1275,8 @@
         "wave": 0.3,
         "amp": 0.02,
         "fill": "#8b5a3c",
-        "outline": "#3a1f10"
+        "outline": "#3a1f10",
+        "shape": "junk"
       },
       "mischief": "none"
     },
@@ -1297,7 +1306,8 @@
         "wave": 0.3,
         "amp": 0.02,
         "fill": "#b8c4c9",
-        "outline": "#374a50"
+        "outline": "#374a50",
+        "shape": "can"
       },
       "mischief": "none"
     },
@@ -1327,7 +1337,8 @@
         "wave": 0.3,
         "amp": 0.02,
         "fill": "#ff8a3d",
-        "outline": "#5c2a08"
+        "outline": "#5c2a08",
+        "shape": "junk"
       },
       "mischief": "none"
     },
@@ -1357,7 +1368,8 @@
         "wave": 0.3,
         "amp": 0.02,
         "fill": "#7a4a2a",
-        "outline": "#2e1608"
+        "outline": "#2e1608",
+        "shape": "junk"
       },
       "mischief": "none"
     },
@@ -1387,7 +1399,8 @@
         "wave": 0.3,
         "amp": 0.02,
         "fill": "#3f4448",
-        "outline": "#16191b"
+        "outline": "#16191b",
+        "shape": "ring"
       },
       "mischief": "none"
     },
@@ -1417,7 +1430,8 @@
         "wave": 0.3,
         "amp": 0.02,
         "fill": "#b8813c",
-        "outline": "#4a2a10"
+        "outline": "#4a2a10",
+        "shape": "junk"
       },
       "mischief": "none"
     },
@@ -1447,7 +1461,8 @@
         "wave": 0.3,
         "amp": 0.02,
         "fill": "#9fb0b8",
-        "outline": "#333f45"
+        "outline": "#333f45",
+        "shape": "can"
       },
       "mischief": "none"
     },
@@ -1477,7 +1492,8 @@
         "wave": 0.3,
         "amp": 0.02,
         "fill": "#8fd0a8",
-        "outline": "#274a38"
+        "outline": "#274a38",
+        "shape": "can"
       },
       "mischief": "none"
     },
@@ -1507,7 +1523,8 @@
         "wave": 0.3,
         "amp": 0.02,
         "fill": "#5a6670",
-        "outline": "#1e262c"
+        "outline": "#1e262c",
+        "shape": "junk"
       },
       "mischief": "none"
     },
@@ -1537,7 +1554,8 @@
         "wave": 0.3,
         "amp": 0.02,
         "fill": "#c4566a",
-        "outline": "#40161f"
+        "outline": "#40161f",
+        "shape": "junk"
       },
       "mischief": "none"
     },
@@ -1567,7 +1585,8 @@
         "wave": 0.3,
         "amp": 0.02,
         "fill": "#2e3a44",
-        "outline": "#0e1418"
+        "outline": "#0e1418",
+        "shape": "junk"
       },
       "mischief": "none"
     },
@@ -1597,7 +1616,8 @@
         "wave": 0.3,
         "amp": 0.02,
         "fill": "#e4e8ea",
-        "outline": "#4a5257"
+        "outline": "#4a5257",
+        "shape": "junk"
       },
       "mischief": "none"
     }

@@ -32,9 +32,12 @@ export class FishView3D {
     const length = entry.body.length / 100;
     const color = new Color(entry.body.fill);
 
+    // Угорь длиннее и тоньше рыбы: та же модель с другими пропорциями — иначе
+    // на леске он выглядел зелёным колобком.
+    const eel = entry.body.shape === 'eel';
     const geometry = new SphereGeometry(length * 0.5, 12, 8);
-    geometry.scale(1, 0.62, 0.44);
-    taper(geometry, length * 0.5);
+    geometry.scale(eel ? 1.9 : 1, eel ? 0.34 : 0.62, eel ? 0.3 : 0.44);
+    taper(geometry, length * (eel ? 0.95 : 0.5));
     this.base = Float32Array.from(geometry.getAttribute('position').array);
     this.body = new Mesh(geometry, new MeshLambertMaterial({ color, flatShading: true }));
 
@@ -48,27 +51,33 @@ export class FishView3D {
 
     // Хвост — вилка из двух треугольников, а не конус: конус читается морковкой,
     // и рыба в профиль выглядела воздушным шариком с носиком.
-    this.tail = new Mesh(finGeometry(length * 0.42, length * 0.38, true), finMaterial);
-    this.tail.position.x = -length * 0.52;
+    this.tail = new Mesh(
+      finGeometry(length * (eel ? 0.3 : 0.42), length * (eel ? 0.2 : 0.38), !eel),
+      finMaterial,
+    );
+    this.tail.position.x = -length * (eel ? 0.95 : 0.52);
 
-    const dorsal = new Mesh(finGeometry(length * 0.3, length * 0.22, false), finMaterial);
-    dorsal.position.set(-length * 0.04, length * 0.28, 0);
+    const dorsal = new Mesh(
+      finGeometry(length * (eel ? 0.9 : 0.3), length * (eel ? 0.1 : 0.22), false),
+      finMaterial,
+    );
+    dorsal.position.set(-length * (eel ? 0.3 : 0.04), length * (eel ? 0.15 : 0.28), 0);
     dorsal.rotation.z = -Math.PI / 2;
 
     const pectoral = new Mesh(finGeometry(length * 0.2, length * 0.14, false), finMaterial);
-    pectoral.position.set(length * 0.1, -length * 0.06, length * 0.14);
+    pectoral.position.set(length * (eel ? 0.5 : 0.1), -length * 0.06, length * 0.1);
     pectoral.rotation.set(Math.PI / 2, 0, -0.5);
 
     const eye = new Mesh(
       new SphereGeometry(length * 0.09, 10, 8),
       new MeshLambertMaterial({ color: new Color('#f4ffff') }),
     );
-    eye.position.set(length * 0.3, length * 0.1, length * 0.14);
+    eye.position.set(length * (eel ? 0.82 : 0.3), length * 0.06, length * 0.1);
     const pupil = new Mesh(
       new SphereGeometry(length * 0.045, 8, 6),
       new MeshLambertMaterial({ color: new Color(entry.body.outline) }),
     );
-    pupil.position.set(length * 0.34, length * 0.1, length * 0.18);
+    pupil.position.set(length * (eel ? 0.86 : 0.34), length * 0.06, length * 0.13);
 
     this.baseColor = color.clone();
     this.baseTailColor = color.clone().multiplyScalar(0.82);

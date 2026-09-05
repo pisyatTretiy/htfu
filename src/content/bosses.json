@@ -75,7 +75,8 @@
         "wave": 1.4,
         "amp": 0.09,
         "fill": "#e8622f",
-        "outline": "#5c1d0c"
+        "outline": "#5c1d0c",
+        "shape": "crab"
       },
       "phases": [
         {
@@ -127,7 +128,8 @@
         "wave": 3.6,
         "amp": 0.2,
         "fill": "#8a5a7c",
-        "outline": "#2e1a2a"
+        "outline": "#2e1a2a",
+        "shape": "squid"
       },
       "phases": [
         {

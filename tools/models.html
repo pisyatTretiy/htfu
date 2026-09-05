@@ -1,0 +1,70 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Модели улова</title>
+<style>
+  body { margin: 0; background: #0f2430; }
+  canvas { display: block; }
+</style>
+<script type="module">
+  import {
+    AmbientLight,
+    Color,
+    DirectionalLight,
+    PerspectiveCamera,
+    Scene,
+    WebGLRenderer,
+  } from 'three';
+  import { createCatchView } from '/src/scene3d/CatchView3D.ts';
+  import { CATCH_ENTRIES } from '/src/content/catalog.ts';
+
+  // Лист моделей: по одному представителю каждой формы. Открывается в
+  // `npm run dev` по адресу /tools/models.html — в сборку игры не попадает.
+  const WANTED = ['perch', 'eel', 'crab', 'jelly', 'octopus', 'starfish', 'boot', 'tire', 'bottle', 'fridge', 'pike', 'vampsquid'];
+  const COLUMNS = 4;
+
+  const renderer = new WebGLRenderer({ antialias: true });
+  renderer.setSize(innerWidth, innerHeight);
+  renderer.setClearColor(new Color('#0f2430'));
+  document.body.appendChild(renderer.domElement);
+
+  // Подписи: без них лист моделей — просто набор фигур.
+  const legend = document.createElement('div');
+  legend.style.cssText =
+    'position:fixed;inset:auto 0 8px 0;color:#dff;font:13px/1.4 monospace;text-align:center';
+  legend.textContent = WANTED.join(' · ');
+  document.body.appendChild(legend);
+
+  const scene = new Scene();
+  scene.add(new AmbientLight(0xffffff, 1.1));
+  const sun = new DirectionalLight(0xffffff, 1.7);
+  sun.position.set(-4, 6, 6);
+  scene.add(sun);
+
+  const camera = new PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 100);
+  camera.position.set(0, 0, 13);
+
+  const views = [];
+  WANTED.forEach((id, index) => {
+    const entry = CATCH_ENTRIES.find((item) => item.id === id);
+    if (!entry) return;
+    const view = createCatchView(entry);
+    const column = index % COLUMNS;
+    const row = Math.floor(index / COLUMNS);
+    view.group.position.set((column - (COLUMNS - 1) / 2) * 3, 1.8 - row * 3.4, 0);
+    scene.add(view.group);
+    views.push(view);
+  });
+
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    for (const view of views) {
+      view.update(dt, 0.4);
+      view.group.rotation.y += dt * 0.5;
+    }
+    renderer.render(scene, camera);
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+</script>
