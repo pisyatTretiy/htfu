@@ -9,6 +9,7 @@ import {
 } from 'three';
 import { Angler3D } from './Angler3D';
 import { Birds3D } from './Birds3D';
+import { Wake3D } from './Wake3D';
 import { Sky3D } from './Sky3D';
 import { Water3D } from './Water3D';
 import { Environment3D, shoreHeight } from './Environment3D';
@@ -112,6 +113,7 @@ export class FishingScene3D {
   private readonly pier = new Pier3D();
   private readonly ambient = new AmbientFish3D();
   private readonly splash = new Splash3D();
+  private readonly wake = new Wake3D();
   private readonly hands = new Hands3D();
   private readonly sun = new DirectionalLight(0xffffff, 2.1);
   private readonly hook = new Hook3D();
@@ -142,6 +144,7 @@ export class FishingScene3D {
   private charging = false;
 
   private readonly bitePoint = new Vector3();
+  private readonly surfacePoint = new Vector3();
   private readonly tipWorld = new Vector3();
   private readonly forward = new Vector3();
 
@@ -155,6 +158,7 @@ export class FishingScene3D {
     this.angler.group.rotation.y = 0.5;
     this.scene.add(this.angler.group);
     this.scene.add(this.hook.object, this.line.mesh, this.ambient.group, this.splash.group);
+    this.scene.add(this.wake.group);
     this.camera.add(this.hands.group);
     this.scene.add(this.camera);
 
@@ -303,6 +307,7 @@ export class FishingScene3D {
     this.water.update(dt, this.camera.position);
     this.ambient.update(dt);
     this.splash.update(dt);
+    this.wake.update(dt);
     this.hooked?.update(dt, this.state === 'showcase' ? 0.9 : (this.fight?.surge ?? 0.3));
     this.line.render(this.camera);
 
@@ -333,7 +338,11 @@ export class FishingScene3D {
         this.applyLineLimit(tip);
         if (this.state === 'sinking') {
           this.submergedFor += dt;
+          // Тихие круги у лески: пока ждём поклёвки, вода должна жить.
+          this.markSurface(tip, 0.06);
           if (this.submergedFor >= this.biteAt && this.hook.depthMeters > 2) this.bite();
+        } else {
+          this.wake.hide();
         }
         break;
       }
@@ -404,6 +413,25 @@ export class FishingScene3D {
     this.hooks.toast(boss ? boss.taunt : 'Клюёт!');
   }
 
+  /**
+   * Круги на воде в точке, где леска уходит под поверхность.
+   *
+   * Точка считается пересечением отрезка «вершинка — крючок» с уровнем воды,
+   * а не берётся у крючка: крючок может быть на сорока метрах глубины, а
+   * тревожит воду именно леска.
+   */
+  private markSurface(tip: Vector3, intensity: number): void {
+    const hook = this.hook.position;
+    if (hook.y >= 0 || tip.y <= 0) {
+      this.wake.hide();
+      return;
+    }
+    const t = tip.y / (tip.y - hook.y);
+    this.surfacePoint.lerpVectors(tip, hook, t);
+    this.surfacePoint.y = this.water.heightAt(this.surfacePoint.x, this.surfacePoint.z) + 0.03;
+    this.wake.show(this.surfacePoint, Math.min(1, intensity));
+  }
+
   /** Есть ли кого возвращать на крючок: боссов вторая попытка не касается. */
   get canRetry(): boolean {
     return this.lostEntry !== null;
@@ -464,6 +492,7 @@ export class FishingScene3D {
     }
 
     this.line.setTint(tensionTint(fight.tensionRatio));
+    this.markSurface(tip, Math.max(fight.surge, fight.tensionRatio * 0.5));
     this.shake = Math.max(this.shake, fight.surge * (this.isBossFight ? 0.09 : 0.05));
 
     if (fight.phaseJustChanged) {
@@ -487,6 +516,7 @@ export class FishingScene3D {
       this.lostEntry = wasBoss ? null : lost;
       this.dropHooked();
       this.state = 'reeling';
+      this.wake.hide();
       if (lost) this.hooks.onLost(lost, wasBoss);
     } else if (outcome === 'landed') {
       this.hitstop = 0.08;
@@ -507,6 +537,7 @@ export class FishingScene3D {
     }
     this.showcaseTimer = SHOWCASE_TIME;
     this.state = 'showcase';
+    this.wake.hide();
     this.splash.burst(this.hook.position, 0.6);
     this.hooks.sfx('splash');
   }
@@ -776,6 +807,7 @@ export class FishingScene3D {
     this.pier.dispose();
     this.ambient.dispose();
     this.splash.dispose();
+    this.wake.dispose();
     this.hands.dispose();
     this.line.dispose();
     this.hook.dispose();
