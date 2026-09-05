@@ -364,6 +364,7 @@ export class GameUi {
     kind: 'none' | 'power' | 'tension' | 'patience',
     value: number,
     secondary = 0,
+    danger = 0,
   ): void {
     if (kind === 'none') {
       this.gauge.hidden = true;
@@ -377,6 +378,10 @@ export class GameUi {
     this.gaugeZone.hidden = kind !== 'power';
     this.gaugeSecond.parentElement!.hidden = kind !== 'tension';
     this.gaugeSecond.style.width = `${Math.round(Math.min(1, Math.max(0, secondary)) * 100)}%`;
+    // Предел лески — не оттенок шкалы, а отдельное состояние: у игрока на
+    // реакцию две десятых секунды, и полоса должна кричать.
+    if (danger > 0) this.gauge.dataset.danger = '1';
+    else delete this.gauge.dataset.danger;
   }
 
   get isShopOpen(): boolean {

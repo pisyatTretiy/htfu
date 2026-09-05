@@ -1,4 +1,12 @@
-export type SoundName = 'cast' | 'splash' | 'bite' | 'reel' | 'snap' | 'coin' | 'bounce';
+export type SoundName =
+  | 'cast'
+  | 'splash'
+  | 'bite'
+  | 'reel'
+  | 'strain'
+  | 'snap'
+  | 'coin'
+  | 'bounce';
 
 /**
  * Звук. Требование площадки: при потере фокуса вкладкой звук останавливается —
@@ -140,6 +148,12 @@ export class AudioService {
         break;
       case 'reel':
         this.sweep(160, 200, 0.08, 'sawtooth', 0.18);
+        break;
+      case 'strain':
+        // Скрип снасти на пределе: игроку дана доля секунды, и он должен
+        // услышать её, а не увидеть — глаза в этот момент на воде.
+        this.sweep(150, 260, 0.5, 'sawtooth', 0.28);
+        this.sweep(300, 190, 0.42, 'square', 0.12, 0.05);
         break;
       case 'snap':
         this.sweep(900, 90, 0.26, 'sawtooth', 0.6);

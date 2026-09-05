@@ -306,6 +306,7 @@ async function main(): Promise<void> {
   // рыба иногда сдаётся раньше, чем рвётся леска, поэтому пробуем несколько раз.
   const retryOffer = page.locator('#ui-offer');
   let snapped = false;
+  let sawDanger = false;
   for (let attempt = 0; attempt < 5 && !snapped; attempt++) {
     await waitForState(page, ['idle'], 30000).catch(() => undefined);
     if ((await readState(page)) !== 'idle') break;
@@ -315,9 +316,17 @@ async function main(): Promise<void> {
     if (bit !== 'fighting') continue;
 
     await page.keyboard.down('Space');
-    await waitForState(page, ['reeling', 'showcase', 'onboard', 'idle'], 40000).catch(
-      () => undefined,
-    );
+    // Пока тянем, следим за предупреждением: леска на пределе даёт игроку две
+    // десятых секунды, и об этом должна кричать полоса, а не только цвет.
+    const holdUntil = Date.now() + 40000;
+    while (Date.now() < holdUntil) {
+      const state = await readState(page);
+      if (['reeling', 'showcase', 'onboard', 'idle'].includes(state)) break;
+      if (!sawDanger) {
+        sawDanger = (await page.locator('#ui-gauge[data-danger]').count()) > 0;
+      }
+      await page.waitForTimeout(120);
+    }
     await page.keyboard.up('Space');
     await page.waitForTimeout(200);
 
@@ -340,6 +349,8 @@ async function main(): Promise<void> {
     if ((await readState(page)) === 'onboard') await subdue(page);
   }
   if (!snapped) console.warn('⚠ За пять попыток леска не порвалась — второй попытки не видели');
+  else if (!sawDanger) throw new Error('Полоса не предупредила о пределе лески перед обрывом');
+  else console.log('Предупреждение о пределе лески показано');
 
   // --- магазин: покупка и то, что она переживает перезагрузку ---
   await waitForState(page, ['idle'], 30000);

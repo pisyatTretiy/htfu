@@ -78,7 +78,7 @@ export type CastState =
 
 export interface SceneHooks {
   toast(text: string): void;
-  sfx(name: 'cast' | 'splash' | 'bite' | 'snap' | 'bounce' | 'coin'): void;
+  sfx(name: 'cast' | 'splash' | 'bite' | 'strain' | 'snap' | 'bounce' | 'coin'): void;
   zoneCatches(): readonly string[];
   zoneDepth(): number;
   bossBite(): {
@@ -151,6 +151,8 @@ export class FishingScene3D {
   private leapTimer = 0;
   private leapCooldown = LEAP_COOLDOWN;
   private showcaseTimer = 0;
+  /** Отсчёт до следующего скрипа лески: без него звук трещал бы каждый кадр. */
+  private strain = 0;
   private power = 0;
   private charging = false;
 
@@ -318,6 +320,7 @@ export class FishingScene3D {
     // Причал не качается — качается вода. Тряска остаётся отдачей от рывка.
     this.camera.position.y = PIER_Y + EYE_HEIGHT + this.shakeOffset();
     this.shake *= Math.pow(0.02, dt);
+    if (this.strain > 0) this.strain -= dt;
 
     this.sky.update(dt);
     this.birds.update(dt);
@@ -537,6 +540,15 @@ export class FishingScene3D {
 
     this.line.setTint(tensionTint(fight.tensionRatio));
     this.markSurface(tip, Math.max(fight.surge, fight.tensionRatio * 0.5));
+
+    // Леска на пределе: у игрока две десятых секунды, и он должен это
+    // почувствовать — скрипом и тряской, а не только красной полосой.
+    if (fight.danger > 0 && this.strain <= 0) {
+      this.hooks.sfx('strain');
+      this.strain = 0.6;
+    }
+    if (fight.danger > 0) this.shake = Math.max(this.shake, 0.1 + fight.danger * 0.3);
+    if (fight.danger <= 0) this.strain = 0;
     this.shake = Math.max(this.shake, fight.surge * (this.isBossFight ? 0.09 : 0.05));
 
     if (fight.phaseJustChanged) {
@@ -805,6 +817,8 @@ export class FishingScene3D {
     state: CastState;
     tension: number;
     stamina: number;
+    /** Насколько близко к обрыву, 0..1. Отдельно от натяжения: это уже предел. */
+    danger: number;
     patience: number;
     depth: number;
     onHook: string;
@@ -815,6 +829,7 @@ export class FishingScene3D {
       depth: this.hook.depthMeters,
       tension: this.fight?.tensionRatio ?? 0,
       stamina: this.fight?.stamina ?? 1,
+      danger: this.state === 'fighting' ? (this.fight?.danger ?? 0) : 0,
       patience: this.mischief?.patience ?? (this.fight?.patienceLeft ?? 1),
       onHook: this.hookedEntry ? entryName(this.hookedEntry) : '',
       rarity: this.rarity,

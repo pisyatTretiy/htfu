@@ -240,7 +240,7 @@ export class App {
     if (this.scene.chargePower > 0) {
       this.ui.setGauge('power', this.scene.chargePower);
     } else if (snapshot.state === 'fighting') {
-      this.ui.setGauge('tension', snapshot.tension, 1 - snapshot.stamina);
+      this.ui.setGauge('tension', snapshot.tension, 1 - snapshot.stamina, snapshot.danger);
     } else if (snapshot.state === 'onboard') {
       this.ui.setGauge('patience', snapshot.patience);
     } else {

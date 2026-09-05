@@ -94,6 +94,15 @@
       background: rgba(79, 214, 180, .45);
     }
     #ui .gauge-zone[hidden] { display: none !important; }
+    /* Леска на пределе: полоса бьётся, пока игрок не отпустит. */
+    #ui .gauge[data-danger] .gauge-track {
+      border-color: #ff5f4d; animation: strain .18s steps(2, end) infinite;
+    }
+    #ui .gauge[data-danger] .gauge-label { color: #ff9a8d }
+    @keyframes strain { from { transform: translateX(-2px) } to { transform: translateX(2px) } }
+    @media (prefers-reduced-motion: reduce) {
+      #ui .gauge[data-danger] .gauge-track { animation: none; box-shadow: 0 0 0 3px rgba(255,95,77,.5) }
+    }
 
     #ui .offer {
       position: absolute; left: 50%; bottom: 68px; transform: translateX(-50%);
