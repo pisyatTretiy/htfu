@@ -55,4 +55,4 @@ export async function createPlatform(): Promise<IPlatform> {
   return platform;
 }
 
-export type { IPlatform, SaveData } from './IPlatform';
+export type { IPlatform, Product, Purchase, SaveData } from './IPlatform';

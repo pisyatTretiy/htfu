@@ -1,5 +1,5 @@
-import type { IPlatform, SaveData } from './IPlatform';
-import type { YandexPlayer, YandexSdk } from './yandex-sdk';
+import type { IPlatform, Product, Purchase, SaveData } from './IPlatform';
+import type { YandexPayments, YandexPlayer, YandexSdk } from './yandex-sdk';
 
 /** Ключ, под которым сейв лежит в облаке площадки. */
 const SAVE_KEY = 'save';
@@ -124,6 +124,81 @@ export class YandexPlatform implements IPlatform {
       await this.player.setData({ [SAVE_KEY]: data }, true);
     } catch (error) {
       console.warn('[save] облачный сейв не записан', error);
+    }
+  }
+
+  // --- покупки ---------------------------------------------------------
+  //
+  // Платежи подключаются лениво и по требованию: у игры без покупок
+  // getPayments бросает, и вызывать его на старте — значит ронять запуск.
+
+  private payments: YandexPayments | null = null;
+  private paymentsFailed = false;
+
+  private async getPayments(): Promise<YandexPayments | null> {
+    if (this.payments) return this.payments;
+    if (this.paymentsFailed) return null;
+    try {
+      // signed: true — подписанные данные, их проверяет сервер разработчика.
+      this.payments = await this.sdk.getPayments({ signed: true });
+      return this.payments;
+    } catch (error) {
+      this.paymentsFailed = true;
+      console.warn('[payments] платежи недоступны', error);
+      return null;
+    }
+  }
+
+  async products(): Promise<Product[]> {
+    const payments = await this.getPayments();
+    if (!payments) return [];
+    try {
+      const catalog = await payments.getCatalog();
+      return catalog.map((item) => ({ id: item.id, price: item.price }));
+    } catch (error) {
+      console.warn('[payments] каталог не получен', error);
+      return [];
+    }
+  }
+
+  async pendingPurchases(): Promise<Purchase[]> {
+    const payments = await this.getPayments();
+    if (!payments) return [];
+    try {
+      const purchases = await payments.getPurchases();
+      return purchases.map((item) => ({
+        productId: item.productID,
+        token: item.purchaseToken,
+      }));
+    } catch (error) {
+      console.warn('[payments] незавершённые покупки не получены', error);
+      return [];
+    }
+  }
+
+  async purchase(productId: string): Promise<Purchase | null> {
+    const payments = await this.getPayments();
+    if (!payments) return null;
+    try {
+      const result = await payments.purchase({ id: productId });
+      return { productId: result.productID, token: result.purchaseToken };
+    } catch (error) {
+      // Отмена игроком приходит сюда же, что и ошибка: для игры это одно и то
+      // же — покупки не случилось.
+      console.info('[payments] покупка не состоялась', error);
+      return null;
+    }
+  }
+
+  async consumePurchase(token: string): Promise<void> {
+    const payments = await this.getPayments();
+    if (!payments) return;
+    try {
+      await payments.consumePurchase(token);
+    } catch (error) {
+      // Не списали — покупка вернётся в getPurchases при следующем запуске,
+      // и игрок получит своё. Это лучше, чем потерять оплату.
+      console.warn('[payments] покупка не списана', error);
     }
   }
 

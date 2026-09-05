@@ -1,10 +1,11 @@
 import type { IPlatform, SaveData } from '../platform';
 import { ONBOARDING_CHAIN, type OnboardingState } from '../meta/Onboarding';
 import type { BoostState } from '../meta/Boosts';
+import type { StoreState } from '../meta/Store';
 
 const KEY = 'htfu.save';
 /** Текущая версия схемы. Растёт вместе с миграциями. */
-export const SAVE_VERSION = 9;
+export const SAVE_VERSION = 10;
 /** Лимит площадки: setData — 100 запросов за 5 минут. Дебаунс держит запас. */
 const CLOUD_DEBOUNCE_MS = 10000;
 
@@ -31,6 +32,8 @@ export interface GameSave extends SaveData {
   onboarding: OnboardingState;
   /** Временные бонусы: приманка переживает перезагрузку вкладки. */
   boosts: BoostState;
+  /** Купленные непотребляемые товары. */
+  store: StoreState;
 }
 
 export function emptySave(): GameSave {
@@ -47,6 +50,7 @@ export function emptySave(): GameSave {
     bestCatch: 0,
     onboarding: { step: 0, seen: [] },
     boosts: { lureUntil: 0 },
+    store: { owned: [] },
   };
 }
 
@@ -91,6 +95,9 @@ const MIGRATIONS: Record<number, Migration> = {
     dailies: { ...data.dailies, chestDay: -1 },
     version: 9,
   }),
+  // v10 добавила покупки. Список купленного игра всё равно сверит с
+  // площадкой при запуске, поэтому пустой — безопасное начальное значение.
+  9: (data) => ({ ...data, store: { owned: [] }, version: 10 }),
 };
 
 export function migrate(raw: Partial<GameSave> | null): GameSave {

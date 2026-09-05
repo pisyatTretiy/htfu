@@ -342,7 +342,6 @@ async function main(): Promise<void> {
   if (!snapped) console.warn('⚠ За пять попыток леска не порвалась — второй попытки не видели');
 
   // --- магазин: покупка и то, что она переживает перезагрузку ---
-  const beforeShop = await snapshot(page);
   await waitForState(page, ['idle'], 30000);
   // --- карта: переезд в другую локацию перекрашивает сцену ---
   await waitForState(page, ['idle'], 30000);
@@ -397,6 +396,37 @@ async function main(): Promise<void> {
   await page.waitForTimeout(300);
   await page.screenshot({ path: `${OUT}/10-shop.png` });
 
+  // --- покупки: выдача переживает закрытие вкладки ---
+  // Главный сценарий модерации: оплата прошла, а игра закрылась до выдачи.
+  // Заглушка платформы держит незавершённые покупки в localStorage, поэтому
+  // сценарий воспроизводится честно — покупаем, перезагружаем, проверяем.
+  const storeRow = page.locator('#ui-store-list [data-product="coins_small"]');
+  if (await storeRow.count()) {
+    const before = (await snapshot(page)).money;
+    await storeRow.click();
+    await page.waitForTimeout(900);
+    const after = (await snapshot(page)).money;
+    if (after <= before) {
+      throw new Error(`Покупка не начислена: было ${before}, стало ${after}`);
+    }
+    await page.screenshot({ path: `${OUT}/10a-store.png` });
+    console.log(`Покупка выдана: ${before} → ${after} ₽`);
+
+    // Расходуемый товар списан: после перезагрузки повторно его не начислят.
+    await page.reload({ waitUntil: 'networkidle' });
+    await page.waitForTimeout(1500);
+    const afterReloadMoney = (await snapshot(page)).money;
+    if (afterReloadMoney > after) {
+      throw new Error(
+        `Покупка выдана дважды: ${after} → ${afterReloadMoney} — consumePurchase не сработал`,
+      );
+    }
+    await page.click('#ui-shop-open');
+    await page.waitForTimeout(300);
+  } else {
+    console.warn('⚠ Блок покупок пуст — выдача не проверена');
+  }
+
   // --- приманка: добровольный бонус за ролик, а не покупка ---
   await page.click('#ui-lure-buy');
   await page.waitForTimeout(900);
@@ -406,6 +436,9 @@ async function main(): Promise<void> {
   if (!/\d:\d\d/.test(lureText)) throw new Error(`Часы приманки без времени: «${lureText}»`);
   console.log(`Приманка включена: ${lureText}`);
 
+  // Снимок берём прямо перед покупкой: до неё кошелёк успевает вырасти и от
+  // улова, и от товаров площадки.
+  const beforeShop = await snapshot(page);
   await page.click('#ui-shop-list .branch:first-child .buy');
   await page.waitForTimeout(400);
   await page.screenshot({ path: `${OUT}/11-bought.png` });

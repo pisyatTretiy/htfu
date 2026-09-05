@@ -8,6 +8,8 @@ import type { UnlockContext, Zones } from '../meta/Zones';
 import { BOSSES, type Bosses } from '../meta/Bosses';
 import type { Dailies } from '../meta/Dailies';
 import type { Boosts } from '../meta/Boosts';
+import type { Store } from '../meta/Store';
+import type { Product } from '../platform';
 
 export interface UiCallbacks {
   buy(id: BranchId): void;
@@ -15,6 +17,8 @@ export interface UiCallbacks {
   claimDaily(taskId: string): void;
   /** Ролик за приманку: добровольно и всегда сверх обычного прохождения. */
   watchLure(): void;
+  /** Покупка из магазина площадки. */
+  buyProduct(id: string): void;
   /** Магазин открыт или закрыт: сцена ставит разметку геймплея на паузу. */
   shopToggled(open: boolean): void;
 }
@@ -28,6 +32,9 @@ export interface UiState {
   bosses: Bosses;
   dailies: Dailies;
   boosts: Boosts;
+  store: Store;
+  /** Каталог площадки. Пустой — покупок нет, блок прячем целиком. */
+  products: readonly Product[];
   /** На телевизоре рекламы за награду нет — кнопку прячем. */
   canWatchAds: boolean;
   unlock: UnlockContext;
@@ -58,6 +65,9 @@ export class GameUi {
   private readonly hintEl: HTMLElement;
   private readonly lureEl: HTMLElement;
   private readonly lureRow: HTMLElement;
+  private readonly storeList: HTMLElement;
+  /** Что уже нарисовано в блоке покупок: каталог приходит с задержкой. */
+  private storeSignature = '';
   private readonly lureState: HTMLElement;
   private readonly lureButton: HTMLButtonElement;
   private readonly offer: HTMLButtonElement;
@@ -103,6 +113,7 @@ export class GameUi {
           <span>${i18n.t('shop.title')}</span>
           <button class="btn ghost" id="ui-shop-close" aria-label="${i18n.t('shop.close')}">×</button>
         </div>
+        <div class="panel-list" id="ui-store-list" hidden></div>
         <div class="branch lure-row" id="ui-lure-row">
           <div class="branch-top">
             <span class="branch-name">${i18n.t('lure.title')}</span>
@@ -144,6 +155,7 @@ export class GameUi {
     this.hintEl = must(document.getElementById('ui-hint'));
     this.lureEl = must(document.getElementById('ui-lure'));
     this.lureRow = must(document.getElementById('ui-lure-row'));
+    this.storeList = must(document.getElementById('ui-store-list'));
     this.lureState = must(document.getElementById('ui-lure-state'));
     this.lureButton = must(document.getElementById('ui-lure-buy')) as HTMLButtonElement;
     this.lureButton.addEventListener('click', () => this.callbacks.watchLure());
@@ -402,6 +414,7 @@ export class GameUi {
       ? i18n.t('lure.extend')
       : i18n.t('lure.watch');
 
+    this.renderStore(state);
     this.renderQuest(state);
     this.renderTasks(state);
     this.renderAlbum(state);
@@ -436,6 +449,50 @@ export class GameUi {
         buy.disabled = state.money < price;
         row.classList.toggle('locked', state.money < price);
       }
+    }
+  }
+
+  /**
+   * Блок покупок. Цену пишет площадка, а не игра: она знает и валюту игрока,
+   * и региональные цены. Пока каталог не пришёл — блока нет вовсе.
+   */
+  private renderStore(state: UiState): void {
+    const available = state.products.filter((product) => {
+      const entry = state.store.all.find((item) => item.id === product.id);
+      // Купленное непотребляемое из списка убираем: продавать его второй раз
+      // нельзя, а показывать «куплено» в магазине — только мешать.
+      return entry && !(entry.kind === 'durable' && state.store.isOwned(entry.id));
+    });
+
+    const signature = available.map((product) => `${product.id}:${product.price}`).join('|');
+    if (signature === this.storeSignature) return;
+    this.storeSignature = signature;
+
+    this.storeList.hidden = available.length === 0;
+    this.storeList.innerHTML = available
+      .map((product) => {
+        const entry = state.store.all.find((item) => item.id === product.id);
+        if (!entry) return '';
+        return `
+          <div class="branch buy-row">
+            <div class="branch-top">
+              <span class="branch-name">${i18n.pick(entry.title)}</span>
+              <span class="dots">${product.price}</span>
+            </div>
+            <div class="branch-hint">${i18n.pick(entry.note)}</div>
+            <div class="branch-foot">
+              <span class="branch-value"></span>
+              <button class="btn buy" data-product="${entry.id}">${i18n.t('store.buy')}</button>
+            </div>
+          </div>`;
+      })
+      .join('');
+
+    for (const button of this.storeList.querySelectorAll<HTMLButtonElement>('[data-product]')) {
+      button.addEventListener('click', () => {
+        const id = button.dataset.product;
+        if (id) this.callbacks.buyProduct(id);
+      });
     }
   }
 

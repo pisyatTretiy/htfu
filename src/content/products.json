@@ -1,0 +1,39 @@
+{
+  "$comment": "Внутриигровые покупки (docs/03, § 3.7). Содержимое детерминированное: никаких случайных наборов — это требование площадки к лутбоксам. Цену показывает площадка, здесь её нет.",
+  "products": [
+    {
+      "id": "noads",
+      "kind": "durable",
+      "title": { "ru": "Без рекламы", "en": "No ads" },
+      "note": {
+        "ru": "Убирает полноэкранную рекламу и баннер. Ролики за награду остаются добровольными",
+        "en": "Removes fullscreen ads and the banner. Rewarded videos stay voluntary"
+      },
+      "grant": { "noAds": true }
+    },
+    {
+      "id": "starter",
+      "kind": "durable",
+      "title": { "ru": "Стартовый набор", "en": "Starter pack" },
+      "note": {
+        "ru": "500 ₽ и удочка второго уровня — разом",
+        "en": "500 ₽ and a level 2 rod at once"
+      },
+      "grant": { "money": 500, "rod": 1 }
+    },
+    {
+      "id": "coins_small",
+      "kind": "consumable",
+      "title": { "ru": "Горсть монет", "en": "Handful of coins" },
+      "note": { "ru": "800 ₽ в кошелёк", "en": "800 ₽ to your wallet" },
+      "grant": { "money": 800 }
+    },
+    {
+      "id": "coins_big",
+      "kind": "consumable",
+      "title": { "ru": "Сундук монет", "en": "Chest of coins" },
+      "note": { "ru": "2500 ₽ в кошелёк", "en": "2500 ₽ to your wallet" },
+      "grant": { "money": 2500 }
+    }
+  ]
+}

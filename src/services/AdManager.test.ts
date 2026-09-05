@@ -20,6 +20,16 @@ function fakePlatform(rewarded = true): IPlatform & { interstitials: number } {
     },
     async showBanner() {},
     async hideBanner() {},
+    async products() {
+      return [];
+    },
+    async pendingPurchases() {
+      return [];
+    },
+    async purchase() {
+      return null;
+    },
+    async consumePurchase() {},
     async load(): Promise<SaveData | null> {
       return null;
     },

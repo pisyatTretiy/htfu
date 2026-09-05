@@ -12,6 +12,9 @@ import { Bosses, bossAsCatch } from '../meta/Bosses';
 import { Dailies, type DailyTask } from '../meta/Dailies';
 import { Onboarding, type OnboardingContext } from '../meta/Onboarding';
 import { Boosts, LURE_MINUTES } from '../meta/Boosts';
+import { Store } from '../meta/Store';
+import { productById } from '../content/products';
+import type { Product } from '../platform';
 import { SaveService, emptySave, type GameSave } from '../services/SaveService';
 import { i18n } from '../services/I18n';
 import { AudioService } from '../services/AudioService';
@@ -66,6 +69,8 @@ export class App {
   private readonly dailies = new Dailies();
   private readonly onboarding = new Onboarding();
   private readonly boosts = new Boosts();
+  private readonly store = new Store();
+  private products: Product[] = [];
   private readonly audio = new AudioService();
   private readonly save: SaveService;
   private readonly boards: Leaderboards;
@@ -140,6 +145,7 @@ export class App {
         travel: (id) => void this.travel(id),
         claimDaily: (id) => this.claimDaily(id),
         watchLure: () => void this.buyLure(),
+        buyProduct: (id) => void this.buyProduct(id),
         shopToggled: (open) => {
           this.scene.paused = open;
           if (open) this.platform.gameplayStop();
@@ -162,6 +168,10 @@ export class App {
     // магазина и карты с пульта не добраться.
     if (this.platform.isTV()) this.ui.focusTopbar();
 
+    // Покупки: каталог и незавершённые оплаты разбираем сразу после запуска,
+    // но не блокируем ими первый кадр — площадка отвечает не мгновенно.
+    void this.loadStore();
+
     this.running = true;
     this.platform.ready();
     this.platform.gameplayStart();
@@ -169,6 +179,13 @@ export class App {
 
     this.lastFrame = performance.now();
     requestAnimationFrame((now) => this.frame(now));
+  }
+
+  private async loadStore(): Promise<void> {
+    if (this.platform.isTV()) return;
+    this.products = await this.platform.products().catch(() => []);
+    this.renderUi();
+    await this.redeemPending();
   }
 
   private frame(now: number): void {
@@ -241,6 +258,8 @@ export class App {
     this.dailies.restore(this.state.dailies);
     this.onboarding.restore(this.state.onboarding);
     this.boosts.restore(this.state.boosts);
+    this.store.restore(this.state.store);
+    this.ads.setAdFree(this.store.noAds);
   }
 
   /**
@@ -314,6 +333,51 @@ export class App {
     const watched = await this.ads.rewarded('retry_catch');
     if (!watched) return;
     this.scene.retryLost();
+  }
+
+  /**
+   * Выдать всё оплаченное, но не выданное. Вызывается при каждом запуске —
+   * без этого модерация не пропускает: игрок мог закрыть вкладку между
+   * оплатой и выдачей, и тогда деньги ушли, а товар не пришёл.
+   */
+  private async redeemPending(): Promise<void> {
+    const pending = await this.platform.pendingPurchases().catch(() => []);
+    let changed = false;
+
+    for (const purchase of pending) {
+      const granted = this.store.redeem(purchase);
+      if (granted.money > 0) {
+        this.state.money += granted.money;
+        changed = true;
+      }
+      for (let level = 0; level < granted.rod; level++) this.progression.levelUp('rod');
+      if (granted.rod > 0) changed = true;
+      if (granted.noAds) {
+        this.ads.setAdFree(true);
+        changed = true;
+      }
+      // Списываем только расходуемое и только после начисления: если списание
+      // не пройдёт, покупка вернётся при следующем запуске и игрок получит
+      // своё второй раз — это лучше, чем не получить вовсе.
+      if (granted.consume) await this.platform.consumePurchase(purchase.token);
+
+      const product = productById(purchase.productId);
+      if (product && (granted.money > 0 || granted.rod > 0 || granted.noAds)) {
+        showToast(i18n.t('store.granted', { name: i18n.pick(product.title) }));
+      }
+    }
+
+    if (changed) this.persist();
+  }
+
+  /** Покупка из магазина площадки. Отмену игрока отличать не нужно: товара просто нет. */
+  private async buyProduct(id: string): Promise<void> {
+    if (this.platform.isTV()) return;
+    const purchase = await this.platform.purchase(id);
+    if (!purchase) return;
+    // Выдаём не из ответа, а общим путём: так покупка, потерянная на полпути,
+    // и покупка прямо сейчас обрабатываются одним и тем же кодом.
+    await this.redeemPending();
   }
 
   /** Приманка за ролик: пять минут повышенного шанса редкого варианта. */
@@ -491,6 +555,7 @@ export class App {
     this.state.dailies = this.dailies.serialize();
     this.state.onboarding = this.onboarding.serialize();
     this.state.boosts = this.boosts.serialize();
+    this.state.store = this.store.serialize();
     this.save.save(this.state);
     // Таблицы лидеров двигаются от тех же событий, что и сейв. Очередь сама
     // разложит их по одной в полторы секунды: у площадки лимит.
@@ -509,6 +574,8 @@ export class App {
       bosses: this.bosses,
       dailies: this.dailies,
       boosts: this.boosts,
+      store: this.store,
+      products: this.products,
       canWatchAds: !this.platform.isTV(),
       unlock: this.unlockContext,
       canShop: this.scene.state === 'idle',

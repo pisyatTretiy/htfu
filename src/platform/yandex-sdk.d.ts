@@ -26,6 +26,28 @@ export interface YandexPlayer {
   setData(data: Record<string, unknown>, flush?: boolean): Promise<void>;
 }
 
+export interface YandexPurchase {
+  productID: string;
+  purchaseToken: string;
+}
+
+export interface YandexProduct {
+  id: string;
+  title: string;
+  description: string;
+  imageURI: string;
+  price: string;
+  priceValue: string;
+  priceCurrencyCode: string;
+}
+
+export interface YandexPayments {
+  purchase(options: { id: string; developerPayload?: string }): Promise<YandexPurchase>;
+  getPurchases(): Promise<YandexPurchase[]>;
+  getCatalog(): Promise<YandexProduct[]>;
+  consumePurchase(token: string): Promise<void>;
+}
+
 export interface YandexSdk {
   environment: { i18n: { lang: string }; app?: { id?: string } };
   deviceInfo: { isMobile(): boolean; isTV(): boolean; isDesktop(): boolean };
@@ -43,6 +65,7 @@ export interface YandexSdk {
     setScore(name: string, score: number, extraData?: string): Promise<void>;
   };
   getPlayer(options?: { scopes?: boolean }): Promise<YandexPlayer>;
+  getPayments(options?: { signed?: boolean }): Promise<YandexPayments>;
   isAvailableMethod(name: string): Promise<boolean>;
 }
 

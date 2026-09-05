@@ -24,6 +24,7 @@ export interface AdHooks {
 export class AdManager {
   private lastInterstitial: number;
   private busy = false;
+  private adFree = false;
 
   constructor(
     private readonly platform: IPlatform,
@@ -35,8 +36,18 @@ export class AdManager {
     this.lastInterstitial = this.now();
   }
 
+  /**
+   * Купленное «без рекламы». Ролики за награду это не отменяет: они
+   * добровольные и остаются доступными — игрок платил за то, чтобы реклама не
+   * приходила сама, а не за отказ от бонусов.
+   */
+  setAdFree(value: boolean): void {
+    this.adFree = value;
+  }
+
   /** Реклама уже шла недавно — показывать рано. */
   get interstitialReady(): boolean {
+    if (this.adFree) return false;
     return !this.busy && this.now() - this.lastInterstitial >= INTERSTITIAL_COOLDOWN_MS;
   }
 

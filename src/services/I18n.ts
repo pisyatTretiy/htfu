@@ -52,6 +52,8 @@ const STRINGS: Record<string, Localized> = {
   'offer.retry': { ru: 'Вторая попытка · {name}', en: 'Second try · {name}' },
   'offer.chest': { ru: 'Сундук дня ×3 · +{reward} ₽', en: 'Daily chest ×3 · +{reward} ₽' },
   'toast.chest': { ru: 'Сундук дня: +{reward} ₽', en: 'Daily chest: +{reward} ₽' },
+  'store.buy': { ru: 'Купить', en: 'Buy' },
+  'store.granted': { ru: 'Получено: {name}', en: 'Granted: {name}' },
   'lure.title': { ru: 'Приманка', en: 'Lure' },
   'lure.hint': {
     ru: 'Пять минут повышенного шанса на редкий вариант',
