@@ -149,6 +149,7 @@ export class App {
         claimDaily: (id) => this.claimDaily(id),
         watchLure: () => void this.buyLure(),
         buyProduct: (id) => void this.buyProduct(id),
+        toggleSound: () => this.audio.toggle(),
         shopToggled: (open) => {
           this.scene.paused = open;
           if (open) this.platform.gameplayStop();
@@ -159,10 +160,12 @@ export class App {
       },
       this.progression,
     );
+    this.ui.setSound(this.audio.silent);
     this.renderUi();
 
     this.bindInput();
     this.bindFocus();
+    this.bindContextLoss();
 
     this.hud = new PerfHud(this.quality, () => ({
       sprites: countNodes(this.scene),
@@ -679,6 +682,37 @@ export class App {
         this.scene.pressEnd(false);
       }
     });
+  }
+
+  /**
+   * Потеря контекста WebGL.
+   *
+   * На телефоне это не экзотика: вкладка полежала в фоне, браузер забрал
+   * видеопамять — и дальше рендерер рисует в никуда. Без обработки игрок
+   * видит замерший кадр и уходит. Прогресс сбрасываем на диск сразу, а
+   * восстановление делаем перезагрузкой: пересобирать все буферы сцены
+   * дороже и рискованнее, чем начать кадр заново с сохранённого места.
+   */
+  private bindContextLoss(): void {
+    const canvas = this.renderer.domElement;
+    const overlay = document.getElementById('lost');
+    const text = document.getElementById('lost-text');
+    const button = document.getElementById('lost-reload');
+
+    canvas.addEventListener('webglcontextlost', (event) => {
+      event.preventDefault();
+      this.running = false;
+      this.audio.setMuted(true);
+      this.platform.gameplayStop();
+      void this.save.flush();
+
+      if (text) text.textContent = i18n.t('lost.text');
+      if (button) button.textContent = i18n.t('lost.reload');
+      overlay?.removeAttribute('hidden');
+    });
+
+    button?.addEventListener('click', () => location.reload());
+    canvas.addEventListener('webglcontextrestored', () => location.reload());
   }
 
   private bindFocus(): void {

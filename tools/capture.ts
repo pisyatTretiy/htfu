@@ -485,6 +485,24 @@ async function main(): Promise<void> {
       'прогресс пережил перезагрузку',
   );
 
+  // --- потеря контекста WebGL: телефон, вкладка в фоне, видеопамять забрали ---
+  // Проверяем не саму потерю (её не вызвать честно), а реакцию на неё: игра
+  // не должна остаться замершим кадром без объяснения.
+  await page.evaluate(() => {
+    const canvas = document.querySelector('canvas');
+    canvas?.dispatchEvent(new Event('webglcontextlost', { cancelable: true }));
+  });
+  await page.waitForTimeout(400);
+  const lostVisible = await page.locator('#lost').isVisible();
+  if (!lostVisible) throw new Error('Потеря контекста осталась без объяснения игроку');
+  await page.screenshot({ path: `${OUT}/17-lost.png` });
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.waitForTimeout(1200);
+  if (await page.locator('#lost').isVisible()) {
+    throw new Error('Сообщение о потере контекста осталось после перезагрузки');
+  }
+  console.log('Потеря контекста: игроку объяснили, прогресс сохранён');
+
   // --- пульт: до всего можно дойти стрелками ---
   // На телевизоре указателя нет, и это требование площадки, а не удобство.
   await page.keyboard.press('Escape');

@@ -159,6 +159,12 @@ export class FishingScene3D {
   private power = 0;
   private charging = false;
 
+  /**
+   * Игрок попросил меньше движения. Тряску камеры не убираем совсем — это
+   * обратная связь боя, а не украшение, — но делаем её вчетверо мягче.
+   */
+  private readonly calmMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
   private readonly bitePoint = new Vector3();
   private readonly surfacePoint = new Vector3();
   private readonly tipWorld = new Vector3();
@@ -325,7 +331,8 @@ export class FishingScene3D {
     }
 
     // Причал не качается — качается вода. Тряска остаётся отдачей от рывка.
-    this.camera.position.y = PIER_Y + EYE_HEIGHT + this.shakeOffset();
+    this.camera.position.y =
+      PIER_Y + EYE_HEIGHT + this.shakeOffset() * (this.calmMotion ? 0.25 : 1);
     this.shake *= Math.pow(0.02, dt);
     if (this.strain > 0) this.strain -= dt;
 

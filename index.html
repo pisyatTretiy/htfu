@@ -69,6 +69,12 @@
     #ui .btn:disabled { opacity: .45; cursor: default; }
     #ui .btn:focus-visible { outline: 3px solid #4fd6b4; outline-offset: 2px; }
     #ui .topbar .btn { margin-left: auto; }
+    /* Значок звука стоит рядом с кошельком и не растягивает ряд кнопок. */
+    #ui .btn.icon {
+      margin-left: 0; padding: 6px 9px; font-size: 15px; line-height: 1;
+      background: rgba(4, 20, 26, .62); border-color: rgba(255,255,255,.14); color: #eafffb;
+    }
+    #ui .btn.icon[data-muted="1"] { opacity: .75 }
 
     #ui .gauge {
       position: absolute; left: 50%; bottom: 118px; transform: translateX(-50%);
@@ -233,6 +239,19 @@
     }
     #toast.show { opacity: 1; transform: translate(-50%, 0); }
 
+    /* Потеря контекста WebGL: вкладка провисела в фоне, браузер забрал видеопамять. */
+    #lost {
+      position: fixed; inset: 0; z-index: 20; display: flex; gap: 14px;
+      flex-direction: column; align-items: center; justify-content: center;
+      background: rgba(4, 20, 26, .92); color: #eafffb; text-align: center; padding: 24px;
+      font-size: 15px; line-height: 1.4;
+    }
+    #lost[hidden] { display: none !important; }
+    #lost .btn {
+      font: inherit; font-weight: 600; color: #06231f; background: #ffd166;
+      border: 2px solid #5a2a14; border-radius: 999px; padding: 10px 22px; cursor: pointer;
+    }
+
     @media (prefers-reduced-motion: reduce) {
       #boot .b i { animation: none; width: 100% }
       #ui .hint { animation: none }
@@ -246,6 +265,7 @@
   <div id="ui"></div>
   <div id="hud" hidden></div>
   <div id="toast"></div>
+  <div id="lost" hidden><p id="lost-text"></p><button class="btn" id="lost-reload"></button></div>
   <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

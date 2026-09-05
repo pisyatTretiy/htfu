@@ -50,6 +50,12 @@ export const STRINGS: Record<string, Localized> = {
   'album.bonus': { ru: 'Собрано {percent} % · цена +{price} % · леска +{line} %', en: 'Filled {percent}% · price +{price}% · line +{line}%' },
   'rarity.rare': { ru: 'Редкий {name}', en: 'Rare {name}' },
   'rarity.gold': { ru: 'Золотой {name}', en: 'Golden {name}' },
+  'lost.text': {
+    ru: 'Браузер освободил видеопамять, пока вкладка была в фоне. Прогресс сохранён.',
+    en: 'The browser reclaimed video memory while the tab was in the background. Progress is saved.',
+  },
+  'lost.reload': { ru: 'Продолжить', en: 'Continue' },
+  'sound.toggle': { ru: 'Звук', en: 'Sound' },
   'boot.title': { ru: 'Клёв!', en: 'Hook & Home' },
   'toast.bite': { ru: 'Клюёт!', en: 'A bite!' },
   'toast.trick': { ru: 'Трюк-шот!', en: 'Trick shot!' },

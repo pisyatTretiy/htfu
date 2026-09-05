@@ -21,6 +21,8 @@ export interface UiCallbacks {
   buyProduct(id: string): void;
   /** Магазин открыт или закрыт: сцена ставит разметку геймплея на паузу. */
   shopToggled(open: boolean): void;
+  /** Кнопка звука. Возвращает новое состояние: true — звук выключен. */
+  toggleSound(): boolean;
 }
 
 export interface UiState {
@@ -52,6 +54,7 @@ export class GameUi {
   private readonly root: HTMLElement;
   private readonly moneyEl: HTMLElement;
   private readonly openButton: HTMLButtonElement;
+  private readonly soundButton: HTMLButtonElement;
   private readonly shop: HTMLElement;
   private readonly album: HTMLElement;
   private readonly albumList: HTMLElement;
@@ -98,6 +101,7 @@ export class GameUi {
       <div class="lure" id="ui-lure" hidden></div>
       <div class="topbar" id="ui-topbar">
         <div class="stat" id="ui-money"></div>
+        <button class="btn icon" id="ui-sound" aria-label="${i18n.t('sound.toggle')}"></button>
         <button class="btn" id="ui-map-open">${i18n.t('map.open')}</button>
         <button class="btn" id="ui-album-open">${i18n.t('album.open')}</button>
         <button class="btn" id="ui-shop-open">${i18n.t('shop.open')}</button>
@@ -160,6 +164,7 @@ export class GameUi {
     this.lureButton = must(document.getElementById('ui-lure-buy')) as HTMLButtonElement;
     this.lureButton.addEventListener('click', () => this.callbacks.watchLure());
     this.openButton = must(document.getElementById('ui-shop-open')) as HTMLButtonElement;
+    this.soundButton = must(document.getElementById('ui-sound')) as HTMLButtonElement;
     this.albumButton = must(document.getElementById('ui-album-open')) as HTMLButtonElement;
     this.shop = must(document.getElementById('ui-shop'));
     this.album = must(document.getElementById('ui-album'));
@@ -196,6 +201,7 @@ export class GameUi {
       this.rows.set(branch.id, row);
     }
 
+    this.soundButton.addEventListener('click', () => this.setSound(this.callbacks.toggleSound()));
     this.openButton.addEventListener('click', () => this.toggle('shop'));
     this.albumButton.addEventListener('click', () => this.toggle('album'));
     this.mapButton.addEventListener('click', () => this.toggle('map'));
@@ -318,6 +324,12 @@ export class GameUi {
       accept();
     };
     this.offerTimer = setTimeout(() => this.hideOffer(), seconds * 1000);
+  }
+
+  /** Значок звука. Состоянием владеет звук, интерфейс только показывает его. */
+  setSound(muted: boolean): void {
+    this.soundButton.textContent = muted ? '🔇' : '🔊';
+    this.soundButton.dataset.muted = muted ? '1' : '0';
   }
 
   /**

@@ -17,16 +17,29 @@ export type SoundName =
  * не растёт и работа не ждёт саунд-дизайнера. Настоящие сэмплы придут в фазе 3
  * и заменят синтез, не трогая вызовы.
  */
+/** Ключ настройки звука. Это предпочтение устройства, а не прогресс: в облако не идёт. */
+const MUTE_KEY = 'htfu.muted';
+
 export class AudioService {
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
+  /** Глушение на время рекламы. */
   private muted = false;
+  /** Игрок выключил звук сам. Переживает перезагрузку, но не уезжает в облако. */
+  private byPlayer = false;
   private enabled = true;
 
   constructor() {
+    try {
+      this.byPlayer = localStorage.getItem(MUTE_KEY) === '1';
+    } catch {
+      // Приватный режим: настройка живёт до конца вкладки.
+    }
+
     const suspend = (): void => void this.ctx?.suspend();
     const resume = (): void => {
-      if (!this.muted && document.visibilityState === 'visible') void this.ctx?.resume();
+      if (this.muted || this.byPlayer) return;
+      if (document.visibilityState === 'visible') void this.ctx?.resume();
     };
 
     document.addEventListener('visibilitychange', () =>
@@ -42,7 +55,7 @@ export class AudioService {
    * не на старте, а при первом касании.
    */
   unlock(): void {
-    if (this.ctx || !this.enabled) return;
+    if (this.ctx || !this.enabled || this.byPlayer) return;
     try {
       const Ctor = window.AudioContext ?? (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
       if (!Ctor) {
@@ -63,8 +76,28 @@ export class AudioService {
   /** Глушение на время рекламы: звук игры не должен идти поверх ролика. */
   setMuted(muted: boolean): void {
     this.muted = muted;
+    this.apply();
+  }
+
+  get silent(): boolean {
+    return this.byPlayer;
+  }
+
+  /** Выключить или включить звук по кнопке. Возвращает новое состояние. */
+  toggle(): boolean {
+    this.byPlayer = !this.byPlayer;
+    try {
+      localStorage.setItem(MUTE_KEY, this.byPlayer ? '1' : '0');
+    } catch {
+      // Приватный режим: настройка живёт до конца вкладки.
+    }
+    this.apply();
+    return this.byPlayer;
+  }
+
+  private apply(): void {
     if (!this.ctx) return;
-    if (muted) void this.ctx.suspend();
+    if (this.muted || this.byPlayer) void this.ctx.suspend();
     else void this.ctx.resume();
   }
 
@@ -124,7 +157,7 @@ export class AudioService {
   private scheduleGull(): void {
     const delay = 12000 + Math.random() * 22000;
     setTimeout(() => {
-      if (this.ctx && !this.muted && this.ctx.state === 'running') {
+      if (this.ctx && !this.muted && !this.byPlayer && this.ctx.state === 'running') {
         this.sweep(1500, 880, 0.13, 'sawtooth', 0.09);
         this.sweep(1350, 820, 0.11, 'sawtooth', 0.07, 0.19);
       }
@@ -133,7 +166,7 @@ export class AudioService {
   }
 
   play(name: SoundName): void {
-    if (!this.ctx || !this.master || this.muted) return;
+    if (!this.ctx || !this.master || this.muted || this.byPlayer) return;
     if (this.ctx.state === 'suspended') return;
 
     switch (name) {
