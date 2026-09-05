@@ -23,20 +23,21 @@ const PRANK_EVERY = 1.7;
 const GRAVITY = 1100;
 const BOUNCE = 0.68;
 
-const PRANKS: Record<string, Localized[]> = {
+/** Экспортировано, чтобы тест проверял эти строки вместе со словарём. */
+export const PRANKS: Record<string, Localized[]> = {
   flop: [
-    { ru: '{name} сшиб ведро!', en: '{name} knocked the bucket over!' },
+    { ru: '{name} сшибает ведро!', en: '{name} knocks the bucket over!' },
     { ru: '{name} скачет по всему причалу!', en: '{name} is bouncing all over the pier!' },
-    { ru: '{name} опрокинул снасти!', en: '{name} tipped the tackle box!' },
+    { ru: '{name} опрокидывает снасти!', en: '{name} tips the tackle box!' },
   ],
   grab: [
-    { ru: '{name} вцепился в удочку!', en: '{name} grabbed the rod!' },
+    { ru: '{name} вцепляется в удочку!', en: '{name} grabs the rod!' },
     { ru: '{name} не отпускает катушку!', en: "{name} won't let go of the reel!" },
     { ru: '{name} жуёт леску!', en: '{name} is chewing the line!' },
   ],
   steal: [
-    { ru: '{name} утащил наживку!', en: '{name} stole the bait!' },
-    { ru: '{name} выкинул улов за борт!', en: '{name} threw the catch overboard!' },
+    { ru: '{name} утаскивает наживку!', en: '{name} steals the bait!' },
+    { ru: '{name} выкидывает улов в воду!', en: '{name} throws the catch into the water!' },
     { ru: '{name} лезет в ящик!', en: '{name} is raiding the box!' },
   ],
 };

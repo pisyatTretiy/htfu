@@ -662,7 +662,9 @@ export class GameUi {
             state.qualityHigh ? i18n.t('settings.high') : i18n.t('settings.low')
           }</button>
         </div>
-        <div class="branch-hint">${i18n.t('settings.qualityHint')}</div>
+        <div class="branch-hint">${i18n.t(
+          state.qualityHigh ? 'settings.qualityHighHint' : 'settings.qualityLowHint',
+        )}</div>
       </div>`;
 
     this.tasksList.innerHTML = streak + chain + rows + settings;

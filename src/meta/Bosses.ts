@@ -73,6 +73,7 @@ export function bossAsCatch(boss: BossEntry): CatchEntry {
   const first = boss.phases[0];
   return {
     id: boss.id,
+    gender: boss.gender,
     name: boss.name,
     kind: 'fish',
     weight: 0,

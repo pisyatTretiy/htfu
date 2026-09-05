@@ -104,10 +104,20 @@ export interface BodyParams {
   shape?: CatchShape;
 }
 
+/**
+ * Грамматический род русского названия.
+ *
+ * Нужен там, где к имени приклеивается согласуемое слово: «редкий окунь», но
+ * «редкая плотва». Без этого поля половина улова получала чужое окончание —
+ * «Редкий Плотва», «Золотой Медуза».
+ */
+export type Gender = 'm' | 'f' | 'n';
+
 export interface CatchEntry {
   id: string;
   /** Локализовано: модерация требует полного перевода на заявленные языки. */
   name: Localized;
+  gender: Gender;
   kind: CatchKind;
   /** Вес в пуле случайного выбора. */
   weight: number;
@@ -132,6 +142,7 @@ export interface BossEntry {
   id: string;
   zone: string;
   name: Localized;
+  gender: Gender;
   trophy: Localized;
   /** Реплика перед боем: игрок должен понять, что это не обычная рыба. */
   taunt: Localized;

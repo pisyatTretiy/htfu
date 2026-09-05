@@ -51,8 +51,14 @@ export const STRINGS: Record<string, Localized> = {
   'toast.newVariant': { ru: 'Новый вариант в альбоме!', en: 'New variant in the album!' },
   'toast.speciesDone': { ru: '{name}: все варианты собраны! +25 % к цене', en: '{name}: all variants collected! +25% price' },
   'album.bonus': { ru: 'Собрано {percent} % · цена +{price} % · леска +{line} %', en: 'Filled {percent}% · price +{price}% · line +{line}%' },
-  'rarity.rare': { ru: 'Редкий {name}', en: 'Rare {name}' },
-  'rarity.gold': { ru: 'Золотой {name}', en: 'Golden {name}' },
+  // Прилагательное согласуется с родом названия. В английском форма одна,
+  // но ключи парные: подстановка не должна знать, какой язык сейчас включён.
+  'rarity.rare.m': { ru: 'Редкий {name}', en: 'Rare {name}' },
+  'rarity.rare.f': { ru: 'Редкая {name}', en: 'Rare {name}' },
+  'rarity.rare.n': { ru: 'Редкое {name}', en: 'Rare {name}' },
+  'rarity.gold.m': { ru: 'Золотой {name}', en: 'Golden {name}' },
+  'rarity.gold.f': { ru: 'Золотая {name}', en: 'Golden {name}' },
+  'rarity.gold.n': { ru: 'Золотое {name}', en: 'Golden {name}' },
   'boot.noWebgl': {
     ru: 'Браузер не поддерживает трёхмерную графику. Попробуйте другой браузер или устройство.',
     en: 'This browser has no 3D graphics support. Try another browser or device.',
@@ -71,9 +77,16 @@ export const STRINGS: Record<string, Localized> = {
   'settings.title': { ru: 'Настройки', en: 'Settings' },
   'settings.sound': { ru: 'Звук', en: 'Sound' },
   'settings.quality': { ru: 'Графика', en: 'Graphics' },
-  'settings.qualityHint': {
+  // Подсказка описывает то, что включено сейчас: кнопка показывает текущий
+  // режим, и общая на два режима подпись «тени и полное разрешение» рядом с
+  // кнопкой «Бюджетная» читалась как обещание того, чего нет.
+  'settings.qualityHighHint': {
     ru: 'Тени и полное разрешение. Переключение перезагрузит страницу',
     en: 'Shadows and full resolution. Switching reloads the page',
+  },
+  'settings.qualityLowHint': {
+    ru: 'Без теней, разрешение ниже — для слабых устройств. Переключение перезагрузит страницу',
+    en: 'No shadows, lower resolution — for weak devices. Switching reloads the page',
   },
   'settings.on': { ru: 'Вкл', en: 'On' },
   'settings.off': { ru: 'Выкл', en: 'Off' },
@@ -86,12 +99,12 @@ export const STRINGS: Record<string, Localized> = {
   'toast.trickStreak': { ru: 'Трюк-шот ×{count}', en: 'Trick shot ×{count}' },
   'toast.phase': { ru: 'Он разозлился! Фаза {phase}', en: 'It got angry! Phase {phase}' },
   'toast.snapped': { ru: 'Леска лопнула!', en: 'The line snapped!' },
-  'toast.escaped': { ru: 'Сорвалась!', en: 'It got away!' },
-  'toast.returned': { ru: '{name} вернулась!', en: '{name} is back on!' },
+  'toast.escaped': { ru: 'Улов сорвался!', en: 'It got away!' },
+  'toast.returned': { ru: '{name} снова на крючке!', en: '{name} is back on!' },
   'toast.caught': { ru: '{name}! +{reward} ₽', en: '{name}! +{reward} ₽' },
   'toast.inBoat': { ru: '{name} на настиле!', en: '{name} is on the deck!' },
-  'toast.subdued': { ru: '{name} усмирён! +{reward} ₽', en: '{name} subdued! +{reward} ₽' },
-  'toast.overboard': { ru: '{name} ушёл за борт!', en: '{name} went overboard!' },
+  'toast.subdued': { ru: '{name} больше не буянит! +{reward} ₽', en: '{name} settles down! +{reward} ₽' },
+  'toast.overboard': { ru: '{name} уходит в воду!', en: '{name} slips into the water!' },
   'toast.doubled': { ru: 'Улов удвоен! +{reward} ₽', en: 'Catch doubled! +{reward} ₽' },
   'offer.double': { ru: 'Удвоить ×2 · {reward} ₽', en: 'Double ×2 · {reward} ₽' },
   'offer.retry': { ru: 'Вторая попытка · {name}', en: 'Second try · {name}' },

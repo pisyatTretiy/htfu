@@ -4,6 +4,7 @@ import { CATCH_ENTRIES } from '../content/catalog';
 import { ZONES } from '../meta/Zones';
 import { BOSSES } from '../meta/Bosses';
 import { QUESTS } from '../meta/Quests';
+import { PRANKS } from '../gameplay/Mischief';
 import { PRODUCTS } from '../content/products';
 import { ONBOARDING_ASIDES, ONBOARDING_CHAIN } from '../meta/Onboarding';
 import { Dailies } from '../meta/Dailies';
@@ -80,5 +81,77 @@ describe('полнота перевода', () => {
       expect(i18n.current, code).toBe('en');
     }
     i18n.setLang('ru');
+  });
+});
+
+describe('род названий', () => {
+  /**
+   * Род однословного русского названия предсказуем по окончанию, и на этом
+   * строится проверка: «а/я» — женский, «о/е» — средний, согласная — мужской.
+   * Мягкий знак неоднозначен (сельдь — она, угорь — он), составные названия
+   * тоже: у «Рыбы-шар» и «Краба-Клешни» главное слово стоит первым, а у
+   * «Бутылки с запиской» последнее слово вовсе в творительном падеже. Такие
+   * названия проверить окончанием нельзя, и они оставлены данным.
+   */
+  function expectedGender(name: string): 'm' | 'f' | 'n' | null {
+    if (/[\s-]/.test(name)) return null;
+    const last = name.slice(-1).toLowerCase();
+    if (last === 'ь') return null;
+    if ('ая'.includes(last)) return 'f';
+    if ('ое'.includes(last)) return 'n';
+    return 'm';
+  }
+
+  it('у каждого вида и босса указан род', () => {
+    for (const entry of CATCH_ENTRIES) {
+      expect(entry.gender, entry.id).toMatch(/^[mfn]$/);
+    }
+    for (const boss of BOSSES) {
+      expect(boss.gender, boss.id).toMatch(/^[mfn]$/);
+    }
+  });
+
+  it('род сходится с окончанием там, где окончание однозначно', () => {
+    for (const entry of CATCH_ENTRIES) {
+      const expected = expectedGender(entry.name.ru ?? '');
+      if (expected) expect(entry.gender, `${entry.id}: ${entry.name.ru}`).toBe(expected);
+    }
+  });
+
+  it('прилагательное редкости есть во всех трёх родах', () => {
+    for (const rarity of ['rare', 'gold']) {
+      for (const gender of ['m', 'f', 'n']) {
+        const line = STRINGS[`rarity.${rarity}.${gender}`];
+        expect(line, `rarity.${rarity}.${gender}`).toBeDefined();
+        expect(line?.ru).toContain('{name}');
+      }
+    }
+  });
+
+  it('в подписях улова нет глаголов прошедшего времени: они требуют рода', () => {
+    // Прошедшее время в русском согласуется с подлежащим («сапог вернулся»,
+    // «плотва вернулась»), а подлежащее здесь — имя из данных. Настоящее
+    // время рода не имеет, поэтому подходит любому виду.
+    // Сеть, а не разбор языка: ловим окончания прошедшего времени (-л и его
+    // формы, включая возвратные -лся/-лась), горстку неправильных форм без
+    // «л» и краткие причастия («усмирён»), которые согласуются так же.
+    // Возвратное «-ся» само по себе в список не входит: «вцепляется» —
+    // настоящее время и рода не имеет.
+    //
+    // Граница слова \b в JavaScript считает словом только латиницу и цифры,
+    // поэтому после кириллической буквы её попросту нет — с ней проверка
+    // молча пропускала всё подряд. Конец слова ищем взглядом вперёд.
+    const past =
+      /\{name\}\s+[а-яё]*(?:лся|лась|лось|лись|ел|ёл|ил|ул|ал|ял|ыл|ол|ла|ло|нёс|вёз|мог|шиб|тёр|ён|ен|ан|ян)(?![а-яё])/i;
+    const lines: [string, Localized][] = [
+      ...Object.entries(STRINGS),
+      ...Object.entries(PRANKS).flatMap(([kind, list]) =>
+        list.map((line, index): [string, Localized] => [`prank.${kind}.${index}`, line]),
+      ),
+    ];
+    for (const [key, line] of lines) {
+      if (!line.ru?.includes('{name}')) continue;
+      expect(line.ru, key).not.toMatch(past);
+    }
   });
 });

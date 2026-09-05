@@ -3,6 +3,7 @@
   "bosses": [
     {
       "id": "boss_som",
+      "gender": "m",
       "zone": "dock",
       "name": {
         "ru": "Старый Сом",
@@ -55,6 +56,7 @@
     },
     {
       "id": "boss_crab",
+      "gender": "m",
       "zone": "bay",
       "name": {
         "ru": "Краб-Клешня",
@@ -108,6 +110,7 @@
     },
     {
       "id": "boss_squid",
+      "gender": "m",
       "zone": "wreck",
       "name": {
         "ru": "Ржавый Кальмар",
@@ -161,6 +164,7 @@
     },
     {
       "id": "boss_pike",
+      "gender": "f",
       "zone": "ice",
       "name": {
         "ru": "Ледяная Щука",
@@ -213,6 +217,7 @@
     },
     {
       "id": "boss_leviathan",
+      "gender": "m",
       "zone": "abyss",
       "name": {
         "ru": "Светящийся Левиафан",
