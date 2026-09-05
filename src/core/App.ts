@@ -150,6 +150,8 @@ export class App {
           this.scene.paused = open;
           if (open) this.platform.gameplayStop();
           else this.platform.gameplayStart();
+          // Открытая панель — это мета-экран, единственное место для баннера.
+          void this.ads.banner(open);
         },
       },
       this.progression,

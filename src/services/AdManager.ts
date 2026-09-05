@@ -25,6 +25,7 @@ export class AdManager {
   private lastInterstitial: number;
   private busy = false;
   private adFree = false;
+  private bannerVisible = false;
 
   constructor(
     private readonly platform: IPlatform,
@@ -43,6 +44,20 @@ export class AdManager {
    */
   setAdFree(value: boolean): void {
     this.adFree = value;
+    if (value && this.bannerVisible) void this.banner(false);
+  }
+
+  /**
+   * Стики-баннер живёт только в мета-экранах: магазин, альбом, карта, дела.
+   * В игровой сцене его нет — это и требование площадки, и здравый смысл:
+   * баннер поверх воды закрывает ровно то, по чему игрок целится.
+   */
+  async banner(show: boolean): Promise<void> {
+    const wanted = show && !this.adFree;
+    if (wanted === this.bannerVisible) return;
+    this.bannerVisible = wanted;
+    if (wanted) await this.platform.showBanner();
+    else await this.platform.hideBanner();
   }
 
   /** Реклама уже шла недавно — показывать рано. */

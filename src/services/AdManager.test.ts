@@ -2,9 +2,10 @@ import { describe, expect, it, vi } from 'vitest';
 import { AdManager, INTERSTITIAL_COOLDOWN_MS } from './AdManager';
 import type { IPlatform, SaveData } from '../platform';
 
-function fakePlatform(rewarded = true): IPlatform & { interstitials: number } {
+function fakePlatform(rewarded = true): IPlatform & { interstitials: number; banners: number } {
   return {
     interstitials: 0,
+    banners: 0,
     name: 'fake',
     async init() {},
     ready() {},
@@ -18,8 +19,12 @@ function fakePlatform(rewarded = true): IPlatform & { interstitials: number } {
     async showInterstitial() {
       this.interstitials += 1;
     },
-    async showBanner() {},
-    async hideBanner() {},
+    async showBanner() {
+      this.banners += 1;
+    },
+    async hideBanner() {
+      this.banners -= 1;
+    },
     async products() {
       return [];
     },
@@ -35,7 +40,7 @@ function fakePlatform(rewarded = true): IPlatform & { interstitials: number } {
     },
     async save() {},
     async submitScore() {},
-  } as IPlatform & { interstitials: number };
+  } as IPlatform & { interstitials: number; banners: number };
 }
 
 function hooks() {
@@ -101,5 +106,40 @@ describe('показ рекламы', () => {
 
     await expect(ads.rewarded('double')).rejects.toThrow();
     expect(events.resume).toHaveBeenCalledTimes(1);
+  });
+
+  it('баннер показывается только в мета-экранах и только один раз', async () => {
+    const platform = fakePlatform();
+    const ads = new AdManager(platform, hooks());
+
+    await ads.banner(true);
+    await ads.banner(true);
+    expect(platform.banners).toBe(1);
+
+    await ads.banner(false);
+    await ads.banner(false);
+    expect(platform.banners).toBe(0);
+  });
+
+  it('купленное «без рекламы» убирает и баннер, и полноэкранную', async () => {
+    const platform = fakePlatform();
+    let now = 0;
+    const ads = new AdManager(platform, hooks(), () => now);
+
+    await ads.banner(true);
+    expect(platform.banners).toBe(1);
+
+    // Кулдаун давно прошёл: без покупки реклама была бы готова к показу.
+    now = INTERSTITIAL_COOLDOWN_MS * 3;
+    expect(ads.interstitialReady).toBe(true);
+
+    ads.setAdFree(true);
+    await Promise.resolve();
+    expect(platform.banners).toBe(0);
+    expect(ads.interstitialReady).toBe(false);
+    expect(await ads.interstitial()).toBe(false);
+
+    await ads.banner(true);
+    expect(platform.banners).toBe(0);
   });
 });
