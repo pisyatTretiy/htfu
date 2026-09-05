@@ -67,6 +67,9 @@ export class GameUi {
   private readonly gaugeZone: HTMLElement;
   private readonly gaugeSecond: HTMLElement;
   private readonly rows = new Map<BranchId, HTMLElement>();
+  private readonly topbar: HTMLElement;
+  /** Последний ввод был с клавиатуры или пульта, а не мышью. */
+  private keyboardMode = false;
 
   private open: 'shop' | 'album' | 'map' | 'tasks' | null = null;
   private offerTimer: ReturnType<typeof setTimeout> | null = null;
@@ -83,7 +86,7 @@ export class GameUi {
       <div class="questbar" id="ui-quest"></div>
       <div class="hint" id="ui-hint" hidden></div>
       <div class="lure" id="ui-lure" hidden></div>
-      <div class="topbar">
+      <div class="topbar" id="ui-topbar">
         <div class="stat" id="ui-money"></div>
         <button class="btn" id="ui-map-open">${i18n.t('map.open')}</button>
         <button class="btn" id="ui-album-open">${i18n.t('album.open')}</button>
@@ -135,6 +138,7 @@ export class GameUi {
         <div class="panel-list album-list" id="ui-album-list"></div>
       </div>`;
 
+    this.topbar = must(document.getElementById('ui-topbar'));
     this.moneyEl = must(document.getElementById('ui-money'));
     this.questEl = must(document.getElementById('ui-quest'));
     this.hintEl = must(document.getElementById('ui-hint'));
@@ -203,10 +207,90 @@ export class GameUi {
     must(document.getElementById('ui-album-close')).addEventListener('click', () =>
       this.toggle(null),
     );
-    // Escape на десктопе и Back на пульте закрывают панель.
+    // Escape на десктопе и Back на пульте закрывают панель, а если закрывать
+    // нечего — уводят фокус в верхний ряд. На телевизоре это единственный
+    // способ попасть в интерфейс: мыши там нет.
     addEventListener('keydown', (event) => {
-      if ((event.key === 'Escape' || event.key === 'GoBack') && this.open) this.toggle(null);
+      if (event.key !== 'Escape' && event.key !== 'GoBack') return;
+      if (this.open) this.toggle(null);
+      else this.focusTopbar();
     });
+
+    addEventListener('pointerdown', () => (this.keyboardMode = false), true);
+    addEventListener('keydown', (event) => this.navigate(event), true);
+  }
+
+  /**
+   * Навигация стрелками — требование площадки: на телевизоре пульт должен
+   * доставать до всего (docs/02, § 2.3).
+   *
+   * Стрелки достаются интерфейсу, только когда открыта панель или фокус стоит
+   * в верхнем ряду. В остальное время они целятся: игра важнее меню.
+   */
+  private navigate(event: KeyboardEvent): void {
+    const step = ARROW_STEP[event.key];
+    if (step === undefined) {
+      if (event.key === 'Enter' || event.key === ' ') this.keyboardMode = true;
+      return;
+    }
+    this.keyboardMode = true;
+
+    if (this.open) {
+      event.preventDefault();
+      const panel = this.panelOf(this.open);
+      const buttons = this.focusable(panel);
+      // В альбоме кнопок нет вовсе, кроме «закрыть»: там стрелки листают
+      // список, иначе с пульта видно только первый экран.
+      if (buttons.length < 2) panel.scrollBy({ top: step * 140, behavior: 'smooth' });
+      else this.step(buttons, step);
+      return;
+    }
+    if (!this.isTopbarFocused) return;
+
+    event.preventDefault();
+    // Вниз из верхнего ряда — обратно в игру: иначе с пульта не прицелиться.
+    if (event.key === 'ArrowDown') (document.activeElement as HTMLElement | null)?.blur();
+    else this.step(this.focusable(this.topbar), step);
+  }
+
+  private panelOf(panel: 'shop' | 'album' | 'map' | 'tasks'): HTMLElement {
+    if (panel === 'shop') return this.shop;
+    if (panel === 'album') return this.album;
+    if (panel === 'map') return this.map;
+    return this.tasks;
+  }
+
+  private focusable(root: HTMLElement): HTMLButtonElement[] {
+    return [...root.querySelectorAll<HTMLButtonElement>('button')].filter(
+      (button) => !button.disabled && button.offsetParent !== null,
+    );
+  }
+
+  private step(buttons: HTMLButtonElement[], delta: number): void {
+    if (buttons.length === 0) return;
+    const active = document.activeElement;
+    const at = buttons.findIndex((button) => button === active);
+    // По кругу: на пульте «дальше» после последнего пункта — это первый.
+    const next = at < 0 ? 0 : (at + delta + buttons.length) % buttons.length;
+    const target = buttons[next];
+    target?.focus();
+    target?.scrollIntoView({ block: 'nearest' });
+  }
+
+  private get isTopbarFocused(): boolean {
+    const active = document.activeElement;
+    return active instanceof HTMLElement && this.topbar.contains(active);
+  }
+
+  /** Забрать фокус в интерфейс: точка входа для пульта. */
+  focusTopbar(): void {
+    this.keyboardMode = true;
+    this.focusable(this.topbar)[0]?.focus();
+  }
+
+  /** Стрелки сейчас принадлежат интерфейсу, а не прицелу. */
+  get consumesArrows(): boolean {
+    return this.open !== null || this.isTopbarFocused;
   }
 
   /**
@@ -299,11 +383,11 @@ export class GameUi {
     this.tasks.hidden = next !== 'tasks';
     this.callbacks.shopToggled(next !== null);
 
-    if (next === 'shop') this.shop.querySelector('button')?.focus();
-    else if (next === 'album') this.album.querySelector('button')?.focus();
-    else if (next === 'map') this.map.querySelector('button')?.focus();
-    else if (next === 'tasks') this.tasks.querySelector('button')?.focus();
-    else this.openButton.focus();
+    if (next !== null) this.focusable(this.panelOf(next))[0]?.focus();
+    // Мышью панель закрывают кликом, и подсвеченная кнопка после этого только
+    // мешает; с пульта, наоборот, потерять фокус — значит потерять управление.
+    else if (this.keyboardMode) this.openButton.focus();
+    else (document.activeElement as HTMLElement | null)?.blur();
   }
 
   render(state: UiState): void {
@@ -507,6 +591,14 @@ function describeUnlock(unlock: { type: string; value: number; boss?: string }):
   if (unlock.type === 'quests') return i18n.t('map.needQuests', { value: unlock.value });
   return i18n.t('map.needMoney', { value: unlock.value });
 }
+
+/** Куда двигать фокус по стрелке. Списки в панелях одноколоночные. */
+const ARROW_STEP: Record<string, number | undefined> = {
+  ArrowUp: -1,
+  ArrowLeft: -1,
+  ArrowDown: 1,
+  ArrowRight: 1,
+};
 
 function must<T extends Element | HTMLElement | null>(node: T): HTMLElement {
   if (!node) throw new Error('Элемент интерфейса не найден');

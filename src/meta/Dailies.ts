@@ -33,6 +33,8 @@ export interface DailiesState {
   claimed: string[];
   streak: number;
   lastCompletedDay: number;
+  /** День, в который уже брали сундук за ролик. Один сундук в сутки. */
+  chestDay: number;
 }
 
 /** Номер дня по UTC: у всех игроков сутки начинаются одновременно. */
@@ -53,6 +55,7 @@ export class Dailies {
   private claimed = new Set<string>();
   private streak = 0;
   private lastCompletedDay = -1;
+  private chestDay = -1;
 
   /** Три дела на сегодня. */
   get tasks(): DailyTask[] {
@@ -157,6 +160,21 @@ export class Dailies {
     return Math.round(task.reward * this.streakMultiplier);
   }
 
+  /**
+   * Сундук за ролик: одна утроенная награда в сутки (docs/03, § 3.7).
+   * Добровольная — обычную награду игрок уже получил.
+   */
+  get chestAvailable(): boolean {
+    return this.chestDay !== this.day;
+  }
+
+  /** Забрать сундук. Возвращает false, если сегодня его уже брали. */
+  takeChest(): boolean {
+    if (!this.chestAvailable) return false;
+    this.chestDay = this.day;
+    return true;
+  }
+
   serialize(): DailiesState {
     return {
       day: this.day,
@@ -164,6 +182,7 @@ export class Dailies {
       claimed: [...this.claimed],
       streak: this.streak,
       lastCompletedDay: this.lastCompletedDay,
+      chestDay: this.chestDay,
     };
   }
 
@@ -174,6 +193,7 @@ export class Dailies {
     this.claimed = new Set(saved.claimed ?? []);
     this.streak = Math.max(0, saved.streak ?? 0);
     this.lastCompletedDay = saved.lastCompletedDay ?? -1;
+    this.chestDay = saved.chestDay ?? -1;
     this.rollOver(now);
   }
 }

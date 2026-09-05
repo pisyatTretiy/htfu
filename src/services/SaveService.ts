@@ -4,7 +4,7 @@ import type { BoostState } from '../meta/Boosts';
 
 const KEY = 'htfu.save';
 /** Текущая версия схемы. Растёт вместе с миграциями. */
-export const SAVE_VERSION = 8;
+export const SAVE_VERSION = 9;
 /** Лимит площадки: setData — 100 запросов за 5 минут. Дебаунс держит запас. */
 const CLOUD_DEBOUNCE_MS = 10000;
 
@@ -23,6 +23,7 @@ export interface GameSave extends SaveData {
     claimed: string[];
     streak: number;
     lastCompletedDay: number;
+    chestDay: number;
   };
   /** Самый дорогой улов за всё время — он же результат в лидерборде. */
   bestCatch: number;
@@ -42,7 +43,7 @@ export function emptySave(): GameSave {
     quests: { index: 0, progress: 0 },
     zone: 'dock',
     bosses: { trophies: [], catches: {} },
-    dailies: { day: 0, progress: {}, claimed: [], streak: 0, lastCompletedDay: -1 },
+    dailies: { day: 0, progress: {}, claimed: [], streak: 0, lastCompletedDay: -1, chestDay: -1 },
     bestCatch: 0,
     onboarding: { step: 0, seen: [] },
     boosts: { lureUntil: 0 },
@@ -71,7 +72,7 @@ const MIGRATIONS: Record<number, Migration> = {
   // v6 добавила ежедневные дела и рекорд улова.
   5: (data) => ({
     ...data,
-    dailies: { day: 0, progress: {}, claimed: [], streak: 0, lastCompletedDay: -1 },
+    dailies: { day: 0, progress: {}, claimed: [], streak: 0, lastCompletedDay: -1, chestDay: -1 },
     bestCatch: 0,
     version: 6,
   }),
@@ -84,6 +85,12 @@ const MIGRATIONS: Record<number, Migration> = {
   }),
   // v8 добавила временные бонусы. Ни у кого из старых игроков приманки нет.
   7: (data) => ({ ...data, boosts: { lureUntil: 0 }, version: 8 }),
+  // v9 добавила ежедневный сундук за ролик. Сегодняшний ещё никто не брал.
+  8: (data) => ({
+    ...data,
+    dailies: { ...data.dailies, chestDay: -1 },
+    version: 9,
+  }),
 };
 
 export function migrate(raw: Partial<GameSave> | null): GameSave {

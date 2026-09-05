@@ -16,6 +16,7 @@ import { SaveService, emptySave, type GameSave } from '../services/SaveService';
 import { i18n } from '../services/I18n';
 import { AudioService } from '../services/AudioService';
 import { AdManager } from '../services/AdManager';
+import { Leaderboards } from '../services/Leaderboards';
 import type { CatchEntry, FightPhase } from '../content/types';
 import type { Rarity } from '../gameplay/Rarity';
 
@@ -67,6 +68,7 @@ export class App {
   private readonly boosts = new Boosts();
   private readonly audio = new AudioService();
   private readonly save: SaveService;
+  private readonly boards: Leaderboards;
   private readonly ads: AdManager;
   private state: GameSave = emptySave();
   /**
@@ -79,6 +81,7 @@ export class App {
 
   constructor(private readonly platform: IPlatform) {
     this.save = new SaveService(platform);
+    this.boards = new Leaderboards(platform);
     this.ads = new AdManager(platform, {
       pause: () => {
         this.scene.paused = true;
@@ -154,6 +157,10 @@ export class App {
       sprites: countNodes(this.scene),
       rows: this.scene.metrics,
     }));
+
+    // На телевизоре указателя нет: фокус сразу в верхнем ряду, иначе до
+    // магазина и карты с пульта не добраться.
+    if (this.platform.isTV()) this.ui.focusTopbar();
 
     this.running = true;
     this.platform.ready();
@@ -359,7 +366,7 @@ export class App {
     }
     if (total > this.state.bestCatch) {
       this.state.bestCatch = total;
-      void this.platform.submitScore('best_catch', total);
+      this.boards.submit('best_catch', total);
     }
 
     this.onboarding.signal('landed');
@@ -396,6 +403,25 @@ export class App {
     this.state.money += reward;
     this.audio.play('coin');
     showToast(i18n.t('daily.claimed', { reward, streak: this.dailies.currentStreak }));
+    this.persist();
+
+    // Сундук: одно утроение в сутки и только сверх уже полученной награды.
+    if (this.dailies.chestAvailable && !this.platform.isTV()) {
+      this.ui.offerReward(i18n.t('offer.chest', { reward: reward * 2 }), 7, () =>
+        void this.openChest(reward),
+      );
+    }
+  }
+
+  private async openChest(reward: number): Promise<void> {
+    if (!this.dailies.chestAvailable) return;
+    const watched = await this.ads.rewarded('daily_chest');
+    if (!watched || !this.dailies.takeChest()) return;
+
+    const bonus = reward * 2;
+    this.state.money += bonus;
+    this.audio.play('coin');
+    showToast(i18n.t('toast.chest', { reward: bonus }));
     this.persist();
   }
 
@@ -466,6 +492,10 @@ export class App {
     this.state.onboarding = this.onboarding.serialize();
     this.state.boosts = this.boosts.serialize();
     this.save.save(this.state);
+    // Таблицы лидеров двигаются от тех же событий, что и сейв. Очередь сама
+    // разложит их по одной в полторы секунды: у площадки лимит.
+    this.boards.submit('wealth', this.state.money);
+    this.boards.submit('album', this.album.fillPercent);
     this.renderUi();
   }
 
@@ -550,10 +580,14 @@ export class App {
         this.scene.pressStart(innerWidth / 2, innerHeight / 2);
         event.preventDefault();
       }
-      if (event.key === 'ArrowLeft') this.scene.look(-14, 0);
-      if (event.key === 'ArrowRight') this.scene.look(14, 0);
-      if (event.key === 'ArrowUp') this.scene.look(0, -10);
-      if (event.key === 'ArrowDown') this.scene.look(0, 10);
+      // Стрелки целятся, только пока их не забрал интерфейс: на телевизоре
+      // теми же стрелками ходят по кнопкам.
+      if (!this.ui.consumesArrows) {
+        if (event.key === 'ArrowLeft') this.scene.look(-14, 0);
+        if (event.key === 'ArrowRight') this.scene.look(14, 0);
+        if (event.key === 'ArrowUp') this.scene.look(0, -10);
+        if (event.key === 'ArrowDown') this.scene.look(0, 10);
+      }
       if (event.key === 'r' || event.key === 'R') this.scene.reel();
       if (event.key === 'l' || event.key === 'L') freezeMainThread(250);
     });

@@ -50,6 +50,8 @@ const STRINGS: Record<string, Localized> = {
   'toast.doubled': { ru: 'Улов удвоен! +{reward} ₽', en: 'Catch doubled! +{reward} ₽' },
   'offer.double': { ru: 'Удвоить ×2 · {reward} ₽', en: 'Double ×2 · {reward} ₽' },
   'offer.retry': { ru: 'Вторая попытка · {name}', en: 'Second try · {name}' },
+  'offer.chest': { ru: 'Сундук дня ×3 · +{reward} ₽', en: 'Daily chest ×3 · +{reward} ₽' },
+  'toast.chest': { ru: 'Сундук дня: +{reward} ₽', en: 'Daily chest: +{reward} ₽' },
   'lure.title': { ru: 'Приманка', en: 'Lure' },
   'lure.hint': {
     ru: 'Пять минут повышенного шанса на редкий вариант',

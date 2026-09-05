@@ -19,7 +19,7 @@ describe('ежедневные дела', () => {
     const today = new Dailies();
     const later = new Dailies();
     later.restore(
-      { day: currentDay() + 3, progress: {}, claimed: [], streak: 0, lastCompletedDay: -1 },
+      { day: currentDay() + 3, progress: {}, claimed: [], streak: 0, lastCompletedDay: -1, chestDay: -1 },
       Date.now() + 3 * DAY,
     );
     // Совпадение всех трёх дел два дня подряд означало бы, что выбор не зависит от даты.
@@ -99,7 +99,29 @@ describe('ежедневные дела', () => {
       claimed: [],
       streak: 99,
       lastCompletedDay: currentDay(),
+      chestDay: -1,
     });
     expect(dailies.streakMultiplier).toBeLessThanOrEqual(2);
+  });
+
+  it('сундук берётся раз в сутки и возвращается назавтра', () => {
+    const dailies = new Dailies();
+    expect(dailies.chestAvailable).toBe(true);
+    expect(dailies.takeChest()).toBe(true);
+    expect(dailies.chestAvailable).toBe(false);
+    expect(dailies.takeChest()).toBe(false);
+
+    // Наступил следующий день: сундук снова на месте.
+    dailies.rollOver(Date.now() + DAY);
+    expect(dailies.chestAvailable).toBe(true);
+  });
+
+  it('взятый сундук переживает перезагрузку', () => {
+    const dailies = new Dailies();
+    dailies.takeChest();
+
+    const restored = new Dailies();
+    restored.restore(dailies.serialize());
+    expect(restored.chestAvailable).toBe(false);
   });
 });

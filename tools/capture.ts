@@ -441,6 +441,34 @@ async function main(): Promise<void> {
       'прогресс пережил перезагрузку',
   );
 
+  // --- пульт: до всего можно дойти стрелками ---
+  // На телевизоре указателя нет, и это требование площадки, а не удобство.
+  await page.keyboard.press('Escape');
+  const firstFocus = await page.evaluate(() => document.activeElement?.id ?? '');
+  await page.keyboard.press('ArrowRight');
+  const secondFocus = await page.evaluate(() => document.activeElement?.id ?? '');
+  if (!firstFocus || firstFocus === secondFocus) {
+    throw new Error(`Стрелка не двигает фокус в верхнем ряду: ${firstFocus} → ${secondFocus}`);
+  }
+
+  await page.keyboard.press('Enter');
+  await page.waitForTimeout(350);
+  const openedPanel = await page.evaluate(
+    () => document.activeElement?.closest('.panel')?.id ?? '',
+  );
+  if (!openedPanel) throw new Error('Enter с пульта не открыл панель');
+
+  await page.keyboard.press('ArrowDown');
+  const inPanel = await page.evaluate(() => document.activeElement?.id ?? '');
+  await page.screenshot({ path: `${OUT}/16-remote.png` });
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(250);
+  const closed = await page.evaluate(
+    () => document.querySelectorAll('.panel:not([hidden])').length,
+  );
+  if (closed !== 0) throw new Error('Back с пульта не закрыл панель');
+  console.log(`Пульт: ${firstFocus} → ${secondFocus} → ${openedPanel} (${inPanel})`);
+
   // Проверка локализации: язык площадка отдаёт сама, и на английском интерфейс
   // должен быть переведён целиком — это требование модерации.
   const english = await browser.newPage({ viewport: VIEWPORT, locale: 'en-US' });
