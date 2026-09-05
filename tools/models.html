@@ -27,13 +27,14 @@
     WebGLRenderer,
   } from 'three';
   import { createCatchView } from '/src/scene3d/CatchView3D.ts';
+  import { BOSSES, bossAsCatch } from '/src/meta/Bosses.ts';
   import { CATCH_ENTRIES } from '/src/content/catalog.ts';
   import { rarityBlend, rarityTint } from '/src/gameplay/Rarity.ts';
 
   // Лист моделей: по одному представителю каждой формы плюс три варианта
   // редкости одного вида. Открывается в `npm run dev` по адресу
   // /tools/models.html — в сборку игры страница не попадает.
-  const WANTED = [
+  const SAMPLE = [
     { id: 'perch', rarity: 'common' },
     { id: 'perch', rarity: 'rare' },
     { id: 'perch', rarity: 'gold' },
@@ -47,7 +48,23 @@
     { id: 'tire' },
     { id: 'bottle' },
   ];
-  const COLUMNS = 4;
+
+  // ?all=1 — весь улов и все боссы разом; ?ids=angler,gulper — только
+  // названные виды, крупно. Выборка по умолчанию короче: по одному
+  // представителю каждой формы плюс три редкости.
+  const query = new URLSearchParams(location.search);
+  const all = query.has('all');
+  const picked = (query.get('ids') ?? '').split(',').filter(Boolean);
+
+  const WANTED = picked.length
+    ? picked.map((id) => ({ id, boss: id.startsWith('boss_') }))
+    : all
+      ? [
+          ...CATCH_ENTRIES.map((entry) => ({ id: entry.id })),
+          ...BOSSES.map((boss) => ({ id: boss.id, boss: true })),
+        ]
+      : SAMPLE;
+  const COLUMNS = Math.min(all ? 8 : 4, WANTED.length);
   // Фиксированный разворот в три четверти: вращение красиво, но два снимка
   // подряд оказывались несравнимы. Пробел включает вращение вручную.
   const YAW = -0.6;
@@ -72,7 +89,9 @@
 
   const cells = [];
   WANTED.forEach((wanted, index) => {
-    const entry = CATCH_ENTRIES.find((item) => item.id === wanted.id);
+    const entry = wanted.boss
+      ? bossAsCatch(BOSSES.find((boss) => boss.id === wanted.id))
+      : CATCH_ENTRIES.find((item) => item.id === wanted.id);
     if (!entry) return;
     const view = createCatchView(entry);
     const rarity = wanted.rarity ?? 'common';
@@ -100,9 +119,12 @@
     // проекцией, чтобы она не разъезжалась при изменении размера окна.
     const label = document.createElement('div');
     label.className = 'label';
-    label.textContent = `${entry.id} · ${entry.body.shape ?? 'fish'} · ${entry.body.length}см${
-      wanted.rarity ? ` · ${wanted.rarity}` : ''
-    }`;
+    // В общем листе подписи стоят вплотную: там оставляем только имя вида.
+    label.textContent = all
+      ? entry.id
+      : `${entry.id} · ${entry.body.shape ?? 'fish'} · ${entry.body.length}см${
+          wanted.rarity ? ` · ${wanted.rarity}` : ''
+        }`;
     document.body.appendChild(label);
 
     cells.push({ view, label, anchor: new Vector3() });

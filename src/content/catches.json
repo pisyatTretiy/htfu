@@ -152,7 +152,8 @@
         "wave": 2.8,
         "amp": 0.13,
         "fill": "#e0b64a",
-        "outline": "#5c3f0f"
+        "outline": "#5c3f0f",
+        "shape": "round"
       },
       "mischief": "flop"
     },
@@ -401,7 +402,8 @@
         "wave": 4.6,
         "amp": 0.2,
         "fill": "#7fd08a",
-        "outline": "#224a2c"
+        "outline": "#224a2c",
+        "shape": "needle"
       },
       "mischief": "grab"
     },
@@ -654,7 +656,8 @@
         "wave": 2.6,
         "amp": 0.14,
         "fill": "#c4563a",
-        "outline": "#3f1810"
+        "outline": "#3f1810",
+        "shape": "spiny"
       },
       "mischief": "grab"
     },
@@ -685,7 +688,8 @@
         "wave": 3,
         "amp": 0.19,
         "fill": "#e08a4a",
-        "outline": "#4a2410"
+        "outline": "#4a2410",
+        "shape": "spiny"
       },
       "mischief": "grab"
     },
@@ -716,7 +720,8 @@
         "wave": 1.4,
         "amp": 0.09,
         "fill": "#e0c46a",
-        "outline": "#4a3a10"
+        "outline": "#4a3a10",
+        "shape": "puffer"
       },
       "mischief": "flop"
     },
@@ -747,7 +752,8 @@
         "wave": 3.6,
         "amp": 0.16,
         "fill": "#4ab8a0",
-        "outline": "#123f38"
+        "outline": "#123f38",
+        "shape": "round"
       },
       "mischief": "flop"
     },
@@ -809,7 +815,8 @@
         "wave": 1.8,
         "amp": 0.1,
         "fill": "#7a8894",
-        "outline": "#2a3138"
+        "outline": "#2a3138",
+        "shape": "flat"
       },
       "mischief": "flop"
     },
@@ -1026,7 +1033,8 @@
         "wave": 2.2,
         "amp": 0.12,
         "fill": "#b0563f",
-        "outline": "#3a140c"
+        "outline": "#3a140c",
+        "shape": "lure"
       },
       "mischief": "flop"
     },
@@ -1088,7 +1096,8 @@
         "wave": 4,
         "amp": 0.2,
         "fill": "#4a5a7a",
-        "outline": "#141a2a"
+        "outline": "#141a2a",
+        "shape": "needle"
       },
       "mischief": "grab"
     },
@@ -1119,7 +1128,8 @@
         "wave": 3.4,
         "amp": 0.22,
         "fill": "#3a2a4a",
-        "outline": "#120c18"
+        "outline": "#120c18",
+        "shape": "jaws"
       },
       "mischief": "grab"
     },
@@ -1182,7 +1192,8 @@
         "wave": 2.4,
         "amp": 0.14,
         "fill": "#dfe8ee",
-        "outline": "#42505a"
+        "outline": "#42505a",
+        "shape": "flat"
       },
       "mischief": "flop"
     },
@@ -1213,7 +1224,8 @@
         "wave": 1.8,
         "amp": 0.1,
         "fill": "#e0d8c0",
-        "outline": "#4a4030"
+        "outline": "#4a4030",
+        "shape": "stilts"
       },
       "mischief": "flop"
     },

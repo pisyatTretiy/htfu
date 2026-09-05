@@ -10,7 +10,7 @@ import {
   SphereGeometry,
   TorusGeometry,
 } from 'three';
-import { FishView3D } from './FishView3D';
+import { FISH_SHAPES, FishView3D } from './FishView3D';
 import type { CatchEntry, CatchShape } from '../content/types';
 
 /**
@@ -34,7 +34,7 @@ export interface CatchView {
 
 export function createCatchView(entry: CatchEntry): CatchView {
   const shape: CatchShape = entry.body.shape ?? 'fish';
-  if (shape === 'fish' || shape === 'eel') return new FishView3D(entry);
+  if (FISH_SHAPES.has(shape)) return new FishView3D(entry);
   return new PropView(entry, shape);
 }
 
