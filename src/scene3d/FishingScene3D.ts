@@ -731,8 +731,9 @@ export class FishingScene3D {
     this.mischiefView = new FishView3D(entry);
     this.mischiefView.setTint(rarityTint(this.rarity));
     // Улов буянит в двух метрах от лица: в натуральную величину он закрывает
-    // весь кадр, поэтому ужимаем — как и в двумерной версии.
-    this.mischiefView.group.scale.setScalar(0.4);
+    // весь кадр, поэтому ужимаем. Но не слишком: по нему надо попасть пальцем,
+    // а при 0.4 он терялся за удилищем.
+    this.mischiefView.group.scale.setScalar(0.55);
     this.scene.add(this.mischiefView.group);
     this.state = 'onboard';
     this.hooks.toast(i18n.t('toast.inBoat', { name: this.label(entry) }));
@@ -753,9 +754,10 @@ export class FishingScene3D {
     // Плоские координаты пакости раскладываем в пространство перед игроком.
     if (this.mischiefView) {
       this.mischiefView.group.position.set(
-        clamp(act.x / 90, -0.75, 0.75),
-        clamp(-0.55 - act.y / 150, -0.95, -0.1),
-        -2.4,
+        clamp(act.x / 90, -0.7, 0.7),
+        // Выше прежнего: снизу кадр занимает удилище, и улов прятался за ним.
+        clamp(-0.34 - act.y / 150, -0.72, 0.16),
+        -2.1,
       );
       this.mischiefView.group.position.applyMatrix4(this.camera.matrixWorld);
       this.mischiefView.group.rotation.set(0, this.time * 2.2, Math.sin(this.time * 6) * 0.5);
