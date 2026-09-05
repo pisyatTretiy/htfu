@@ -1,7 +1,9 @@
 import {
   BufferAttribute,
+  BufferGeometry,
   Color,
-  ConeGeometry,
+  DoubleSide,
+  Float32BufferAttribute,
   Group,
   Mesh,
   MeshLambertMaterial,
@@ -30,17 +32,32 @@ export class FishView3D {
     const length = entry.body.length / 100;
     const color = new Color(entry.body.fill);
 
-    const geometry = new SphereGeometry(length * 0.5, 10, 7);
+    const geometry = new SphereGeometry(length * 0.5, 12, 8);
     geometry.scale(1, 0.62, 0.44);
+    taper(geometry, length * 0.5);
     this.base = Float32Array.from(geometry.getAttribute('position').array);
     this.body = new Mesh(geometry, new MeshLambertMaterial({ color, flatShading: true }));
 
-    this.tail = new Mesh(
-      new ConeGeometry(length * 0.3, length * 0.45, 4),
-      new MeshLambertMaterial({ color: color.clone().multiplyScalar(0.82), flatShading: true }),
-    );
-    this.tail.rotation.z = Math.PI / 2;
-    this.tail.position.x = -length * 0.62;
+    const finColor = color.clone().multiplyScalar(0.82);
+    const finMaterial = new MeshLambertMaterial({
+      color: finColor,
+      flatShading: true,
+      // Плавник — одна плоскость: снизу он должен быть виден так же, как сверху.
+      side: DoubleSide,
+    });
+
+    // Хвост — вилка из двух треугольников, а не конус: конус читается морковкой,
+    // и рыба в профиль выглядела воздушным шариком с носиком.
+    this.tail = new Mesh(finGeometry(length * 0.42, length * 0.38, true), finMaterial);
+    this.tail.position.x = -length * 0.52;
+
+    const dorsal = new Mesh(finGeometry(length * 0.3, length * 0.22, false), finMaterial);
+    dorsal.position.set(-length * 0.04, length * 0.28, 0);
+    dorsal.rotation.z = -Math.PI / 2;
+
+    const pectoral = new Mesh(finGeometry(length * 0.2, length * 0.14, false), finMaterial);
+    pectoral.position.set(length * 0.1, -length * 0.06, length * 0.14);
+    pectoral.rotation.set(Math.PI / 2, 0, -0.5);
 
     const eye = new Mesh(
       new SphereGeometry(length * 0.09, 10, 8),
@@ -56,7 +73,7 @@ export class FishView3D {
     this.baseColor = color.clone();
     this.baseTailColor = color.clone().multiplyScalar(0.82);
 
-    this.group.add(this.body, this.tail, eye, pupil);
+    this.group.add(this.body, this.tail, dorsal, pectoral, eye, pupil);
     this.group.traverse((node) => {
       if (node instanceof Mesh) node.castShadow = true;
     });
@@ -108,4 +125,39 @@ export class FishView3D {
       }
     });
   }
+}
+
+/**
+ * Сужение тела к носу и особенно к хвосту.
+ *
+ * Эллипсоид без сужения читается яйцом: именно так улов и выглядел в кадре
+ * показа, когда висел на леске в метре от лица.
+ */
+function taper(geometry: BufferGeometry, half: number): void {
+  const position = geometry.getAttribute('position');
+  for (let i = 0; i < position.count; i++) {
+    const x = position.getX(i);
+    const t = Math.max(-1, Math.min(1, x / half));
+    const k = 1 - 0.5 * t * t * (t < 0 ? 1.5 : 0.7);
+    position.setY(i, position.getY(i) * k);
+    position.setZ(i, position.getZ(i) * k);
+  }
+  geometry.computeVertexNormals();
+}
+
+/**
+ * Плавник: треугольник в плоскости XY. Для хвоста — вилка с выемкой.
+ * Толщины нет намеренно: в low-poly плавник и в жизни читается плоскостью.
+ */
+function finGeometry(length: number, height: number, forked: boolean): BufferGeometry {
+  const geometry = new BufferGeometry();
+  const points = forked
+    ? [
+        0, 0, 0, -length, height, 0, -length * 0.55, 0, 0,
+        0, 0, 0, -length * 0.55, 0, 0, -length, -height, 0,
+      ]
+    : [0, 0, 0, -length, 0, 0, -length * 0.45, height, 0];
+  geometry.setAttribute('position', new Float32BufferAttribute(points, 3));
+  geometry.computeVertexNormals();
+  return geometry;
 }

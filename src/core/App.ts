@@ -449,6 +449,8 @@ export class App {
     this.bosses.defeat(bossId);
     this.state.money += boss.reward;
     this.album.record(bossId, 'common');
+    // Победа над боссом заслуживает того же кадра, что и его появление.
+    this.ui.showBoss(i18n.t('boss.won'), i18n.pick(boss.trophy), 'trophy');
     showToast(i18n.t('toast.boss', { name: i18n.pick(boss.name), trophy: i18n.pick(boss.trophy) }));
     this.persist();
   }

@@ -654,14 +654,18 @@ export class FishingScene3D {
     this.hook.position.lerp(tip, Math.min(1, dt * 6));
     this.hook.object.position.copy(this.hook.position);
 
-    if (this.hooked) {
+    if (this.hooked && this.hookedEntry) {
       const sway = Math.sin(this.time * 4) * 0.12;
-      this.hooked.group.scale.setScalar(0.55);
+      // Крупный улов ужимаем сильнее: сом в натуральную величину в метре от
+      // лица — это серое пятно во весь кадр, а не трофей.
+      const size = Math.max(0.42, Math.min(1, 110 / this.hookedEntry.body.length));
+      this.hooked.group.scale.setScalar(0.55 * size);
       this.hooked.group.position.copy(this.hook.position);
       this.hooked.group.position.y -= 0.34;
       this.hooked.group.position.x += sway * 0.3;
-      // Рыба висит головой вверх и медленно поворачивается к игроку.
-      this.hooked.group.rotation.set(0, this.time * 0.9, Math.PI / 2 + sway);
+      // Висит головой вверх и покачивается — но **боком** к игроку: в анфас
+      // любая рыба читается яйцом с глазом.
+      this.hooked.group.rotation.set(0, sway * 0.6, Math.PI / 2 + sway);
     }
 
     if (this.showcaseTimer <= 0) this.finishLanding();
@@ -760,7 +764,13 @@ export class FishingScene3D {
         -2.1,
       );
       this.mischiefView.group.position.applyMatrix4(this.camera.matrixWorld);
-      this.mischiefView.group.rotation.set(0, this.time * 2.2, Math.sin(this.time * 6) * 0.5);
+      // Не крутим вокруг оси: в анфас рыба читается яйцом. Бьётся боком к
+      // игроку, покачивая носом.
+      this.mischiefView.group.rotation.set(
+        0,
+        Math.sin(this.time * 2.4) * 0.5,
+        Math.sin(this.time * 6) * 0.7,
+      );
       this.mischiefView.update(dt, act.intensity);
     }
 

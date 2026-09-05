@@ -88,8 +88,16 @@
        экране «Карта» и «Снасти» иначе оказываются в разных концах поля. */
     #ui #ui-map-open { margin-left: auto; }
     /* Значок звука стоит рядом с кошельком и не растягивает ряд кнопок. */
-    #ui .stat.streak { color: #ffd166; border-color: rgba(255,209,102,.5) }
     #ui .stat[hidden] { display: none !important; }
+    /* Серия и приманка — временные метки, а не часть нижнего ряда: в ряду они
+       выталкивали «Снасти» за край на узком экране. */
+    #ui .streak {
+      position: absolute; right: 12px; bottom: 60px; pointer-events: none;
+      font-size: 12px; font-weight: 600; color: #06231f;
+      background: rgba(255, 209, 102, .92); border: 2px solid #5a2a14;
+      border-radius: 999px; padding: 4px 11px; font-variant-numeric: tabular-nums;
+    }
+    #ui .streak[hidden] { display: none !important; }
     #ui .btn.icon {
       margin-left: 0; padding: 6px 9px; font-size: 15px; line-height: 1;
       background: rgba(4, 20, 26, .62); border-color: rgba(255,255,255,.14); color: #eafffb;
@@ -188,6 +196,11 @@
       padding: 12px 8px; text-align: center;
     }
     #ui .boss[hidden] { display: none !important; }
+    /* Трофей — не угроза: тот же кадр, но золотой. */
+    #ui .boss[data-variant="trophy"] {
+      background: linear-gradient(90deg, rgba(120,86,10,0), rgba(146,104,12,.92), rgba(120,86,10,0));
+    }
+    #ui .boss[data-variant="trophy"] .boss-tag { color: #ffe9a8 }
     #ui .boss-tag {
       font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; color: #ffd166;
     }

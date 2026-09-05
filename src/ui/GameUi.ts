@@ -106,13 +106,13 @@ export class GameUi {
       <div class="questbar" id="ui-quest"></div>
       <div class="hint" id="ui-hint" hidden></div>
       <div class="lure" id="ui-lure" hidden></div>
+      <div class="streak" id="ui-streak" hidden></div>
       <div class="boss" id="ui-boss" hidden>
         <span class="boss-tag" id="ui-boss-tag"></span>
         <span class="boss-name" id="ui-boss-name"></span>
       </div>
       <div class="topbar" id="ui-topbar">
         <div class="stat" id="ui-money"></div>
-        <div class="stat streak" id="ui-streak" hidden></div>
         <button class="btn icon" id="ui-sound" aria-label="${i18n.t('sound.toggle')}"></button>
         <button class="btn" id="ui-map-open">${i18n.t('map.open')}</button>
         <button class="btn" id="ui-album-open" aria-label="${i18n.t('album.open')}"></button>
@@ -347,10 +347,11 @@ export class GameUi {
    * всплывающей подписи — а это единственный момент в игре, ради которого
    * игрок копил уловы.
    */
-  showBoss(tag: string, name: string): void {
+  showBoss(tag: string, name: string, variant: 'threat' | 'trophy' = 'threat'): void {
     if (this.bossTimer) clearTimeout(this.bossTimer);
     must(document.getElementById('ui-boss-tag')).textContent = tag;
     must(document.getElementById('ui-boss-name')).textContent = name;
+    this.bossEl.dataset.variant = variant;
     this.bossEl.hidden = false;
     // Перезапуск анимации: без этого второй босс подряд появился бы молча.
     this.bossEl.classList.remove('show');

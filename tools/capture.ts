@@ -217,8 +217,10 @@ async function main(): Promise<void> {
 
   // Первый бой — босс локации: он должен закончиться трофеем.
   const bossResult = await fightOnce(page);
-  // Показ улова на леске длится полторы секунды — ждём, пока он закончится.
-  await page.waitForTimeout(2200);
+  // Показ улова на леске длится полторы секунды: снимаем его, пока висит.
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: `${OUT}/5a-showcase.png` });
+  await page.waitForTimeout(1700);
   await page.screenshot({ path: `${OUT}/5b-boss.png` });
   const afterBoss = await snapshot(page);
   if ((afterBoss.trophies ?? 0) < 1) {

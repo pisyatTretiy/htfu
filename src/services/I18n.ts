@@ -57,6 +57,7 @@ export const STRINGS: Record<string, Localized> = {
   },
   'lost.reload': { ru: 'Продолжить', en: 'Continue' },
   'boss.tag': { ru: 'Хозяин этих вод', en: 'Master of these waters' },
+  'boss.won': { ru: 'Трофей добыт', en: 'Trophy taken' },
   'sound.toggle': { ru: 'Звук', en: 'Sound' },
   'boot.title': { ru: 'Клёв!', en: 'Hook & Home' },
   'toast.bite': { ru: 'Клюёт!', en: 'A bite!' },
