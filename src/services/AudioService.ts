@@ -45,6 +45,8 @@ export class AudioService {
       this.master = this.ctx.createGain();
       this.master.gain.value = 0.32;
       this.master.connect(this.ctx.destination);
+      this.startSurf();
+      this.scheduleGull();
     } catch {
       this.enabled = false;
     }
@@ -56,6 +58,70 @@ export class AudioService {
     if (!this.ctx) return;
     if (muted) void this.ctx.suspend();
     else void this.ctx.resume();
+  }
+
+  /**
+   * Прибой: зацикленный шум под фильтром, громкость качает медленный
+   * генератор. Тишина на берегу моря — самая заметная фальшь, какая бывает,
+   * а сэмпл прибоя весит сотни килобайт.
+   */
+  private startSurf(): void {
+    const ctx = this.ctx;
+    const master = this.master;
+    if (!ctx || !master) return;
+
+    const frames = Math.floor(ctx.sampleRate * 4);
+    const buffer = ctx.createBuffer(1, frames, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    // Сглаженный шум: белый звучит шипением, а не водой.
+    let previous = 0;
+    for (let i = 0; i < frames; i++) {
+      const white = Math.random() * 2 - 1;
+      previous = previous * 0.86 + white * 0.14;
+      data[i] = previous * 3.2;
+    }
+    // Склейка петли: последние полсекунды растворяются в первых.
+    const blend = Math.floor(ctx.sampleRate * 0.5);
+    for (let i = 0; i < blend; i++) {
+      const k = i / blend;
+      const tail = data[frames - blend + i] ?? 0;
+      const head = data[i] ?? 0;
+      data[frames - blend + i] = tail * (1 - k) + head * k;
+    }
+
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.loop = true;
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 620;
+
+    const gain = ctx.createGain();
+    gain.gain.value = 0.085;
+
+    // Волна набегает и уходит: без качания петля выдаёт себя за десять секунд.
+    const swell = ctx.createOscillator();
+    swell.frequency.value = 0.09;
+    const swellDepth = ctx.createGain();
+    swellDepth.gain.value = 0.05;
+    swell.connect(swellDepth).connect(gain.gain);
+    swell.start();
+
+    source.connect(filter).connect(gain).connect(master);
+    source.start();
+  }
+
+  /** Редкий крик чайки: у берега он значит больше, чем ещё один слой шума. */
+  private scheduleGull(): void {
+    const delay = 12000 + Math.random() * 22000;
+    setTimeout(() => {
+      if (this.ctx && !this.muted && this.ctx.state === 'running') {
+        this.sweep(1500, 880, 0.13, 'sawtooth', 0.09);
+        this.sweep(1350, 820, 0.11, 'sawtooth', 0.07, 0.19);
+      }
+      this.scheduleGull();
+    }, delay);
   }
 
   play(name: SoundName): void {

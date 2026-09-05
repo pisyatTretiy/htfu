@@ -52,6 +52,9 @@ const RETRY_STAMINA = 0.6;
 const LEAP_TIME = 0.8;
 const LEAP_COOLDOWN = 3.2;
 
+/** Направление на солнце. Один источник правды для света, неба и блика. */
+const SUN_POSITION = new Vector3(-16, 20, -20);
+
 /** Где стоит игрок и на какой высоте его глаза: на настиле причала. */
 const PLAYER_Z = -6;
 const EYE_HEIGHT = 1.62;
@@ -164,7 +167,13 @@ export class FishingScene3D {
 
     // Солнце сбоку и сзади: тени ложатся в кадр, а не прячутся за объектами.
     // Настоящие тени — главная примета стиля, ради которой всё и затевалось.
-    this.sun.position.set(14, 20, 12);
+    // Солнце впереди-слева, а не за спиной: тени падают к игроку и ложатся
+    // на настил, где их видно, а блик на воде оказывается там же, где
+    // нарисованное солнце. Раньше свет шёл сзади-справа, а солнце в небе
+    // висело спереди-слева — тени уходили за горизонт кадра.
+    this.sun.position.copy(SUN_POSITION);
+    this.sun.target.position.set(0, 0, -9);
+    this.scene.add(this.sun.target);
     this.sun.castShadow = true;
     this.sun.shadow.mapSize.set(1024, 1024);
     this.sun.shadow.camera.left = -26;
@@ -194,7 +203,8 @@ export class FishingScene3D {
     if (shallow && deep) this.water.setPalette(shallow, deep, '#eef7fb');
     this.water.setHorizon(zone.sky[0] ?? '#cfe6f5');
     this.water.setShoreZ(SHORE_Z);
-    this.water.setSun(this.sun.position);
+    this.water.setSun(SUN_POSITION);
+    this.sky.setSun(SUN_POSITION);
     this.shore.setPalette(zone.sand, zone.foliage);
     this.ambient.setWater(zone.tint);
     // Дымка на горизонте того же цвета, что и небо у линии воды.

@@ -19,6 +19,8 @@ import { Rng } from '../core/Rng';
 export class Pier3D {
   readonly group = new Group();
 
+  private readonly materials: MeshLambertMaterial[] = [];
+
   constructor(length = 16, width = 2.2) {
     // Дерево приглушённое: насыщенная охра тянет на себя весь кадр и спорит
     // с водой, ради которой сцена и построена.
@@ -27,11 +29,18 @@ export class Pier3D {
     const rng = new Rng(77);
 
     // Доски настила кладём поперёк: щели между ними читаются и на мобильном.
+    // Цвет каждой доски слегка свой: настил из одинаковых досок читается
+    // деревянным полом, а не причалом, который чинили двадцать лет подряд.
     const planks = Math.floor(length / 0.62);
     for (let i = 0; i < planks; i++) {
-      const plank = new Mesh(new BoxGeometry(width, 0.11, 0.5), wood);
-      plank.position.set(0, 0.62, -i * 0.62 - 0.4);
+      const shade = wood.clone();
+      shade.color.offsetHSL(rng.range(-0.012, 0.012), rng.range(-0.05, 0.05), rng.range(-0.07, 0.07));
+      this.materials.push(shade);
+
+      const plank = new Mesh(new BoxGeometry(width, 0.11, 0.5), shade);
+      plank.position.set(0, 0.62 + rng.range(-0.008, 0.008), -i * 0.62 - 0.4);
       plank.rotation.y = rng.range(-0.012, 0.012);
+      plank.rotation.z = rng.range(-0.006, 0.006);
       plank.castShadow = true;
       plank.receiveShadow = true;
       this.group.add(plank);
@@ -102,6 +111,7 @@ export class Pier3D {
   }
 
   dispose(): void {
+    for (const material of this.materials) material.dispose();
     this.group.traverse((node) => {
       if (node instanceof Mesh) node.geometry.dispose();
     });

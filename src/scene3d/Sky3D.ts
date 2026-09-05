@@ -43,6 +43,7 @@ export class Sky3D {
   private readonly material: ShaderMaterial;
   private readonly sun: Sprite;
   private readonly clouds = new Group();
+  private readonly sunDistance: number;
   private readonly cloudMaterial: MeshLambertMaterial;
 
   constructor(radius = 900) {
@@ -63,6 +64,7 @@ export class Sky3D {
 
     this.sun = new Sprite(new SpriteMaterial({ map: sunTexture(), depthWrite: false, fog: false }));
     this.sun.scale.setScalar(120);
+    this.sunDistance = radius * 0.62;
     this.sun.position.set(-220, 190, -520);
     this.mesh.add(this.sun);
 
@@ -118,6 +120,18 @@ export class Sky3D {
   /** Медленный дрейф: полный оборот примерно за двадцать минут. */
   update(dt: number): void {
     this.clouds.rotation.y += dt * 0.005;
+  }
+
+  /**
+   * Поставить солнце по направлению света сцены. Источник правды один: иначе
+   * блик на воде и тени уезжают в одну сторону, а нарисованное солнце светит
+   * из другой — и картинка перестаёт читаться, хотя каждый кусок по
+   * отдельности правильный.
+   */
+  setSun(direction: { x: number; y: number; z: number }): void {
+    const length = Math.hypot(direction.x, direction.y, direction.z) || 1;
+    const scale = this.sunDistance / length;
+    this.sun.position.set(direction.x * scale, direction.y * scale, direction.z * scale);
   }
 
   /** Палитра приходит из данных локации: небо меняется вместе с водой. */
