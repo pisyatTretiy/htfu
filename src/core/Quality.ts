@@ -52,9 +52,37 @@ const PROFILES: Record<QualityTier, QualityProfile> = {
   },
 };
 
+/** Ключ выбора игрока. Это настройка устройства, а не прогресс: в облако не идёт. */
+const CHOICE_KEY = 'htfu.quality';
+
+/** Что выбрал игрок в настройках. null — «как решит игра». */
+export function chosenTier(): QualityTier | null {
+  try {
+    const value = localStorage.getItem(CHOICE_KEY);
+    return value === 'low' || value === 'high' ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Запомнить выбор. Применяется он перезагрузкой: рендерер собирается один раз. */
+export function chooseTier(tier: QualityTier | null): void {
+  try {
+    if (tier) localStorage.setItem(CHOICE_KEY, tier);
+    else localStorage.removeItem(CHOICE_KEY);
+  } catch {
+    // Приватный режим: выбор живёт до конца вкладки.
+  }
+}
+
 function detectTier(): QualityTier {
   const forced = new URLSearchParams(location.search).get('q');
   if (forced === 'low' || forced === 'high') return forced;
+
+  // Выбор игрока важнее догадки: автоопределение по числу ядер ошибается на
+  // флагманах, где тени и полное разрешение тянутся легко.
+  const chosen = chosenTier();
+  if (chosen) return chosen;
 
   const coarse = matchMedia('(pointer: coarse)').matches;
   const cores = navigator.hardwareConcurrency ?? 4;

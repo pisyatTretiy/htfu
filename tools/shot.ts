@@ -35,8 +35,6 @@ page.on('console', (message) => {
 
 await page.goto(URL, { waitUntil: 'networkidle' });
 await page.waitForTimeout(settleMs);
-// HUD разработчика закрывает верхнюю треть кадра — для картинки он лишний.
-await page.keyboard.press('KeyH');
 if (click) {
   await page.click(click);
   await page.waitForTimeout(400);

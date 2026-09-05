@@ -168,8 +168,6 @@ async function main(): Promise<void> {
   await rookie.goto(URL, { waitUntil: 'networkidle' });
   await rookie.waitForTimeout(900);
 
-  // HUD разработчика закрывает верх кадра — для журнала он не нужен.
-  await rookie.keyboard.press('KeyH');
   const hint = rookie.locator('#ui-hint');
   await hint.waitFor({ state: 'visible', timeout: 8000 });
   const castHint = (await hint.innerText()).trim();
@@ -193,9 +191,11 @@ async function main(): Promise<void> {
 
   await page.goto(URL, { waitUntil: 'networkidle' });
   await page.waitForTimeout(900);
-  // HUD — DOM поверх канваса: он закрывает лодку и перехватывает клики,
-  // поэтому сюжетные кадры снимаем без него, а метрики — отдельным кадром.
-  await page.keyboard.press('KeyH');
+  // Отладочное наложение игрок видеть не должен: модерация справедливо
+  // считает его браком, а раньше HUD открывался сразу у всех.
+  if (await page.locator('#hud').isVisible()) {
+    throw new Error('HUD разработчика виден игроку без ?debug=1');
+  }
   await page.screenshot({ path: `${OUT}/1-idle.png` });
 
   await cast(page);
@@ -410,6 +410,17 @@ async function main(): Promise<void> {
   await page.screenshot({ path: `${OUT}/8d-tasks.png` });
   const tasksText = await page.locator('#ui-tasks-list').innerText();
   if (!/\d/.test(tasksText)) throw new Error('Панель дел пуста');
+
+  // Настройки: звук выключается и включается обратно, не роняя игру.
+  const soundButton = page.locator('#ui-set-sound');
+  const before = (await soundButton.innerText()).trim();
+  await soundButton.click();
+  await page.waitForTimeout(200);
+  const after = (await soundButton.innerText()).trim();
+  if (before === after) throw new Error('Кнопка звука в настройках ничего не переключает');
+  await page.screenshot({ path: `${OUT}/8d1-settings.png` });
+  await soundButton.click();
+  await page.waitForTimeout(200);
   await page.click('#ui-tasks-close');
   await page.waitForTimeout(200);
 
@@ -497,9 +508,13 @@ async function main(): Promise<void> {
   }
   console.log(`Задание на экране: ${questText.replace(/\s+/g, ' ').trim()}`);
 
+  // HUD разработчика по умолчанию скрыт — для кадра с метриками включаем его.
   await page.keyboard.press('KeyH');
   await page.waitForTimeout(600);
+  const hudShown = await page.locator('#hud').isVisible();
+  if (!hudShown) throw new Error('HUD не открывается по клавише H');
   await page.screenshot({ path: `${OUT}/13-hud.png` });
+  await page.keyboard.press('KeyH');
 
   console.log(
     `Итог: кошелёк ${afterReload.money} ₽, леска ур. ${afterReload.upgrades?.line ?? 0}, ` +
@@ -598,7 +613,6 @@ async function main(): Promise<void> {
     await view.waitForTimeout(1600);
     const state = await snapshot(view);
     if (state.zone !== zoneId) throw new Error(`Локация не применилась: ${state.zone}`);
-    await view.keyboard.press('KeyH');
     await view.screenshot({ path: `${OUT}/20-zone-${zoneId}.png` });
     await view.close();
   }

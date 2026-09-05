@@ -25,6 +25,8 @@ export interface UiCallbacks {
   shopToggled(open: boolean): void;
   /** Кнопка звука. Возвращает новое состояние: true — звук выключен. */
   toggleSound(): boolean;
+  /** Переключить профиль графики. Применяется перезагрузкой страницы. */
+  toggleQuality(): void;
 }
 
 export interface UiState {
@@ -43,6 +45,10 @@ export interface UiState {
   canWatchAds: boolean;
   /** Множитель серии уловов подряд. */
   streakMultiplier: number;
+  /** Звук выключен игроком. */
+  soundMuted: boolean;
+  /** Включён десктопный профиль графики. */
+  qualityHigh: boolean;
   unlock: UnlockContext;
   /** Панели открываются только в покое: в бою они прятали бы происходящее. */
   canShop: boolean;
@@ -629,7 +635,41 @@ export class GameUi {
       mult: dailies.streakMultiplier.toFixed(2),
     })}</div>`;
 
-    this.tasksList.innerHTML = streak + chain + rows;
+    // Настройки живут здесь, а не в нижнем ряду: на узком телефоне лишней
+    // кнопке там места нет, а строка задания — самая заметная цель на экране.
+    const settings = `
+      <div class="album-section">${i18n.t('settings.title')}</div>
+      <div class="branch">
+        <div class="branch-top">
+          <span class="branch-name">${i18n.t('settings.sound')}</span>
+          <button class="btn buy" id="ui-set-sound">${
+            state.soundMuted ? i18n.t('settings.off') : i18n.t('settings.on')
+          }</button>
+        </div>
+      </div>
+      <div class="branch">
+        <div class="branch-top">
+          <span class="branch-name">${i18n.t('settings.quality')}</span>
+          <button class="btn buy" id="ui-set-quality">${
+            state.qualityHigh ? i18n.t('settings.high') : i18n.t('settings.low')
+          }</button>
+        </div>
+        <div class="branch-hint">${i18n.t('settings.qualityHint')}</div>
+      </div>`;
+
+    this.tasksList.innerHTML = streak + chain + rows + settings;
+
+    const soundRow = must(document.getElementById('ui-set-sound'));
+    soundRow.addEventListener('click', () => {
+      // Перерисовывать панель целиком нечем: state в замыкании уже устарел.
+      // Меняем подпись по ответу самого звука — он и владеет состоянием.
+      const muted = this.callbacks.toggleSound();
+      this.setSound(muted);
+      soundRow.textContent = muted ? i18n.t('settings.off') : i18n.t('settings.on');
+    });
+    must(document.getElementById('ui-set-quality')).addEventListener('click', () =>
+      this.callbacks.toggleQuality(),
+    );
     for (const button of this.tasksList.querySelectorAll<HTMLButtonElement>('.claim')) {
       button.addEventListener('click', () => {
         const id = button.dataset.task;

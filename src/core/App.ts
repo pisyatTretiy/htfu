@@ -1,5 +1,5 @@
 import { ACESFilmicToneMapping, PCFSoftShadowMap, WebGLRenderer } from 'three';
-import { resolveQuality, type QualityProfile } from './Quality';
+import { chooseTier, resolveQuality, type QualityProfile } from './Quality';
 import type { IPlatform } from '../platform';
 import { FishingScene3D } from '../scene3d/FishingScene3D';
 import { PerfHud } from '../debug/PerfHud';
@@ -162,6 +162,12 @@ export class App {
         watchLure: () => void this.buyLure(),
         buyProduct: (id) => void this.buyProduct(id),
         toggleSound: () => this.audio.toggle(),
+        toggleQuality: () => {
+          // Рендерер, тени и сетка воды собираются один раз, поэтому профиль
+          // применяется перезагрузкой — сейв к этому моменту уже на диске.
+          chooseTier(this.quality.tier === 'high' ? 'low' : 'high');
+          void this.save.flush().finally(() => location.reload());
+        },
         shopToggled: (open) => {
           this.scene.paused = open;
           if (open) this.platform.gameplayStop();
@@ -662,6 +668,8 @@ export class App {
       products: this.products,
       canWatchAds: !this.platform.isTV(),
       streakMultiplier: this.streakMultiplier,
+      soundMuted: this.audio.silent,
+      qualityHigh: this.quality.tier === 'high',
       unlock: this.unlockContext,
       canShop: this.scene.state === 'idle',
     });

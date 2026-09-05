@@ -1,11 +1,18 @@
 import type { QualityProfile } from '../core/Quality';
 
 /**
- * Метрики спайка. Смысл спайка — цифры, а не «выглядит плавно»:
- * FPS, худший кадр за последнюю секунду, число спрайтов, профиль качества.
+ * Метрики разработчика: FPS, худший кадр за секунду, вызовы отрисовки,
+ * треугольники, профиль качества.
  *
- * HUD — обычный DOM поверх canvas: так же, как весь UI игры (docs/04, § 4.2).
+ * **По умолчанию скрыт.** Игроку эти цифры не нужны, а модерация справедливо
+ * считает отладочные наложения браком: в сборке HUD появляется только по
+ * `?debug=1` или по клавише `H`. В `npm run dev` он открыт сразу.
  */
+function wantedAtStart(): boolean {
+  if (new URLSearchParams(location.search).get('debug') === '1') return true;
+  return import.meta.env.DEV;
+}
+
 export class PerfHud {
   private readonly el: HTMLElement;
   private frames = 0;
@@ -21,7 +28,7 @@ export class PerfHud {
     const el = document.getElementById('hud');
     if (!el) throw new Error('#hud не найден в разметке');
     this.el = el;
-    this.el.hidden = false;
+    this.el.hidden = !wantedAtStart();
     this.el.addEventListener('click', () => {
       this.el.style.opacity = this.el.style.opacity === '0.25' ? '1' : '0.25';
     });
