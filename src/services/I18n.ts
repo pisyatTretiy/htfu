@@ -2,7 +2,8 @@ type Lang = 'ru' | 'en';
 
 export type Localized = Record<string, string>;
 
-const STRINGS: Record<string, Localized> = {
+/** Словарь целиком: экспортирован, чтобы тест мог проверить его на полноту. */
+export const STRINGS: Record<string, Localized> = {
   'shop.title': { ru: 'Снасти', en: 'Gear' },
   'shop.open': { ru: 'Снасти', en: 'Gear' },
   'shop.close': { ru: 'Закрыть', en: 'Close' },

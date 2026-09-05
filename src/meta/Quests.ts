@@ -16,7 +16,10 @@ export interface Quest {
   reward: number;
 }
 
-const CHAIN = (quests as unknown as { quests: Quest[] }).quests;
+/** Цепочка заданий целиком. Экспортирована для проверки полноты перевода. */
+export const QUESTS: readonly Quest[] = (quests as unknown as { quests: Quest[] }).quests;
+
+const CHAIN = QUESTS;
 
 export interface QuestState {
   index: number;
