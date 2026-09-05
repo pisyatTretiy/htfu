@@ -26,6 +26,7 @@ export class FishView3D {
   private readonly base: Float32Array;
   private readonly baseColor: Color;
   private readonly baseTailColor: Color;
+  private readonly tint = new Color(0xffffff);
   private time = 0;
 
   constructor(private readonly entry: CatchEntry) {
@@ -88,8 +89,17 @@ export class FishView3D {
     });
   }
 
+  /**
+   * Оттенок редкости.
+   *
+   * Умножаем на собственный цвет вида, а не заменяем его: обычный вариант
+   * красится белым, и до этой правки **каждая обычная рыба висела на леске
+   * белой** — окунь, плотва и краб выглядели одинаково.
+   */
   setTint(color: number): void {
-    (this.body.material as MeshLambertMaterial).color.setHex(color);
+    this.tint.setHex(color);
+    (this.body.material as MeshLambertMaterial).color.copy(this.baseColor).multiply(this.tint);
+    (this.tail.material as MeshLambertMaterial).color.copy(this.baseTailColor).multiply(this.tint);
   }
 
   /**

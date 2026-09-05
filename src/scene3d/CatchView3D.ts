@@ -50,6 +50,7 @@ class PropView implements CatchView {
   private readonly materials: MeshLambertMaterial[] = [];
   private readonly limbs: Group[] = [];
   private readonly baseColors: Color[] = [];
+  private readonly tint = new Color(0xffffff);
   private time = 0;
 
   constructor(entry: CatchEntry, shape: CatchShape) {
@@ -249,8 +250,15 @@ class PropView implements CatchView {
 
   setTint(color: number): void {
     // Оттенок редкости ложится на весь предмет: у краба нет «тела», которое
-    // можно подкрасить отдельно от клешней.
-    for (const material of this.materials) material.color.setHex(color);
+    // можно подкрасить отдельно от клешней. И именно **умножается** на
+    // собственный цвет: обычный вариант белый, и заменой цвета краб и медуза
+    // становились одинаково белыми.
+    this.tint.setHex(color);
+    for (let i = 0; i < this.materials.length; i++) {
+      const base = this.baseColors[i];
+      const material = this.materials[i];
+      if (base && material) material.color.copy(base).multiply(this.tint);
+    }
   }
 
   shade(color: Color, amount: number): void {
