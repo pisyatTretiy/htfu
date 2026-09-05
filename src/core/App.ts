@@ -11,6 +11,7 @@ import { Zones, zoneCatchIds } from '../meta/Zones';
 import { Bosses, bossAsCatch } from '../meta/Bosses';
 import { Dailies, type DailyTask } from '../meta/Dailies';
 import { Onboarding, type OnboardingContext } from '../meta/Onboarding';
+import { Boosts, LURE_MINUTES } from '../meta/Boosts';
 import { SaveService, emptySave, type GameSave } from '../services/SaveService';
 import { i18n } from '../services/I18n';
 import { AudioService } from '../services/AudioService';
@@ -63,6 +64,7 @@ export class App {
   private readonly bosses = new Bosses();
   private readonly dailies = new Dailies();
   private readonly onboarding = new Onboarding();
+  private readonly boosts = new Boosts();
   private readonly audio = new AudioService();
   private readonly save: SaveService;
   private readonly ads: AdManager;
@@ -124,6 +126,7 @@ export class App {
       },
       effects: () => this.effects,
       onCatch: (entry, reward, rarity) => this.collect(entry, reward, rarity),
+      onLost: (entry, isBoss) => this.offerRetry(entry, isBoss),
     });
     this.scene.applyZone(this.zones.current);
     this.resize();
@@ -133,6 +136,7 @@ export class App {
         buy: (id) => this.buy(id),
         travel: (id) => void this.travel(id),
         claimDaily: (id) => this.claimDaily(id),
+        watchLure: () => void this.buyLure(),
         shopToggled: (open) => {
           this.scene.paused = open;
           if (open) this.platform.gameplayStop();
@@ -189,6 +193,7 @@ export class App {
       this.renderUi();
     }
     this.updateHint();
+    this.ui.setLure(this.boosts.secondsLeft());
 
     window.__htfu = {
       ...this.scene.debugSnapshot,
@@ -228,6 +233,7 @@ export class App {
     this.bosses.restore(this.state.bosses);
     this.dailies.restore(this.state.dailies);
     this.onboarding.restore(this.state.onboarding);
+    this.boosts.restore(this.state.boosts);
   }
 
   /**
@@ -273,10 +279,44 @@ export class App {
     };
   }
 
-  /** Эффекты снасти плюс постоянные бонусы за заполнение альбома. */
+  /** Эффекты снасти плюс постоянные бонусы альбома и временные — приманки. */
   private get effects(): Effects {
     const base = this.progression.effects;
-    return { ...base, lineStrength: base.lineStrength * this.album.lineStrengthMultiplier };
+    return {
+      ...base,
+      lineStrength: base.lineStrength * this.album.lineStrengthMultiplier,
+      luck: this.boosts.luck(),
+    };
+  }
+
+  /**
+   * Вторая попытка за ролик (docs/03, § 3.7).
+   *
+   * Только для обычного улова: у босса свой откат — счётчик уловов до
+   * следующей встречи, и подменять его роликом значило бы продавать босса.
+   */
+  private offerRetry(entry: CatchEntry, isBoss: boolean): void {
+    if (isBoss || this.platform.isTV() || !this.scene.canRetry) return;
+    this.ui.offerReward(i18n.t('offer.retry', { name: i18n.pick(entry.name) }), 5, () =>
+      void this.doRetry(),
+    );
+  }
+
+  private async doRetry(): Promise<void> {
+    if (!this.scene.canRetry) return;
+    const watched = await this.ads.rewarded('retry_catch');
+    if (!watched) return;
+    this.scene.retryLost();
+  }
+
+  /** Приманка за ролик: пять минут повышенного шанса редкого варианта. */
+  private async buyLure(): Promise<void> {
+    const watched = await this.ads.rewarded('lure');
+    if (!watched) return;
+    this.boosts.activateLure();
+    this.audio.play('coin');
+    showToast(i18n.t('toast.lure', { minutes: LURE_MINUTES }));
+    this.persist();
   }
 
   private rollBoss(): { entry: CatchEntry; phases: FightPhase[]; taunt: string } | null {
@@ -424,6 +464,7 @@ export class App {
     this.state.bosses = this.bosses.serialize();
     this.state.dailies = this.dailies.serialize();
     this.state.onboarding = this.onboarding.serialize();
+    this.state.boosts = this.boosts.serialize();
     this.save.save(this.state);
     this.renderUi();
   }
@@ -437,6 +478,8 @@ export class App {
       zones: this.zones,
       bosses: this.bosses,
       dailies: this.dailies,
+      boosts: this.boosts,
+      canWatchAds: !this.platform.isTV(),
       unlock: this.unlockContext,
       canShop: this.scene.state === 'idle',
     });

@@ -49,6 +49,16 @@ const STRINGS: Record<string, Localized> = {
   'album.bonus': { ru: 'Собрано {percent} % · цена +{price} % · леска +{line} %', en: 'Filled {percent}% · price +{price}% · line +{line}%' },
   'toast.doubled': { ru: 'Улов удвоен! +{reward} ₽', en: 'Catch doubled! +{reward} ₽' },
   'offer.double': { ru: 'Удвоить ×2 · {reward} ₽', en: 'Double ×2 · {reward} ₽' },
+  'offer.retry': { ru: 'Вторая попытка · {name}', en: 'Second try · {name}' },
+  'lure.title': { ru: 'Приманка', en: 'Lure' },
+  'lure.hint': {
+    ru: 'Пять минут повышенного шанса на редкий вариант',
+    en: 'Five minutes of a better shot at rare variants',
+  },
+  'lure.watch': { ru: 'Ролик', en: 'Watch' },
+  'lure.extend': { ru: 'Продлить', en: 'Extend' },
+  'lure.left': { ru: 'Приманка {time}', en: 'Lure {time}' },
+  'toast.lure': { ru: 'Приманка на {minutes} мин!', en: 'Lure for {minutes} min!' },
 };
 
 /**

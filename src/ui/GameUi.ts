@@ -7,11 +7,14 @@ import type { Quests } from '../meta/Quests';
 import type { UnlockContext, Zones } from '../meta/Zones';
 import { BOSSES, type Bosses } from '../meta/Bosses';
 import type { Dailies } from '../meta/Dailies';
+import type { Boosts } from '../meta/Boosts';
 
 export interface UiCallbacks {
   buy(id: BranchId): void;
   travel(zoneId: string): void;
   claimDaily(taskId: string): void;
+  /** Ролик за приманку: добровольно и всегда сверх обычного прохождения. */
+  watchLure(): void;
   /** Магазин открыт или закрыт: сцена ставит разметку геймплея на паузу. */
   shopToggled(open: boolean): void;
 }
@@ -24,6 +27,9 @@ export interface UiState {
   zones: Zones;
   bosses: Bosses;
   dailies: Dailies;
+  boosts: Boosts;
+  /** На телевизоре рекламы за награду нет — кнопку прячем. */
+  canWatchAds: boolean;
   unlock: UnlockContext;
   /** Панели открываются только в покое: в бою они прятали бы происходящее. */
   canShop: boolean;
@@ -50,6 +56,10 @@ export class GameUi {
   private readonly mapButton: HTMLButtonElement;
   private readonly questEl: HTMLElement;
   private readonly hintEl: HTMLElement;
+  private readonly lureEl: HTMLElement;
+  private readonly lureRow: HTMLElement;
+  private readonly lureState: HTMLElement;
+  private readonly lureButton: HTMLButtonElement;
   private readonly offer: HTMLButtonElement;
   private readonly gauge: HTMLElement;
   private readonly gaugeLabel: HTMLElement;
@@ -72,6 +82,7 @@ export class GameUi {
     this.root.innerHTML = `
       <div class="questbar" id="ui-quest"></div>
       <div class="hint" id="ui-hint" hidden></div>
+      <div class="lure" id="ui-lure" hidden></div>
       <div class="topbar">
         <div class="stat" id="ui-money"></div>
         <button class="btn" id="ui-map-open">${i18n.t('map.open')}</button>
@@ -88,6 +99,17 @@ export class GameUi {
         <div class="panel-head">
           <span>${i18n.t('shop.title')}</span>
           <button class="btn ghost" id="ui-shop-close" aria-label="${i18n.t('shop.close')}">×</button>
+        </div>
+        <div class="branch lure-row" id="ui-lure-row">
+          <div class="branch-top">
+            <span class="branch-name">${i18n.t('lure.title')}</span>
+            <span class="dots" id="ui-lure-state"></span>
+          </div>
+          <div class="branch-hint">${i18n.t('lure.hint')}</div>
+          <div class="branch-foot">
+            <span class="branch-value"></span>
+            <button class="btn buy" id="ui-lure-buy">${i18n.t('lure.watch')}</button>
+          </div>
         </div>
         <div class="panel-list" id="ui-shop-list"></div>
       </div>
@@ -116,6 +138,11 @@ export class GameUi {
     this.moneyEl = must(document.getElementById('ui-money'));
     this.questEl = must(document.getElementById('ui-quest'));
     this.hintEl = must(document.getElementById('ui-hint'));
+    this.lureEl = must(document.getElementById('ui-lure'));
+    this.lureRow = must(document.getElementById('ui-lure-row'));
+    this.lureState = must(document.getElementById('ui-lure-state'));
+    this.lureButton = must(document.getElementById('ui-lure-buy')) as HTMLButtonElement;
+    this.lureButton.addEventListener('click', () => this.callbacks.watchLure());
     this.openButton = must(document.getElementById('ui-shop-open')) as HTMLButtonElement;
     this.albumButton = must(document.getElementById('ui-album-open')) as HTMLButtonElement;
     this.shop = must(document.getElementById('ui-shop'));
@@ -208,6 +235,20 @@ export class GameUi {
     this.hintEl.hidden = next === '';
   }
 
+  /**
+   * Часы приманки поверх сцены. Показываем, только пока она работает: висящая
+   * всё время строка «приманки нет» — это реклама, а не интерфейс.
+   */
+  setLure(secondsLeft: number): void {
+    const active = secondsLeft > 0;
+    const text = active ? i18n.t('lure.left', { time: clock(secondsLeft) }) : '';
+    if (this.lureEl.textContent !== text) this.lureEl.textContent = text;
+    this.lureEl.hidden = !active;
+    if (!this.lureRow.hidden) {
+      this.lureState.textContent = active ? clock(secondsLeft) : '';
+    }
+  }
+
   hideOffer(): void {
     if (this.offerTimer) {
       clearTimeout(this.offerTimer);
@@ -271,6 +312,11 @@ export class GameUi {
     this.albumButton.disabled = !state.canShop && this.open === null;
     this.mapButton.disabled = !state.canShop && this.open === null;
     this.albumButton.textContent = `${i18n.t('album.open')} ${state.album.discovered}/${state.album.total}`;
+
+    this.lureRow.hidden = !state.canWatchAds;
+    this.lureButton.textContent = state.boosts.isLureActive()
+      ? i18n.t('lure.extend')
+      : i18n.t('lure.watch');
 
     this.renderQuest(state);
     this.renderTasks(state);
@@ -465,6 +511,12 @@ function describeUnlock(unlock: { type: string; value: number; boss?: string }):
 function must<T extends Element | HTMLElement | null>(node: T): HTMLElement {
   if (!node) throw new Error('Элемент интерфейса не найден');
   return node as HTMLElement;
+}
+
+/** Минуты и секунды: 4:05. */
+function clock(seconds: number): string {
+  const minutes = Math.floor(seconds / 60);
+  return `${minutes}:${String(seconds % 60).padStart(2, '0')}`;
 }
 
 /** Целые показываем без хвоста, дробные — с одним знаком. */

@@ -300,6 +300,47 @@ async function main(): Promise<void> {
     console.warn('⚠ Кнопка «Удвоить» не появилась за отведённое время');
   }
 
+  // --- обрыв лески и вторая попытка за ролик ---
+  // Тянем без остановки: это верный способ порвать леску, а заодно проверка,
+  // что постоянная подмотка проигрывает — на ней держится весь бой. Мелкая
+  // рыба иногда сдаётся раньше, чем рвётся леска, поэтому пробуем несколько раз.
+  const retryOffer = page.locator('#ui-offer');
+  let snapped = false;
+  for (let attempt = 0; attempt < 5 && !snapped; attempt++) {
+    await waitForState(page, ['idle'], 30000).catch(() => undefined);
+    if ((await readState(page)) !== 'idle') break;
+
+    await cast(page);
+    const bit = await waitForState(page, ['fighting', 'idle'], 20000).catch(() => 'idle');
+    if (bit !== 'fighting') continue;
+
+    await page.keyboard.down('Space');
+    await waitForState(page, ['reeling', 'showcase', 'onboard', 'idle'], 40000).catch(
+      () => undefined,
+    );
+    await page.keyboard.up('Space');
+    await page.waitForTimeout(200);
+
+    const label = (await retryOffer.isVisible()) ? (await retryOffer.innerText()).trim() : '';
+    if (!label.startsWith('Вторая попытка')) {
+      if ((await readState(page)) === 'onboard') await subdue(page);
+      continue;
+    }
+
+    snapped = true;
+    await page.screenshot({ path: `${OUT}/8e-retry.png` });
+    await retryOffer.click();
+    await page.waitForTimeout(1200);
+    const back = await readState(page);
+    if (back !== 'fighting') {
+      throw new Error(`Вторая попытка не вернула рыбу на крючок: ${back}`);
+    }
+    console.log('Вторая попытка: рыба вернулась на крючок');
+    await fightOnce(page);
+    if ((await readState(page)) === 'onboard') await subdue(page);
+  }
+  if (!snapped) console.warn('⚠ За пять попыток леска не порвалась — второй попытки не видели');
+
   // --- магазин: покупка и то, что она переживает перезагрузку ---
   const beforeShop = await snapshot(page);
   await waitForState(page, ['idle'], 30000);
@@ -355,6 +396,15 @@ async function main(): Promise<void> {
   await page.click('#ui-shop-open');
   await page.waitForTimeout(300);
   await page.screenshot({ path: `${OUT}/10-shop.png` });
+
+  // --- приманка: добровольный бонус за ролик, а не покупка ---
+  await page.click('#ui-lure-buy');
+  await page.waitForTimeout(900);
+  const lure = page.locator('#ui-lure');
+  if (!(await lure.isVisible())) throw new Error('Часы приманки не появились после ролика');
+  const lureText = (await lure.innerText()).trim();
+  if (!/\d:\d\d/.test(lureText)) throw new Error(`Часы приманки без времени: «${lureText}»`);
+  console.log(`Приманка включена: ${lureText}`);
 
   await page.click('#ui-shop-list .branch:first-child .buy');
   await page.waitForTimeout(400);

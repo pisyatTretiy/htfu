@@ -27,6 +27,8 @@ export interface Effects {
   lineStrength: number;
   /** Сколько секунд даётся на усмирение улова в лодке. */
   subdueSeconds: number;
+  /** Множитель к шансу редкого варианта: приманка, а не снасть. */
+  luck: number;
 }
 
 /**
@@ -77,6 +79,7 @@ export class Progression {
       reelPower: this.valueOf('reel'),
       lineStrength: this.valueOf('rod'),
       subdueSeconds: this.valueOf('net'),
+      luck: 1,
     };
   }
 

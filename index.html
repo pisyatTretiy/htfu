@@ -135,6 +135,18 @@
       animation: hint-in .22s ease-out;
     }
     #ui .hint[hidden] { display: none !important; }
+
+    /* Часы приманки: висят слева над нижним рядом, пока бонус работает. */
+    #ui .lure {
+      position: absolute; left: 12px; bottom: 60px; pointer-events: none;
+      font-size: 12px; font-weight: 600; color: #06231f;
+      background: rgba(79, 214, 180, .92); border: 2px solid #06403a;
+      border-radius: 999px; padding: 4px 11px; font-variant-numeric: tabular-nums;
+    }
+    #ui .lure[hidden] { display: none !important; }
+    #ui .lure-row { border-color: #4fd6b4 }
+    #ui .lure-row[hidden] { display: none !important; }
+    #ui .lure-row .buy { background: #4fd6b4; border-color: #06403a }
     @keyframes hint-in { from { transform: translate(-50%, -6px); opacity: 0 } to { transform: translate(-50%, 0); opacity: 1 } }
 
     #ui .panel {

@@ -1,9 +1,10 @@
 import type { IPlatform, SaveData } from '../platform';
 import { ONBOARDING_CHAIN, type OnboardingState } from '../meta/Onboarding';
+import type { BoostState } from '../meta/Boosts';
 
 const KEY = 'htfu.save';
 /** Текущая версия схемы. Растёт вместе с миграциями. */
-export const SAVE_VERSION = 7;
+export const SAVE_VERSION = 8;
 /** Лимит площадки: setData — 100 запросов за 5 минут. Дебаунс держит запас. */
 const CLOUD_DEBOUNCE_MS = 10000;
 
@@ -27,6 +28,8 @@ export interface GameSave extends SaveData {
   bestCatch: number;
   /** Пройденные шаги обучения: игрока не учат дважды. */
   onboarding: OnboardingState;
+  /** Временные бонусы: приманка переживает перезагрузку вкладки. */
+  boosts: BoostState;
 }
 
 export function emptySave(): GameSave {
@@ -42,6 +45,7 @@ export function emptySave(): GameSave {
     dailies: { day: 0, progress: {}, claimed: [], streak: 0, lastCompletedDay: -1 },
     bestCatch: 0,
     onboarding: { step: 0, seen: [] },
+    boosts: { lureUntil: 0 },
   };
 }
 
@@ -78,6 +82,8 @@ const MIGRATIONS: Record<number, Migration> = {
     onboarding: { step: ONBOARDING_CHAIN.length, seen: ['subdue', 'retry'] },
     version: 7,
   }),
+  // v8 добавила временные бонусы. Ни у кого из старых игроков приманки нет.
+  7: (data) => ({ ...data, boosts: { lureUntil: 0 }, version: 8 }),
 };
 
 export function migrate(raw: Partial<GameSave> | null): GameSave {

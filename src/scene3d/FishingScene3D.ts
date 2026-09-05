@@ -43,6 +43,9 @@ const PITCH_MAX = 0.5;
 /** Сколько улов висит на леске перед игроком, прежде чем уйти в лодку. */
 const SHOWCASE_TIME = 1.6;
 
+/** Какая доля сил остаётся у рыбы, вернувшейся на крючок по второй попытке. */
+const RETRY_STAMINA = 0.6;
+
 /** Сколько длится свеча рыбы и как часто она возможна. */
 const LEAP_TIME = 0.8;
 const LEAP_COOLDOWN = 3.2;
@@ -75,6 +78,8 @@ export interface SceneHooks {
   onBossEscaped(): void;
   effects(): Effects;
   onCatch(entry: CatchEntry, reward: number, rarity: Rarity): void;
+  /** Улов сорвался: наверху решают, предлагать ли вторую попытку. */
+  onLost(entry: CatchEntry, isBoss: boolean): void;
 }
 
 /**
@@ -117,6 +122,7 @@ export class FishingScene3D {
   private mischief: MischiefAct | null = null;
   private mischiefView: FishView3D | null = null;
   private isBossFight = false;
+  private lostEntry: CatchEntry | null = null;
   private rarity: Rarity = 'common';
 
   private yaw = 0;
@@ -370,7 +376,8 @@ export class FishingScene3D {
 
     this.hookedEntry = entry;
     this.isBossFight = boss !== null;
-    this.rarity = boss ? 'common' : rollRarity(this.rng);
+    // Удача приходит от приманки: снасть на редкость вариантов не влияет.
+    this.rarity = boss ? 'common' : rollRarity(this.rng, this.hooks.effects().luck);
     this.fight = new FightSystem(
       entry,
       this.rng.int(1, 1 << 20),
@@ -386,6 +393,40 @@ export class FishingScene3D {
     this.shake = boss ? 0.18 : 0.07;
     this.hooks.sfx('bite');
     this.hooks.toast(boss ? boss.taunt : 'Клюёт!');
+  }
+
+  /** Есть ли кого возвращать на крючок: боссов вторая попытка не касается. */
+  get canRetry(): boolean {
+    return this.lostEntry !== null;
+  }
+
+  /**
+   * Вторая попытка за ролик: та же рыба возвращается на крючок уже уставшей.
+   *
+   * Уставшей — потому что это бонус, а не отмена проигрыша: игрок получает
+   * второй шанс, но бой начинается не с начала, иначе ролик заменял бы умение.
+   */
+  retryLost(): boolean {
+    const entry = this.lostEntry;
+    if (!entry) return false;
+    this.lostEntry = null;
+
+    const { reelPower, lineStrength } = this.hooks.effects();
+    this.hookedEntry = entry;
+    this.isBossFight = false;
+    this.fight = new FightSystem(entry, this.rng.int(1, 1 << 20), { reelPower, lineStrength });
+    this.fight.stamina *= RETRY_STAMINA;
+
+    this.hooked = new FishView3D(entry);
+    this.hooked.setTint(rarityTint(this.rarity));
+    this.scene.add(this.hooked.group);
+    // Крючок уже возвращается к вершинке — сажаем рыбу туда, где он сейчас.
+    this.bitePoint.copy(this.hook.position);
+    this.state = 'fighting';
+    this.shake = 0.12;
+    this.hooks.sfx('bite');
+    this.hooks.toast(`${this.label(entry)} вернулась!`);
+    return true;
   }
 
   private stepFight(dt: number, tip: Vector3): void {
@@ -429,9 +470,15 @@ export class FishingScene3D {
       this.hooks.sfx('snap');
       this.hitstop = 0.12;
       this.shake = 0.2;
-      if (this.isBossFight) this.hooks.onBossEscaped();
+      const lost = this.hookedEntry;
+      const wasBoss = this.isBossFight;
+      if (wasBoss) this.hooks.onBossEscaped();
+      // Место поклёвки и вид запоминаем: вторая попытка сажает ту же рыбу
+      // на тот же крючок, а не подсовывает другую.
+      this.lostEntry = wasBoss ? null : lost;
       this.dropHooked();
       this.state = 'reeling';
+      if (lost) this.hooks.onLost(lost, wasBoss);
     } else if (outcome === 'landed') {
       this.hitstop = 0.08;
       this.beginShowcase();
