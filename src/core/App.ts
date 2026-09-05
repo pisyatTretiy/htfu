@@ -93,6 +93,8 @@ export class App {
    * не «продолжить серию», а начать заново.
    */
   private streak = 0;
+  /** Оценку просим не чаще одного раза за сессию. */
+  private reviewAsked = false;
 
   constructor(private readonly platform: IPlatform) {
     this.save = new SaveService(platform);
@@ -453,6 +455,8 @@ export class App {
     this.ui.showBoss(i18n.t('boss.won'), i18n.pick(boss.trophy), 'trophy');
     showToast(i18n.t('toast.boss', { name: i18n.pick(boss.name), trophy: i18n.pick(boss.trophy) }));
     this.persist();
+    // Карточка трофея висит две с половиной секунды — окно оценки после неё.
+    setTimeout(() => void this.askReview(), 3200);
   }
 
   private collect(entry: CatchEntry, reward: number, rarity: Rarity): void {
@@ -500,6 +504,20 @@ export class App {
         void this.doubleReward(total),
       );
     }
+  }
+
+  /**
+   * Попросить оценку — один раз за сессию и только на подъёме.
+   *
+   * Рейтинг ниже 30 снимает игру с публикации, но выпрашивать оценку вернее
+   * всего его и уронит. Поэтому спрашиваем после победы над боссом — в момент,
+   * когда игрок доволен, — и только если площадка разрешает.
+   */
+  private async askReview(): Promise<void> {
+    if (this.reviewAsked || this.platform.isTV()) return;
+    this.reviewAsked = true;
+    if (!(await this.platform.canReview())) return;
+    await this.platform.requestReview();
   }
 
   /** Множитель серии: +5 % за улов подряд, потолок +50 %. */

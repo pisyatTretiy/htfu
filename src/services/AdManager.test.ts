@@ -25,6 +25,12 @@ function fakePlatform(rewarded = true): IPlatform & { interstitials: number; ban
     async hideBanner() {
       this.banners -= 1;
     },
+    async canReview() {
+      return false;
+    },
+    async requestReview() {
+      return false;
+    },
     async products() {
       return [];
     },

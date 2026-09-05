@@ -70,6 +70,15 @@ export class LocalPlatform implements IPlatform {
     console.info(`[platform] score «${board}» = ${value} — заглушка`);
   }
 
+  async canReview(): Promise<boolean> {
+    return true;
+  }
+
+  async requestReview(): Promise<boolean> {
+    console.info('[platform] окно оценки — заглушка');
+    return false;
+  }
+
   // --- покупки: заглушка, повторяющая поведение площадки -------------------
 
   async products(): Promise<Product[]> {

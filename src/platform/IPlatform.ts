@@ -49,6 +49,15 @@ export interface IPlatform {
 
   submitScore(board: string, value: number): Promise<void>;
 
+  /**
+   * Можно ли просить оценку. Площадка сама следит, чтобы игрока не спрашивали
+   * дважды: рейтинг ниже 30 снимает игру с публикации, но выпрашивать оценку
+   * ещё вернее.
+   */
+  canReview(): Promise<boolean>;
+  /** Показать окно оценки. true — отзыв отправлен. */
+  requestReview(): Promise<boolean>;
+
   /** Каталог площадки. Пустой список — покупки недоступны, магазин прячем. */
   products(): Promise<Product[]>;
   /**

@@ -127,6 +127,26 @@ export class YandexPlatform implements IPlatform {
     }
   }
 
+  async canReview(): Promise<boolean> {
+    try {
+      const answer = await this.sdk.feedback?.canReview();
+      return answer?.value === true;
+    } catch (error) {
+      console.warn('[feedback] проверка оценки не прошла', error);
+      return false;
+    }
+  }
+
+  async requestReview(): Promise<boolean> {
+    try {
+      const answer = await this.sdk.feedback?.requestReview();
+      return answer?.feedbackSent === true;
+    } catch (error) {
+      console.warn('[feedback] окно оценки не открылось', error);
+      return false;
+    }
+  }
+
   // --- покупки ---------------------------------------------------------
   //
   // Платежи подключаются лениво и по требованию: у игры без покупок

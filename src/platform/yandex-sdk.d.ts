@@ -64,6 +64,10 @@ export interface YandexSdk {
   leaderboards?: {
     setScore(name: string, score: number, extraData?: string): Promise<void>;
   };
+  feedback?: {
+    canReview(): Promise<{ value: boolean; reason?: string }>;
+    requestReview(): Promise<{ feedbackSent: boolean }>;
+  };
   getPlayer(options?: { scopes?: boolean }): Promise<YandexPlayer>;
   getPayments(options?: { signed?: boolean }): Promise<YandexPayments>;
   isAvailableMethod(name: string): Promise<boolean>;
