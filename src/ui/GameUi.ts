@@ -348,13 +348,13 @@ export class GameUi {
   }
 
   /**
-   * Карточка босса.
+   * Карточка события: появление босса, трофей, новая локация.
    *
-   * Появление босса до сих пор отличалось от обычной поклёвки только текстом
-   * всплывающей подписи — а это единственный момент в игре, ради которого
-   * игрок копил уловы.
+   * Эти три момента — единственные в игре, ради которых игрок копил уловы,
+   * и до сих пор они отличались от обычной поклёвки только текстом
+   * всплывающей подписи.
    */
-  showBoss(tag: string, name: string, variant: 'threat' | 'trophy' = 'threat'): void {
+  showCard(tag: string, name: string, variant: 'threat' | 'trophy' | 'zone' = 'threat'): void {
     if (this.bossTimer) clearTimeout(this.bossTimer);
     must(document.getElementById('ui-boss-tag')).textContent = tag;
     must(document.getElementById('ui-boss-name')).textContent = name;

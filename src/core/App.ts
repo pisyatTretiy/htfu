@@ -450,7 +450,7 @@ export class App {
     const boss = this.bosses.bossOf(zone.id);
     if (!boss) return null;
     // Босс клюнул именно сейчас: сцена вызывает этот метод в момент поклёвки.
-    this.ui.showBoss(i18n.t('boss.tag'), i18n.pick(boss.name));
+    this.ui.showCard(i18n.t('boss.tag'), i18n.pick(boss.name));
     this.audio.play('boss');
 
     return {
@@ -469,7 +469,7 @@ export class App {
     this.state.money += boss.reward;
     this.album.record(bossId, 'common');
     // Победа над боссом заслуживает того же кадра, что и его появление.
-    this.ui.showBoss(i18n.t('boss.won'), i18n.pick(boss.trophy), 'trophy');
+    this.ui.showCard(i18n.t('boss.won'), i18n.pick(boss.trophy), 'trophy');
     showToast(i18n.t('toast.boss', { name: i18n.pick(boss.name), trophy: i18n.pick(boss.trophy) }));
     this.persist();
     // Карточка трофея висит две с половиной секунды — окно оценки после неё.
@@ -624,7 +624,10 @@ export class App {
     this.onboarding.signal('traveled');
     this.scene.resetToSurface();
     this.scene.applyZone(zone);
-    showToast(i18n.pick(zone.name));
+    // Приезд в новую воду — событие: карточка с названием и особенностью
+    // локации вместо всплывающей строки, которую легко пропустить.
+    this.ui.showCard(i18n.pick(zone.note), i18n.pick(zone.name), 'zone');
+    this.audio.play('splash');
     this.persist();
   }
 
