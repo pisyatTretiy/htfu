@@ -26,7 +26,7 @@ const BOUNCE = 0.68;
 const PRANKS: Record<string, Localized[]> = {
   flop: [
     { ru: '{name} сшиб ведро!', en: '{name} knocked the bucket over!' },
-    { ru: '{name} прыгает по всей лодке!', en: '{name} is bouncing all over the boat!' },
+    { ru: '{name} скачет по всему причалу!', en: '{name} is bouncing all over the pier!' },
     { ru: '{name} опрокинул снасти!', en: '{name} tipped the tackle box!' },
   ],
   grab: [
@@ -42,7 +42,7 @@ const PRANKS: Record<string, Localized[]> = {
 };
 
 /**
- * Улов буянит в лодке — носитель юмора № 2 из ADR-0003.
+ * Улов буянит на настиле — носитель юмора № 2 из ADR-0003.
  *
  * Это замена «добить существо» из оригинала: вытащенное не оценивается
  * формулой, а действует, и игрок должен успеть его усмирить.
@@ -76,7 +76,7 @@ export class MischiefAct {
     return this.taps / TAPS_TO_SUBDUE;
   }
 
-  /** Сколько терпения осталось, 0..1 — рисуется полоской над лодкой. */
+  /** Сколько терпения осталось, 0..1 — рисуется полоской под прицелом. */
   get patience(): number {
     return clamp(1 - this.timer / this.patienceSeconds, 0, 1);
   }

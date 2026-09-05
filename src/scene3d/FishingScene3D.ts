@@ -43,7 +43,7 @@ const BITE_MAX = 2.1;
 /** Пределы наклона взгляда: вниз смотрим охотнее, чем вверх. */
 const PITCH_MIN = -1.15;
 const PITCH_MAX = 0.5;
-/** Сколько улов висит на леске перед игроком, прежде чем уйти в лодку. */
+/** Сколько улов висит на леске перед игроком, прежде чем упасть на настил. */
 const SHOWCASE_TIME = 1.6;
 
 /** Какая доля сил остаётся у рыбы, вернувшейся на крючок по второй попытке. */
@@ -99,7 +99,7 @@ export interface SceneHooks {
 /**
  * Рыбалка от первого лица (ADR-0004).
  *
- * Игрок закреплён в лодке: передвижения нет, поэтому одного пальца хватает на
+ * Игрок закреплён на причале: передвижения нет, поэтому одного пальца хватает на
  * всё — осмотр, заброс, подмотку и действие. Это и есть то, чем снимается риск
  * по требованию «управление одной рукой».
  *
@@ -911,7 +911,7 @@ export class FishingScene3D {
       rows.push(['силы рыбы', this.fight.stamina.toFixed(2)]);
       if (this.isBossFight) rows.push(['фаза', String(this.fight.phase + 1)]);
     } else if (this.mischief) {
-      rows.push(['в лодке', this.hookedEntry ? entryName(this.hookedEntry) : '—']);
+      rows.push(['на настиле', this.hookedEntry ? entryName(this.hookedEntry) : '—']);
       rows.push(['усмирение', `${Math.round(this.mischief.progress * 100)} %`]);
     } else {
       rows.push(['трюк-серия', String(this.trickStreak)]);

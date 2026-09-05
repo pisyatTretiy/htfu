@@ -68,7 +68,7 @@ export const STRINGS: Record<string, Localized> = {
   'toast.escaped': { ru: 'Сорвалась!', en: 'It got away!' },
   'toast.returned': { ru: '{name} вернулась!', en: '{name} is back on!' },
   'toast.caught': { ru: '{name}! +{reward} ₽', en: '{name}! +{reward} ₽' },
-  'toast.inBoat': { ru: '{name} в лодке!', en: '{name} is aboard!' },
+  'toast.inBoat': { ru: '{name} на настиле!', en: '{name} is on the deck!' },
   'toast.subdued': { ru: '{name} усмирён! +{reward} ₽', en: '{name} subdued! +{reward} ₽' },
   'toast.overboard': { ru: '{name} ушёл за борт!', en: '{name} went overboard!' },
   'toast.doubled': { ru: 'Улов удвоен! +{reward} ₽', en: 'Catch doubled! +{reward} ₽' },

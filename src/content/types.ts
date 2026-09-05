@@ -4,7 +4,7 @@ import type { Localized } from '../services/I18n';
 
 export type CatchKind = 'fish' | 'junk';
 
-/** Что вытащенное вытворяет в лодке (ADR-0003, носитель № 2). */
+/** Что вытащенное вытворяет на настиле (ADR-0003, носитель № 2). */
 export type Mischief = 'flop' | 'grab' | 'steal' | 'none';
 
 export interface FightPhase {
