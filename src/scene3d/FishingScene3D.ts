@@ -14,7 +14,7 @@ import { Sky3D } from './Sky3D';
 import { Water3D } from './Water3D';
 import { Environment3D, shoreHeight } from './Environment3D';
 import { Pier3D } from './Pier3D';
-import { AmbientFish3D } from './AmbientFish3D';
+import { AmbientFish3D, NOTICE_RADIUS } from './AmbientFish3D';
 import { Splash3D } from './Splash3D';
 import { Hands3D } from './Hands3D';
 import { Hook3D } from './Hook3D';
@@ -24,7 +24,7 @@ import { FightSystem } from '../gameplay/FightSystem';
 import { MischiefAct } from '../gameplay/Mischief';
 import { rollCatch } from '../gameplay/CatchPool';
 import { rarityPrice, rarityTint, rollRarity, type Rarity } from '../gameplay/Rarity';
-import { entryName } from '../content/catalog';
+import { CATCH_ENTRIES, entryName } from '../content/catalog';
 import { clamp, damp } from '../core/world';
 import { Rng } from '../core/Rng';
 import type { CatchEntry, FightPhase } from '../content/types';
@@ -51,6 +51,9 @@ const RETRY_STAMINA = 0.6;
 /** Сколько длится свеча рыбы и как часто она возможна. */
 const LEAP_TIME = 0.8;
 const LEAP_COOLDOWN = 3.2;
+
+/** Сколько крючок должен пробыть в воде, прежде чем на него начнут наводиться. */
+const AIM_DELAY = 0.35;
 
 /** Направление на солнце. Один источник правды для света, неба и блика. */
 const SUN_POSITION = new Vector3(-16, 20, -20);
@@ -206,7 +209,7 @@ export class FishingScene3D {
     this.water.setSun(SUN_POSITION);
     this.sky.setSun(SUN_POSITION);
     this.shore.setPalette(zone.sand, zone.foliage);
-    this.ambient.setWater(zone.tint);
+    this.ambient.setZone(this.hooks.zoneCatches(), zone.tint);
     // Дымка на горизонте того же цвета, что и небо у линии воды.
     this.scene.fog = new Fog(new Color(zone.sky[0] ?? '#cfe6f5').getHex(), 45, 260);
   }
@@ -350,9 +353,27 @@ export class FishingScene3D {
           this.submergedFor += dt;
           // Тихие круги у лески: пока ждём поклёвки, вода должна жить.
           this.markSurface(tip, 0.06);
-          if (this.submergedFor >= this.biteAt && this.hook.depthMeters > 2) this.bite();
+
+          // Наведение на видимую рыбу. Раньше стая была чистой декорацией, а
+          // клевало по таймеру и глубине: подсказка «веди крючок к рыбе» была
+          // неправдой. Теперь подведённый крючок ловит именно ту рыбу, на
+          // которую наведён, и заметно быстрее.
+          // Замеченная рыба подсвечивается заранее: игрок должен видеть, на
+          // кого наводится, ещё до поклёвки.
+          const noticed = this.ambient.nearest(this.hook.position, NOTICE_RADIUS);
+          this.ambient.highlight(noticed?.index ?? -1);
+
+          const aimed =
+            this.submergedFor > AIM_DELAY ? this.ambient.nearest(this.hook.position) : null;
+          if (aimed) {
+            this.ambient.take(aimed.index);
+            this.bite(aimed.entryId);
+          } else if (this.submergedFor >= this.biteAt && this.hook.depthMeters > 2) {
+            this.bite();
+          }
         } else {
           this.wake.hide();
+          this.ambient.highlight(-1);
         }
         break;
       }
@@ -396,12 +417,15 @@ export class FishingScene3D {
     if (radial > 0) this.hook.velocity.addScaledVector(normal, -radial);
   }
 
-  private bite(): void {
+  /** @param aimedId вид, на который игрок навёл крючок, если навёл */
+  private bite(aimedId?: string): void {
     const boss = this.hooks.bossBite();
+    const aimed = aimedId ? CATCH_ENTRIES.find((entry) => entry.id === aimedId) : undefined;
     const entry =
-      boss?.entry ?? rollCatch(this.hook.depthMeters, this.rng, this.hooks.zoneCatches());
+      boss?.entry ?? aimed ?? rollCatch(this.hook.depthMeters, this.rng, this.hooks.zoneCatches());
     const { reelPower, lineStrength } = this.hooks.effects();
 
+    this.ambient.highlight(-1);
     this.hookedEntry = entry;
     this.isBossFight = boss !== null;
     // Удача приходит от приманки: снасть на редкость вариантов не влияет.
