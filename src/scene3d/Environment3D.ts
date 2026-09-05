@@ -27,7 +27,11 @@ export class Environment3D {
   constructor() {
     this.sand = new Mesh(
       shoreGeometry(),
-      new MeshLambertMaterial({ color: new Color('#e8d5a8'), flatShading: true }),
+      new MeshLambertMaterial({
+        color: new Color('#e8d5a8'),
+        flatShading: true,
+        vertexColors: true,
+      }),
     );
     this.sand.receiveShadow = true;
     this.group.add(this.sand, this.props);
@@ -130,6 +134,19 @@ export class Environment3D {
     }
 
     this.props.add(this.shack());
+
+    // Плавник у кромки: обломки лодки и брёвна там, где кончается причал.
+    for (let i = 0; i < 7; i++) {
+      const log = new Mesh(
+        new CylinderGeometry(rng.range(0.12, 0.24), rng.range(0.1, 0.2), rng.range(1.2, 3), 5),
+        new MeshLambertMaterial({ color: new Color('#8a7059'), flatShading: true }),
+      );
+      const z = rng.range(3, 16);
+      log.position.set(rng.range(-16, 16), shoreHeight(z) + 0.1, z);
+      log.rotation.set(Math.PI / 2, rng.range(0, Math.PI), rng.range(-0.3, 0.3));
+      log.castShadow = true;
+      this.props.add(log);
+    }
   }
 
   private palm(rng: Rng): Group {
@@ -177,7 +194,9 @@ export class Environment3D {
     roof.castShadow = true;
 
     shack.add(walls, roof);
-    shack.position.set(-9.5, shoreHeight(13), 13);
+    // Ближе к оси взгляда: в портретном кадре по горизонтали видно около
+    // сорока градусов, и на прежнем месте сарай в кадр не попадал вовсе.
+    shack.position.set(-5.5, shoreHeight(19), 19);
     shack.rotation.y = 0.5;
     return shack;
   }
@@ -207,21 +226,43 @@ export class Environment3D {
  * поверхность, дальше поднимается. Игрок стоит на песке, а не по пояс в воде —
  * ради этого высота и считается явно.
  */
+/**
+ * Профиль берега. Пологий пляж у воды, дальше — дюны.
+ *
+ * Без дюн песок упирается в небо ровной линией, и весь берег читается
+ * бесконечным столом: смотреть назад с причала было не на что.
+ */
 export function shoreHeight(z: number): number {
-  return Math.min(2.6, Math.max(-0.8, (z + 1.5) * 0.1));
+  const beach = Math.max(-0.8, (z + 1.5) * 0.1);
+  const dunes = Math.max(0, z - 24) * 0.11;
+  return Math.min(7, beach + dunes);
 }
 
 function shoreGeometry(): BufferGeometry {
-  const geometry = new PlaneGeometry(90, 80, 30, 30);
+  const geometry = new PlaneGeometry(90, 80, 40, 40);
   geometry.rotateX(-Math.PI / 2);
   geometry.translate(0, 0, 28);
   const rng = new Rng(9);
   const position = geometry.getAttribute('position');
+  const shades: number[] = [];
+
   for (let i = 0; i < position.count; i++) {
     const z = position.getZ(i);
-    // Мелкие неровности: ровный песок читается столом.
-    position.setY(i, shoreHeight(z) + rng.range(-0.06, 0.06));
+    const x = position.getX(i);
+    // Мелкие неровности и складки дюн: ровный песок читается столом.
+    const fold = Math.sin(x * 0.14 + z * 0.05) * Math.max(0, z - 22) * 0.05;
+    position.setY(i, shoreHeight(z) + fold + rng.range(-0.06, 0.06));
+
+    // Мокрый песок у воды — множитель к цвету локации, а не второй меш:
+    // отдельная полоса стоила бы ещё одного вызова отрисовки.
+    const wet = 1 - Math.max(0, Math.min(1, (z - 0.5) / 5));
+    // Склон дюны светлее подошвы: солнце светит со стороны моря, и без этого
+    // весь песок за пляжем читается одним пятном.
+    const shade = 1 - wet * 0.3 + fold * 0.09 + rng.range(-0.03, 0.03);
+    shades.push(shade, shade, shade);
   }
+
+  geometry.setAttribute('color', new Float32BufferAttribute(shades, 3));
   geometry.computeVertexNormals();
   return geometry;
 }
