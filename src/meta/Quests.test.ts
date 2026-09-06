@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { Quests } from './Quests';
+import { Quests, QUESTS } from './Quests';
 import { CATCH_ENTRIES } from '../content/catalog';
+import { ZONES, zoneCatchIds } from './Zones';
 import type { CatchEntry } from '../content/types';
 
 const ENTRIES = CATCH_ENTRIES;
@@ -55,5 +56,48 @@ describe('цепочка заданий', () => {
     quests.restore({ index: 999, progress: -4 });
     expect(quests.completedCount).toBe(quests.total);
     expect(quests.current).toBe(0);
+  });
+});
+
+describe('выполнимость заданий', () => {
+  /**
+   * Последнее задание цепочки просит щуку, а щуки на причале нет: она водится
+   * в бухте, которая открывается победой над первым боссом. Задание от этого
+   * не становится невыполнимым — к пятому заданию босс уже приходил, — но
+   * игроку об этом не говорили, и он мог забрасывать у причала сколько угодно.
+   * Здесь проверяется и то, что цель вообще существует, и то, что задание не
+   * молчит о чужой воде.
+   */
+  it('каждая именная цель существует в каталоге', () => {
+    for (const quest of QUESTS) {
+      const goal = quest.goal;
+      if (goal.type !== 'catch_id') continue;
+      const entry = CATCH_ENTRIES.find((candidate) => candidate.id === goal.id);
+      expect(entry, `${quest.id}: вида «${goal.id}» нет в каталоге`).toBeDefined();
+    }
+  });
+
+  it('если цель водится не там, где выдано задание, это сказано в названии', () => {
+    const dock = ZONES[0]!;
+    for (const quest of QUESTS) {
+      const goal = quest.goal;
+      if (goal.type !== 'catch_id') continue;
+      if (zoneCatchIds(dock).includes(goal.id)) continue;
+
+      // Вид не с причала: название обязано назвать воду, где его искать.
+      const home = ZONES.find((zone) => zoneCatchIds(zone).includes(goal.id));
+      expect(home, `${quest.id}: вид «${goal.id}» не водится ни в одной локации`).toBeDefined();
+
+      const words = [home!.name.ru, home!.name.en]
+        .filter((value): value is string => Boolean(value))
+        .flatMap((label) => label.toLowerCase().split(/\s+/))
+        .map((word) => word.slice(0, 4));
+      const titles = [quest.title.ru, quest.title.en]
+        .filter((value): value is string => Boolean(value))
+        .map((title) => title.toLowerCase());
+      const named = words.some((word) => titles.some((title) => title.includes(word)));
+
+      expect(named, `${quest.id}: не сказано, где искать «${goal.id}»`).toBe(true);
+    }
   });
 });

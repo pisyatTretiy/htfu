@@ -31,7 +31,7 @@
     },
     {
       "id": "pike_one",
-      "title": { "ru": "Поймай щуку", "en": "Catch a pike" },
+      "title": { "ru": "Поймай щуку в бухте", "en": "Catch a pike in the bay" },
       "npc": { "ru": "Механик", "en": "Mechanic" },
       "goal": { "type": "catch_id", "id": "pike", "count": 1 },
       "reward": 220
