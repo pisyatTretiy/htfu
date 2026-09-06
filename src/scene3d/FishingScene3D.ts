@@ -41,7 +41,18 @@ import type { Zone } from '../meta/Zones';
 /** Шаг симуляции: 120 Гц. Кадр может быть любым, шаг — нет. */
 const STEP = 1 / 120;
 const MAX_STEPS = 8;
+/** Нижняя граница скорости подмотки, единиц мира в секунду. */
 const REEL_SPEED = 14;
+/**
+ * За сколько секунд крючок возвращается к вершинке, откуда бы ни возвращался.
+ *
+ * Пока заброс останавливался на трёх метрах, постоянной скорости хватало. С
+ * настоящей глубиной крючок ползёт от дна разлома девять секунд — и столько же
+ * ждёт игрок после каждого обрыва, потому что сорвавшаяся рыба тоже уходит в
+ * это состояние. Скорость считается от расстояния, floor оставлен для мелкой
+ * воды, где иначе возврат был бы мгновенным и незаметным.
+ */
+const REEL_SECONDS = 1.1;
 /**
  * Пауза между «крючок встал» и поклёвкой.
  *
@@ -194,6 +205,8 @@ export class FishingScene3D {
   private leapTimer = 0;
   private leapCooldown = LEAP_COOLDOWN;
   private showcaseTimer = 0;
+  /** Скорость текущего возврата крючка; ноль — возврат ещё не начат. */
+  private reelSpeed = 0;
   /** Отсчёт до следующего скрипа лески: без него звук трещал бы каждый кадр. */
   private strain = 0;
   /** Отсчёт до следующего щелчка катушки. */
@@ -495,9 +508,17 @@ export class FishingScene3D {
       case 'onboard':
         this.stepMischief(dt);
         break;
-      case 'reeling':
-        if (this.hook.reelTo(tip, REEL_SPEED, dt)) this.rest();
+      case 'reeling': {
+        // Скорость берём один раз на возврат и держим постоянной. Пересчёт от
+        // остатка каждый кадр даёт экспоненту: крючок бодро стартует и ползёт
+        // последние метры — с двухсот метров возврат растягивался на три
+        // секунды вместо одной.
+        if (this.reelSpeed === 0) {
+          this.reelSpeed = Math.max(REEL_SPEED, this.hook.position.distanceTo(tip) / REEL_SECONDS);
+        }
+        if (this.hook.reelTo(tip, this.reelSpeed, dt)) this.rest();
         break;
+      }
       default:
         this.hook.reset(tip);
     }
@@ -964,6 +985,7 @@ export class FishingScene3D {
     this.hookedEntry = null;
     this.charging = false;
     this.showcaseTimer = 0;
+    this.reelSpeed = 0;
     this.leapTimer = 0;
     this.leapCooldown = LEAP_COOLDOWN;
     this.power = 0;
