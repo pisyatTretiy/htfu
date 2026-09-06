@@ -19,6 +19,8 @@ export class LocalPlatform implements IPlatform {
 
   private readonly adsFail =
     typeof location !== 'undefined' && new URLSearchParams(location.search).has('failads');
+  private readonly tvMode =
+    typeof location !== 'undefined' && new URLSearchParams(location.search).has('tv');
 
   async init(): Promise<void> {
     console.info('[platform] LocalPlatform: SDK площадки не найден, работаем локально');
@@ -40,8 +42,15 @@ export class LocalPlatform implements IPlatform {
     return navigator.language.slice(0, 2) || 'ru';
   }
 
+  /**
+   * `?tv=1` притворяется телевизором.
+   *
+   * На ТВ по требованию площадки прячется магазин, а вместе с ним уходят
+   * реклама, вторая попытка и окно оценки. Проверить это без флага нечем:
+   * заглушка всегда отвечала «не телевизор», и весь этот путь не открывался.
+   */
   isTV(): boolean {
-    return false;
+    return this.tvMode;
   }
 
   async showRewarded(placement: string): Promise<boolean> {

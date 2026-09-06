@@ -845,6 +845,40 @@ async function main(): Promise<void> {
   console.log(`Высокий профиль: ${calls} вызовов отрисовки, ошибок нет`);
   await rich.close();
 
+  // --- телевизор ---
+  // Площадка требует прятать магазин на ТВ, и вместе с ним уходят реклама,
+  // вторая попытка и окно оценки. Заглушка всегда отвечала «не телевизор»,
+  // поэтому весь этот путь до сих пор не открывался ни разу.
+  const tv = await browser.newPage({ viewport: { width: 1280, height: 720 }, locale: 'ru-RU' });
+  const tvErrors: string[] = [];
+  tv.on('pageerror', (error) => tvErrors.push(String(error)));
+  tv.on('console', (message) => {
+    if (message.type() === 'error') tvErrors.push(message.text());
+  });
+  await tv.addInitScript(() => {
+    localStorage.setItem(
+      'htfu.save',
+      JSON.stringify({ version: 10, money: 5000, onboarding: { step: 9, seen: [] } }),
+    );
+  });
+  await tv.goto(`${URL}&tv=1`, { waitUntil: 'networkidle' });
+  await waitForState(tv, ['idle', 'onboard'], 30000);
+  await tv.click('#ui-shop-open');
+  await tv.waitForTimeout(400);
+  await tv.screenshot({ path: `${OUT}/23-tv.png` });
+
+  // Снасти за игровые деньги остаются: прячется именно магазин за рубли и
+  // всё, что упирается в рекламу.
+  const branches = await tv.locator('#ui-shop-list .branch').count();
+  const store = await tv.locator('#ui-store-list .buy-row').count();
+  const lureRows = await tv.locator('#ui-lure-row:not([hidden])').count();
+  if (branches === 0) throw new Error('На ТВ пропали и ветки прокачки, а они за игровые деньги');
+  if (store > 0) throw new Error(`На ТВ виден магазин за рубли: ${store} позиций`);
+  if (lureRows > 0) throw new Error('На ТВ предлагают ролик за награду');
+  if (tvErrors.length > 0) throw new Error(`ТВ-режим сыплет ошибками: ${tvErrors.join(' · ')}`);
+  console.log(`ТВ: ${branches} веток снастей, магазин и ролики скрыты`);
+  await tv.close();
+
   await browser.close();
 
   if (errors.length > 0) {
