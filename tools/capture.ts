@@ -27,6 +27,9 @@ interface Snapshot {
   patience: number;
   money: number;
   onHook: string;
+  /** Глубина крючка и предел лески, метры: по ним видно, доходит ли заброс до дна. */
+  depth?: number;
+  depthLimit?: number;
   upgrades?: Record<string, number>;
   shopOpen?: boolean;
   zone?: string;
@@ -771,6 +774,50 @@ async function main(): Promise<void> {
   }
   console.log('Отказ ролика пережит: игра играется, отклонение обработано');
   await noAds.close();
+
+  // --- крючок действительно доходит до конца лески ---
+  // Раньше клевало по таймеру от входа в воду, и заброс останавливался на
+  // трёх-пяти метрах при пределе в сорок пять: ветка «Леска» не делала ничего,
+  // задания на глубину были невыполнимы, а половина каталога не попадалась
+  // никому. Проверка на «в подписи есть цифра» такое пропускала.
+  const deep = await browser.newPage({ viewport: VIEWPORT, locale: 'ru-RU' });
+  await deep.addInitScript(() => {
+    localStorage.setItem(
+      'htfu.save',
+      JSON.stringify({ version: 10, money: 400, onboarding: { step: 9, seen: [] } }),
+    );
+  });
+  await deep.goto(URL, { waitUntil: 'networkidle' });
+  await waitForState(deep, ['idle', 'onboard'], 30000);
+
+  let deepest = 0;
+  let limit = 0;
+  // Несколько забросов: рыба из стаи может увести крючок с полпути, и это
+  // штатный исход — берём лучший результат.
+  for (let attempt = 0; attempt < 4 && deepest < 1; attempt++) {
+    if ((await readState(deep)) === 'onboard') await subdue(deep);
+    await waitForState(deep, ['idle'], 30000).catch(() => undefined);
+    await cast(deep);
+    for (let i = 0; i < 400; i++) {
+      const state = await snapshot(deep);
+      limit = state.depthLimit ?? limit;
+      if (state.state === 'sinking') {
+        deepest = Math.max(deepest, (state.depth ?? 0) / Math.max(1, limit));
+      }
+      if (state.state !== 'sinking' && state.state !== 'flying' && i > 10) break;
+      await deep.waitForTimeout(70);
+    }
+    if ((await readState(deep)) === 'fighting') await fightOnce(deep);
+    if ((await readState(deep)) === 'onboard') await subdue(deep);
+  }
+
+  if (deepest < 0.6) {
+    throw new Error(
+      `Крючок не доходит до конца лески: лучшая глубина ${Math.round(deepest * 100)} % от ${limit} м`,
+    );
+  }
+  console.log(`Глубина берётся: ${Math.round(deepest * 100)} % от предела в ${limit} м`);
+  await deep.close();
 
   await browser.close();
 

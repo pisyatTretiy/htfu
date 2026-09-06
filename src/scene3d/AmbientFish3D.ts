@@ -25,6 +25,19 @@ export const NOTICE_RADIUS = 5.5;
 const RESPAWN_DELAY = 9;
 
 /**
+ * Кто может плавать в толще воды на виду у игрока.
+ *
+ * Отбор по `kind === 'fish'` пропускал в стаю краба и морскую звезду: по виду
+ * улова они не мусор, но плавать в толще им не положено — донные они. Медуза и
+ * головоногое остаются: эти как раз в толще и живут.
+ */
+const BOTTOM_DWELLERS: ReadonlySet<string> = new Set(['crab', 'star']);
+
+function swimsInOpenWater(entry: CatchEntry): boolean {
+  return entry.kind === 'fish' && !BOTTOM_DWELLERS.has(entry.body.shape ?? 'fish');
+}
+
+/**
  * Рыба, плавающая сама по себе под поверхностью.
  *
  * Без неё вода — пустая плоскость: игрок забрасывает крючок в никуда и не
@@ -54,9 +67,13 @@ export class AmbientFish3D {
     this.tint = tint;
     const fish = catchIds.filter((id) => {
       const entry = CATCH_ENTRIES.find((candidate) => candidate.id === id);
-      return entry?.kind === 'fish';
+      return entry !== undefined && swimsInOpenWater(entry);
     });
-    this.populate(fish.length > 0 ? fish : CATCH_ENTRIES.filter((e) => e.kind === 'fish').map((e) => e.id));
+    this.populate(
+      fish.length > 0
+        ? fish
+        : CATCH_ENTRIES.filter(swimsInOpenWater).map((entry) => entry.id),
+    );
   }
 
   private populate(ids: readonly string[]): void {
