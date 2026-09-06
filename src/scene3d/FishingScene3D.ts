@@ -3,7 +3,9 @@ import {
   DirectionalLight,
   Fog,
   HemisphereLight,
+  Matrix4,
   PerspectiveCamera,
+  Quaternion,
   Scene,
   Vector3,
 } from 'three';
@@ -16,6 +18,7 @@ import { Environment3D, shoreHeight } from './Environment3D';
 import { Pier3D } from './Pier3D';
 import { AmbientFish3D, NOTICE_RADIUS } from './AmbientFish3D';
 import { Splash3D } from './Splash3D';
+import { Deep3D } from './Deep3D';
 import { Hands3D } from './Hands3D';
 import { Hook3D } from './Hook3D';
 import { Line3D } from './Line3D';
@@ -98,6 +101,37 @@ const LEAP_MAX_DEPTH = 2.5;
 export const TRICK_FROM = 0.72;
 export const TRICK_TO = 0.88;
 
+/**
+ * Нырок камеры на спуске.
+ *
+ * Спуск — самая длинная доля заброса: от шести секунд у причала до двенадцати
+ * в разломе. Всё это время игрок смотрел на полоску глубиномера, хотя под ним
+ * происходит единственное, ради чего он сюда пришёл, — вода со всем её
+ * содержимым. Камера уходит вниз вместе с грузилом и возвращается на причал к
+ * поклёвке: бой остаётся таким, каким его настраивали.
+ */
+const DIVE_IN_RATE = 2.2;
+const DIVE_OUT_RATE = 3.6;
+/**
+ * Где стоит камера относительно крючка под водой.
+ *
+ * Сбоку и почти вровень, а не сверху-сзади: вид сверху упирается в пустоту под
+ * грузилом, а сбоку в кадр попадает и поверхность с уходящей вверх леской, и
+ * стая, которая плавает горизонтально, и приближающееся дно.
+ */
+const DIVE_BACK = 2.4;
+const DIVE_SIDE = 1.7;
+const DIVE_UP = 0.8;
+/** Насколько ниже крючка смотрит камера — чтобы было видно, куда он идёт. */
+const DIVE_AHEAD = 0.9;
+/** Дальность видимости под водой у поверхности и на самом дне, единиц мира. */
+const DIVE_FAR_NEAR_SURFACE = 19;
+const DIVE_FAR_DEEP = 5.5;
+/** Насколько темнеет вода и гаснет свет ко дну локации. */
+const DIVE_DARKEN = 0.72;
+/** Верх мира: нужен для поворота подводной камеры. */
+const UP = new Vector3(0, 1, 0);
+
 /** Сколько крючок должен пробыть в воде, прежде чем на него начнут наводиться. */
 const AIM_DELAY = 0.35;
 
@@ -173,6 +207,7 @@ export class FishingScene3D {
 
   private readonly sky = new Sky3D();
   private readonly birds = new Birds3D();
+  private readonly deep = new Deep3D();
   private readonly angler = new Angler3D();
   private readonly water = new Water3D();
   private readonly shore = new Environment3D();
@@ -237,6 +272,23 @@ export class FishingScene3D {
   private readonly frameTip = new Vector3();
   /** Рабочая точка всплеска: считается каждый кадр, аллокация не нужна. */
   private readonly splashAt = new Vector3();
+  /** Насколько камера ушла под воду: 0 — причал, 1 — идём за грузилом. */
+  private dive = 0;
+  private readonly diveMatrix = new Matrix4();
+  private readonly diveQuat = new Quaternion();
+  private readonly divePos = new Vector3();
+  private readonly diveLook = new Vector3();
+  private readonly pierPos = new Vector3();
+  private readonly pierQuat = new Quaternion();
+  /** Цвет тумана у поверхности: к нему возвращаемся, всплывая. */
+  private readonly surfaceFog = new Color();
+  private readonly deepFog = new Color();
+  /** Цвет толщи на текущей глубине: тот же, но потемневший. */
+  private readonly deepAt = new Color();
+  private surfaceFogNear = 45;
+  private surfaceFogFar = 260;
+  private sunAtSurface = 2.1;
+  private ambientAtSurface = 1.15;
   private readonly lineDelta = new Vector3();
   private readonly rightAxis = new Vector3();
   private readonly forward = new Vector3();
@@ -245,6 +297,7 @@ export class FishingScene3D {
     this.pier.group.position.set(0, 0, 3.4);
     this.scene.add(this.sky.mesh, this.water.mesh, this.shore.group, this.pier.group);
     this.scene.add(this.birds.group);
+    this.scene.add(this.deep.group);
     // Сосед сидит на левом краю причала, ближе к морю, чем игрок: он попадает
     // в кадр, но не заслоняет ни воду, ни место заброса.
     this.angler.group.position.set(-1.05, PIER_Y, -10.4);
@@ -313,15 +366,21 @@ export class FishingScene3D {
 
     const darkness = mods.darkness ?? 0;
     // Дымка на горизонте того же цвета, что и небо у линии воды.
-    this.scene.fog = new Fog(
-      new Color(zone.sky[0] ?? '#cfe6f5').getHex(),
-      45 - darkness * 25,
-      260 - darkness * 150,
-    );
+    this.surfaceFog.set(zone.sky[0] ?? '#cfe6f5');
+    this.surfaceFogNear = 45 - darkness * 25;
+    this.surfaceFogFar = 260 - darkness * 150;
+    // Под водой дымка своя: цвет толщи и куда меньшая дальность.
+    this.deepFog.set(zone.water[2] ?? zone.water[0] ?? '#2e5c6b');
+    this.scene.fog = new Fog(this.surfaceFog.getHex(), this.surfaceFogNear, this.surfaceFogFar);
     this.sky.setDarkness(darkness);
     this.birds.setDarkness(darkness, new Color(zone.sky[2] ?? '#2f8fd8'));
-    this.sun.intensity = 2.1 * (1 - darkness * 0.55);
-    this.ambientLight.intensity = 1.15 * (1 - darkness * 0.45);
+    this.deep.setZone(zone.maxDepth, zone.sand);
+    // Запоминаем свет локации: под водой он гаснет с глубиной и должен
+    // возвращаться к этим значениям, а не к общим.
+    this.sunAtSurface = 2.1 * (1 - darkness * 0.55);
+    this.ambientAtSurface = 1.15 * (1 - darkness * 0.45);
+    this.sun.intensity = this.sunAtSurface;
+    this.ambientLight.intensity = this.ambientAtSurface;
   }
 
   resize(width: number, height: number): void {
@@ -413,6 +472,16 @@ export class FishingScene3D {
     const dt = Math.min(deltaMs, 100) / 1000;
     this.time += dt;
 
+    // Камера возвращается на причал ДО шага симуляции.
+    //
+    // Вершинка удилища берётся из позы камеры (`rodTip`), а через неё считается
+    // предел лески. Пока нырок оставлял камеру у грузила, вершинка уезжала за
+    // ней, предел мерился от самого крючка и не срабатывал никогда: замер
+    // показал уход на 152 метра там, где леска достаёт до 45. Нырок — дело
+    // показа, и подмешивается он после симуляции.
+    this.camera.position.set(0, PIER_Y + EYE_HEIGHT, PLAYER_Z);
+    this.applyLook();
+
     if (!this.paused) {
       this.accumulator += Math.min(deltaMs, 250);
       let steps = 0;
@@ -425,10 +494,20 @@ export class FishingScene3D {
     }
 
     // Причал не качается — качается вода. Тряска остаётся отдачей от рывка.
-    this.camera.position.y =
-      PIER_Y + EYE_HEIGHT + this.shakeOffset() * (this.calmMotion ? 0.25 : 1);
+    //
+    // Позу задаём целиком, а не одну высоту: нырок смещает камеру и по осям
+    // X/Z, и если их не возвращать, следующий кадр примет уже смещённую точку
+    // за причальную. Камера уезжала бы за грузилом и не возвращалась.
+    this.pierPos.set(
+      0,
+      PIER_Y + EYE_HEIGHT + this.shakeOffset() * (this.calmMotion ? 0.25 : 1),
+      PLAYER_Z,
+    );
+    this.camera.position.copy(this.pierPos);
+    this.applyLook();
     this.shake *= Math.pow(0.02, dt);
     this.leanCamera(dt);
+    this.diveCamera(dt);
     if (this.strain > 0) this.strain -= dt;
 
     this.sky.update(dt);
@@ -437,6 +516,7 @@ export class FishingScene3D {
     this.water.update(dt, this.camera.position);
     this.ambient.update(dt);
     this.splash.update(dt);
+    this.deep.update(dt, this.camera.position, this.dive);
     this.wake.update(dt);
     this.hooked?.update(dt, this.state === 'showcase' ? 0.9 : (this.fight?.surge ?? 0.3));
     this.line.render(this.camera);
@@ -979,6 +1059,106 @@ export class FishingScene3D {
     return this.camera.localToWorld(this.tipWorld);
   }
 
+  /**
+   * Камера уходит под воду вслед за грузилом и всплывает к поклёвке.
+   *
+   * Причальная поза уже посчитана к этому моменту — здесь она только
+   * подмешивается к подводной по величине `dive`. Возвращается камера всегда:
+   * бой, показ улова и возня на настиле идут сверху, как их и настраивали.
+   */
+  private diveCamera(dt: number): void {
+    const wanted = this.state === 'sinking' && this.hook.submerged ? 1 : 0;
+    const rate = wanted > this.dive ? DIVE_IN_RATE : DIVE_OUT_RATE;
+    this.dive += (wanted - this.dive) * Math.min(1, dt * rate);
+    if (this.dive < 0.002) {
+      this.dive = 0;
+      this.hands.group.visible = true;
+      this.shore.group.visible = true;
+      this.sky.mesh.visible = true;
+      this.birds.group.visible = true;
+      this.scene.background = null;
+      this.applyFog(0);
+      return;
+    }
+
+    // Всё надводное на время нырка убирается, а фон заливается цветом толщи.
+    //
+    // Сцена построена как надводный мир: остров, берег, пальмы, небо. С
+    // двадцати метров глубины ничего этого не видно — но три́ угольники берега
+    // и купол неба честно рисовались сквозь воду, и пальмы висели в кадре
+    // посреди толщи. Дымка их не съедала: она даёт градиент, а не отсечение.
+    const under = this.dive > 0.45;
+    this.hands.group.visible = this.dive < 0.12;
+    this.shore.group.visible = !under;
+    this.sky.mesh.visible = !under;
+    this.birds.group.visible = !under;
+
+    // Встаём позади и выше грузила по направлению взгляда, смотрим чуть ниже
+    // него — так видно не только крючок, но и куда он идёт.
+    // Назад — против взгляда, вбок — перпендикулярно ему.
+    const backX = Math.sin(this.yaw);
+    const backZ = Math.cos(this.yaw);
+    this.divePos.set(
+      this.hook.position.x + backX * DIVE_BACK + backZ * DIVE_SIDE,
+      this.hook.position.y + DIVE_UP,
+      this.hook.position.z + backZ * DIVE_BACK - backX * DIVE_SIDE,
+    );
+    this.diveLook.copy(this.hook.position).setY(this.hook.position.y - DIVE_AHEAD);
+
+    this.pierQuat.copy(this.camera.quaternion);
+
+    // Поворот считаем матрицей, а не через Object3D.lookAt: тот берёт мировую
+    // позицию из matrixWorld, а у объекта вне графа сцены она так и остаётся
+    // единичной. Камера послушно смотрела из начала координат — то есть ровно
+    // мимо крючка, в противоположную сторону.
+    this.diveMatrix.lookAt(this.divePos, this.diveLook, UP);
+    this.diveQuat.setFromRotationMatrix(this.diveMatrix);
+
+    this.camera.position.lerpVectors(this.pierPos, this.divePos, this.dive);
+    this.camera.quaternion.slerpQuaternions(this.pierQuat, this.diveQuat, this.dive);
+    this.applyFog(this.dive);
+  }
+
+  /**
+   * Как выглядит вода вокруг камеры.
+   *
+   * Три вещи разом, и все три — про глубину. Дальность видимости падает: у
+   * поверхности видно далеко, у дна — на пару корпусов. Цвет толщи темнеет.
+   * И гаснет свет: без этого сорок метров выглядели ровно так же, как восемь,
+   * и спуск не читался спуском.
+   *
+   * Свет возвращается к значениям локации, а не к общим: в разломе он и на
+   * поверхности приглушён.
+   */
+  private applyFog(dive: number): void {
+    const fog = this.scene.fog;
+    if (!(fog instanceof Fog)) return;
+
+    if (dive <= 0) {
+      fog.color.copy(this.surfaceFog);
+      fog.near = this.surfaceFogNear;
+      fog.far = this.surfaceFogFar;
+      this.sun.intensity = this.sunAtSurface;
+      this.ambientLight.intensity = this.ambientAtSurface;
+      return;
+    }
+
+    // По дну локации, а не по общей шкале: сорок пять метров причала — это уже
+    // его дно, и темнеть к ним нужно так же, как к двумстам пятидесяти в разломе.
+    const deep = Math.min(1, this.hook.depthMeters / Math.max(1, this.hooks.zoneDepth()));
+    const far = DIVE_FAR_NEAR_SURFACE + (DIVE_FAR_DEEP - DIVE_FAR_NEAR_SURFACE) * deep;
+
+    this.deepAt.copy(this.deepFog).multiplyScalar(1 - DIVE_DARKEN * deep);
+    fog.color.copy(this.surfaceFog).lerp(this.deepAt, dive);
+    fog.near = this.surfaceFogNear + (0.4 - this.surfaceFogNear) * dive;
+    fog.far = this.surfaceFogFar + (far - this.surfaceFogFar) * dive;
+    this.scene.background = this.dive > 0.45 ? this.deepAt : null;
+
+    const light = 1 - DIVE_DARKEN * deep * dive;
+    this.sun.intensity = this.sunAtSurface * light;
+    this.ambientLight.intensity = this.ambientAtSurface * light;
+  }
+
   private applyLook(): void {
     this.camera.rotation.set(this.pitch, this.yaw, 0, 'YXZ');
   }
@@ -1088,6 +1268,7 @@ export class FishingScene3D {
   dispose(): void {
     this.sky.dispose();
     this.birds.dispose();
+    this.deep.dispose();
     this.angler.dispose();
     this.water.dispose();
     this.shore.dispose();

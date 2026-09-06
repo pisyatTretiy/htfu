@@ -817,6 +817,35 @@ async function main(): Promise<void> {
     );
   }
   console.log(`Глубина берётся: ${Math.round(deepest * 100)} % от предела в ${limit} м`);
+
+  // Нырок: на спуске камера уходит под воду. Снимаем кадр и убеждаемся, что
+  // всплыли — иначе бой, показ улова и возня на настиле шли бы из-под воды.
+  // Рыба из стаи может увести крючок с трёх метров, и кадра нырка тогда нет.
+  // Это штатный исход, поэтому даём несколько попыток.
+  let dived = false;
+  for (let attempt = 0; attempt < 4 && !dived; attempt++) {
+  await waitForState(deep, ['idle'], 30000).catch(() => undefined);
+  await cast(deep);
+  for (let i = 0; i < 400; i++) {
+    const state = await snapshot(deep);
+    if (state.state === 'sinking' && (state.depth ?? 0) > 6 && !dived) {
+      dived = true;
+      await deep.screenshot({ path: `${OUT}/24-dive.png` });
+    }
+    if (state.state === 'fighting') break;
+    if (state.state === 'idle' && i > 30) break;
+    await deep.waitForTimeout(70);
+  }
+  if ((await readState(deep)) === 'fighting') await fightOnce(deep);
+  if ((await readState(deep)) === 'onboard') await subdue(deep);
+  }
+  if (!dived) console.warn('⚠ Кадр нырка снять не удалось: клевало слишком рано');
+  else console.log('Нырок снят');
+
+  if ((await readState(deep)) === 'fighting') await fightOnce(deep);
+  if ((await readState(deep)) === 'onboard') await subdue(deep);
+  await waitForState(deep, ['idle'], 30000).catch(() => undefined);
+  await deep.screenshot({ path: `${OUT}/25-after-dive.png` });
   await deep.close();
 
   // --- высокий профиль качества ---
