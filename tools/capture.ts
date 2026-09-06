@@ -879,6 +879,37 @@ async function main(): Promise<void> {
   console.log(`ТВ: ${branches} веток снастей, магазин и ролики скрыты`);
   await tv.close();
 
+  // --- приватный режим: localStorage запрещён ---
+  // Браузер в приватном режиме бросает на каждом обращении к localStorage. В
+  // коде это обложено try/catch в четырёх местах, но проверить его было нечем,
+  // а падение здесь означает чёрный экран на старте.
+  const locked = await browser.newPage({ viewport: VIEWPORT, locale: 'ru-RU' });
+  const lockedErrors: string[] = [];
+  locked.on('pageerror', (error) => lockedErrors.push(String(error)));
+  locked.on('console', (message) => {
+    if (message.type() === 'error') lockedErrors.push(message.text());
+  });
+  await locked.addInitScript({
+    content: `Object.defineProperty(Storage.prototype, 'getItem', {
+      value: function () { throw new DOMException('доступ к хранилищу запрещён'); },
+    });
+    Object.defineProperty(Storage.prototype, 'setItem', {
+      value: function () { throw new DOMException('доступ к хранилищу запрещён'); },
+    });`,
+  });
+  await locked.goto(URL, { waitUntil: 'networkidle' });
+  await waitForState(locked, ['idle', 'onboard'], 30000);
+  await cast(locked);
+  const castWorks = await waitForState(locked, ['sinking', 'flying', 'fighting'], 20000).catch(
+    () => 'idle',
+  );
+  if (castWorks === 'idle') throw new Error('Без localStorage игра не забрасывает');
+  if (lockedErrors.length > 0) {
+    throw new Error(`Запрет хранилища роняет игру: ${lockedErrors.join(' · ')}`);
+  }
+  console.log('Приватный режим: без localStorage игра запускается и играется');
+  await locked.close();
+
   await browser.close();
 
   if (errors.length > 0) {
