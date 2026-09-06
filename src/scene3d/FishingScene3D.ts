@@ -704,7 +704,13 @@ export class FishingScene3D {
 
     // Крючок ползёт от места поклёвки к вершинке по мере усталости рыбы:
     // положение — визуализация уже посчитанного боя, а не его причина.
-    const progress = 1 - fight.stamina;
+    //
+    // Подъём чуть опережает усталость (степень, а не прямая): при прямой
+    // зависимости рыба с полусотни метров подходила к поверхности лишь в
+    // последние доли секунды, и свеча — надводное зрелище — почти не
+    // случалась. Со степенью последняя треть боя идёт у поверхности, а первые
+    // две трети остаются глухой глубиной.
+    const progress = 1 - Math.pow(fight.stamina, 1.8);
     this.hook.position.lerpVectors(this.bitePoint, tip, progress);
     this.hook.position.x += Math.sin(this.time * 9) * 0.25 * fight.surge;
     this.hook.position.z += Math.cos(this.time * 7) * 0.25 * fight.surge;
