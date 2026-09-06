@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Album } from './Album';
 import { CATCH_ENTRIES } from '../content/catalog';
+import { BOSSES } from './Bosses';
 import { RARITIES } from '../gameplay/Rarity';
 
 const FIRST = CATCH_ENTRIES[0]!.id;
@@ -99,5 +100,20 @@ describe('альбом', () => {
     expect(restored.countOf(FIRST, 'gold')).toBe(1);
     expect(restored.countOf(SECOND, 'rare')).toBe(2);
     expect(restored.discovered).toBe(2);
+  });
+});
+
+describe('счёт видов и трофеи', () => {
+  it('трофей босса не считается видом из каталога', () => {
+    // Боссы пишутся в свой список и показываются отдельным разделом. Пока они
+    // попадали в альбом наравне с рыбой, нижняя строка у собравшего всё
+    // игрока показывала «57 из 52».
+    const album = new Album();
+    for (const entry of CATCH_ENTRIES) album.record(entry.id, 'common');
+    expect(album.discovered).toBe(album.total);
+
+    for (const boss of BOSSES) album.record(boss.id, 'common');
+    expect(album.discovered).toBe(album.total);
+    expect(album.fillPercent).toBeLessThanOrEqual(100);
   });
 });

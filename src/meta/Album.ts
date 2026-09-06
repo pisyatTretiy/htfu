@@ -59,9 +59,15 @@ export class Album {
     return this.countOf(id, rarity) > 0;
   }
 
-  /** Сколько видов встречено хотя бы раз. */
+  /**
+   * Сколько видов каталога встречено хотя бы раз.
+   *
+   * Считаем по каталогу, а не по ключам записей: трофеи боссов писались в тот
+   * же альбом, и собравший всё игрок видел в нижней строке «57 из 52». Счёт по
+   * каталогу заодно чинит уже сохранённые записи — переписывать сейв не нужно.
+   */
   get discovered(): number {
-    return Object.keys(this.caught).length;
+    return CATCH_ENTRIES.filter((entry) => this.countOf(entry.id) > 0).length;
   }
 
   get total(): number {

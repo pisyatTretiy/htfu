@@ -480,7 +480,8 @@ export class App {
 
     this.bosses.defeat(bossId);
     this.state.money += boss.reward;
-    this.album.record(bossId, 'common');
+    // В альбом босса не пишем: трофеи живут своим разделом и своим списком
+    // (bosses.trophies), а запись сюда только засоряла счёт видов.
     // Победа над боссом заслуживает того же кадра, что и его появление.
     this.ui.showCard(i18n.t('boss.won'), i18n.pick(boss.trophy), 'trophy');
     // Карточка уже назвала трофей во весь кадр — всплывающая строка повторяла
