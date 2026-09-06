@@ -128,7 +128,7 @@ export class GameUi {
         <button class="btn" id="ui-shop-open">${i18n.t('shop.open')}</button>
       </div>
       <button class="btn offer" id="ui-offer" hidden></button>
-      <div class="gauge" id="ui-gauge" hidden>
+      <div class="gauge" id="ui-gauge" hidden aria-hidden="true">
         <div class="gauge-label" id="ui-gauge-label"></div>
         <div class="gauge-track"><i id="ui-gauge-fill"></i><span class="gauge-zone" id="ui-gauge-zone"></span></div>
         <div class="gauge-track thin"><i id="ui-gauge-second"></i></div>

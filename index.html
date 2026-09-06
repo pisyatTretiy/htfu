@@ -7,9 +7,12 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%2304141a'/%3E%3Cpath d='M6 20c6-8 14-8 20 0-6 8-14 8-20 0z' fill='%233fb8a6'/%3E%3Ccircle cx='21' cy='18' r='1.6' fill='%2304141a'/%3E%3C/svg%3E">
   <title>Клёв! Остров рыбака</title>
   <!--
-    Яндекс SDK подключается ТОЛЬКО в собранном билде: на localhost /sdk.js отдаёт 404.
-    Приложение само определяет наличие window.YaGames и падает на LocalPlatform.
-    <script src="/sdk.js"></script>
+    Тега <script src="/sdk.js"> здесь намеренно нет, и он не появляется в сборке.
+    SDK подгружается из кода (src/platform/index.ts, loadSdkScript) — это второй
+    способ подключения из документации площадки. Так сделано потому, что на
+    localhost /sdk.js отдаёт 404, браузер пишет ошибку в консоль, а дымовой тест
+    падает на любой ошибке в консоли. Код сам смотрит на hostname: на площадке
+    грузит SDK, локально сразу берёт заглушку.
   -->
   <style>
     html, body {
@@ -348,11 +351,14 @@
 </head>
 <body>
   <div id="app"></div>
-  <div id="boot"><div class="t">Клёв! Остров рыбака</div><div class="b"><i></i></div></div>
+  <div id="boot" role="status" aria-live="polite"><div class="t">Клёв! Остров рыбака</div><div class="b"><i></i></div></div>
   <div id="ui"></div>
-  <div id="hud" hidden></div>
-  <div id="toast"></div>
-  <div id="lost" hidden><p id="lost-text"></p><button class="btn" id="lost-reload"></button></div>
+  <div id="hud" hidden aria-hidden="true"></div>
+  <!-- Всплывающая строка — единственный канал, которым игра рассказывает,
+       что произошло. Живая область: экранный диктор проговаривает клёв,
+       обрыв и награду вслух, не перебивая сам себя. -->
+  <div id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+  <div id="lost" hidden role="alertdialog" aria-modal="true"><p id="lost-text"></p><button class="btn" id="lost-reload"></button></div>
   <script type="module" src="/src/main.ts"></script>
 </body>
 </html>
