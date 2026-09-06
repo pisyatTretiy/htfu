@@ -11,12 +11,8 @@ export interface QualityProfile {
   tier: QualityTier;
   /** Верхняя граница devicePixelRatio: на 3x-экранах рендерить в 3x не нужно. */
   maxResolution: number;
-  /** Полноэкранные и локальные фильтры — только на десктопе. */
+  /** Сглаживание и тени — только там, где хватает сил. */
   filters: boolean;
-  godrays: number;
-  motes: number;
-  /** Сегментов в линии поверхности воды. */
-  waveSegments: number;
   /**
    * Сторона сетки поверхности воды.
    *
@@ -34,9 +30,6 @@ const PROFILES: Record<QualityTier, QualityProfile> = {
     tier: 'low',
     maxResolution: 1.5,
     filters: false,
-    godrays: 2,
-    motes: 60,
-    waveSegments: 24,
     waterSegments: 80,
     targetFps: 30,
   },
@@ -44,9 +37,6 @@ const PROFILES: Record<QualityTier, QualityProfile> = {
     tier: 'high',
     maxResolution: 2,
     filters: true,
-    godrays: 4,
-    motes: 200,
-    waveSegments: 48,
     waterSegments: 140,
     targetFps: 50,
   },

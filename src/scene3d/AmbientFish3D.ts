@@ -89,6 +89,12 @@ export class AmbientFish3D {
       const entry = CATCH_ENTRIES.find((candidate) => candidate.id === id) as CatchEntry;
       const view = createCatchView(entry);
       view.group.scale.setScalar(rng.range(0.7, 1.4));
+      // Стая теней не отбрасывает: рыба под водой, и её тень легла бы на дно,
+      // которого игрок не видит. На высоком профиле это десятки рисований в
+      // карту теней за кадр — целиком впустую.
+      view.group.traverse((node) => {
+        node.castShadow = false;
+      });
       this.group.add(view.group);
       this.swimmers.push({
         view,
