@@ -33,6 +33,7 @@ export const STRINGS: Record<string, Localized> = {
   'gauge.power': { ru: 'Сила заброса', en: 'Cast power' },
   'gauge.depth': { ru: 'Глубина {depth} из {limit} м', en: 'Depth {depth} of {limit} m' },
   'gauge.tension': { ru: 'Натяжение лески', en: 'Line tension' },
+  'gauge.stamina': { ru: 'Рыба выдыхается', en: 'The fish is tiring' },
   'gauge.patience': { ru: 'Улов вырывается', en: 'The catch is escaping' },
   'map.open': { ru: 'Карта', en: 'Map' },
   'map.title': { ru: 'Архипелаг', en: 'Archipelago' },

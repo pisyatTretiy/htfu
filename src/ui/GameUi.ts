@@ -94,6 +94,7 @@ export class GameUi {
   private readonly gaugeFill: HTMLElement;
   private readonly gaugeZone: HTMLElement;
   private readonly gaugeSecond: HTMLElement;
+  private readonly gaugeSecondLabel: HTMLElement;
   private readonly rows = new Map<BranchId, HTMLElement>();
   private readonly topbar: HTMLElement;
   /** Последний ввод был с клавиатуры или пульта, а не мышью. */
@@ -131,6 +132,7 @@ export class GameUi {
         <div class="gauge-label" id="ui-gauge-label"></div>
         <div class="gauge-track"><i id="ui-gauge-fill"></i><span class="gauge-zone" id="ui-gauge-zone"></span></div>
         <div class="gauge-track thin"><i id="ui-gauge-second"></i></div>
+        <div class="gauge-label thin" id="ui-gauge-second-label"></div>
       </div>
       <div class="panel" id="ui-shop" hidden>
         <div class="panel-head">
@@ -208,6 +210,7 @@ export class GameUi {
     this.gaugeFill = must(document.getElementById('ui-gauge-fill'));
     this.gaugeZone = must(document.getElementById('ui-gauge-zone'));
     this.gaugeSecond = must(document.getElementById('ui-gauge-second'));
+    this.gaugeSecondLabel = must(document.getElementById('ui-gauge-second-label'));
 
     const list = must(document.getElementById('ui-shop-list'));
     for (const branch of progression.branches) {
@@ -440,7 +443,12 @@ export class GameUi {
     this.gaugeFill.style.width = `${Math.round(Math.min(1, Math.max(0, value)) * 100)}%`;
     // Зелёная зона трюк-шота показывается только на шкале заброса.
     this.gaugeZone.hidden = kind !== 'power';
+    // Тонкая полоса — единственный признак того, что бой выигрывается, и до
+    // этой подписи она была безымянной: игрок видел, как что-то ползёт, и не
+    // знал, хорошо это или плохо.
     this.gaugeSecond.parentElement!.hidden = kind !== 'tension';
+    this.gaugeSecondLabel.hidden = kind !== 'tension';
+    this.gaugeSecondLabel.textContent = kind === 'tension' ? i18n.t('gauge.stamina') : '';
     this.gaugeSecond.style.width = `${Math.round(Math.min(1, Math.max(0, secondary)) * 100)}%`;
     // Предел лески — не оттенок шкалы, а отдельное состояние: у игрока на
     // реакцию две десятых секунды, и полоса должна кричать.
