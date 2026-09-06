@@ -9,7 +9,7 @@ import type { Quests } from '../meta/Quests';
 import type { UnlockContext, Zones } from '../meta/Zones';
 import { BOSSES, type Bosses } from '../meta/Bosses';
 import type { Dailies } from '../meta/Dailies';
-import type { Boosts } from '../meta/Boosts';
+import { LURE_MINUTES, type Boosts } from '../meta/Boosts';
 import type { Store } from '../meta/Store';
 import type { Product } from '../platform';
 
@@ -148,7 +148,7 @@ export class GameUi {
             <span class="branch-name">${i18n.t('lure.title')}</span>
             <span class="dots" id="ui-lure-state"></span>
           </div>
-          <div class="branch-hint">${i18n.t('lure.hint')}</div>
+          <div class="branch-hint">${i18n.t('lure.hint', { minutes: LURE_MINUTES })}</div>
           <div class="branch-foot">
             <span class="branch-value"></span>
             <button class="btn buy" id="ui-lure-buy">${i18n.t('lure.watch')}</button>

@@ -118,9 +118,11 @@ export const STRINGS: Record<string, Localized> = {
   'store.buy': { ru: 'Купить', en: 'Buy' },
   'store.granted': { ru: 'Получено: {name}', en: 'Granted: {name}' },
   'lure.title': { ru: 'Приманка', en: 'Lure' },
+  // Срок берётся из LURE_MINUTES, а не пишется словом: строка «пять минут»
+  // рядом с константой, которую можно поменять, — обещание наудачу.
   'lure.hint': {
-    ru: 'Пять минут повышенного шанса на редкий вариант',
-    en: 'Five minutes of a better shot at rare variants',
+    ru: '{minutes} минут повышенного шанса на редкий вариант',
+    en: '{minutes} minutes of a better shot at rare variants',
   },
   'lure.watch': { ru: 'Ролик', en: 'Watch' },
   'lure.extend': { ru: 'Продлить', en: 'Extend' },
