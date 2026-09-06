@@ -94,7 +94,10 @@ export const STRINGS: Record<string, Localized> = {
   'settings.high': { ru: 'Высокая', en: 'High' },
   'settings.low': { ru: 'Бюджетная', en: 'Budget' },
   'sound.toggle': { ru: 'Звук', en: 'Sound' },
-  'boot.title': { ru: 'Клёв!', en: 'Hook & Home' },
+  // Название игры. Одно и то же в <title>, на экране загрузки и в консоли
+  // разработчика: расхождение — отдельный пункт проверки при модерации, а до
+  // этой правки оно писалось тремя разными способами.
+  'boot.title': { ru: 'Клёв! Остров рыбака', en: 'Hook & Home' },
   'toast.bite': { ru: 'Клюёт!', en: 'A bite!' },
   'toast.trick': { ru: 'Трюк-шот!', en: 'Trick shot!' },
   'toast.trickStreak': { ru: 'Трюк-шот ×{count}', en: 'Trick shot ×{count}' },

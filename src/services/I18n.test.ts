@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { STRINGS, i18n, type Localized } from './I18n';
 import { CATCH_ENTRIES } from '../content/catalog';
@@ -153,5 +154,28 @@ describe('род названий', () => {
       if (!line.ru?.includes('{name}')) continue;
       expect(line.ru, key).not.toMatch(past);
     }
+  });
+});
+
+describe('название игры', () => {
+  /**
+   * «Название одинаково во всех материалах и на всех языках» — отдельный пункт
+   * проверки при модерации. До этого теста русское имя писалось тремя
+   * способами сразу: «Клёв! Остров рыбака» в заголовке вкладки, «Клёв!» на
+   * экране загрузки и «Клёв!» в словаре.
+   */
+  const html = readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
+
+  it('имя в словаре, в заголовке вкладки и на экране загрузки — одно и то же', () => {
+    const name = STRINGS['boot.title']?.ru;
+    expect(name).toBeTruthy();
+    expect(html).toContain(`<title>${name}</title>`);
+    expect(html).toContain(`<div class="t">${name}</div>`);
+  });
+
+  it('английское имя объявлено и не повторяет русское', () => {
+    const line = STRINGS['boot.title'];
+    expect(line?.en).toBeTruthy();
+    expect(line?.en).not.toBe(line?.ru);
   });
 });
