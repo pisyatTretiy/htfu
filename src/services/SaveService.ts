@@ -254,8 +254,19 @@ export class SaveService {
     }
     const data = this.pending;
     if (!data) return;
-    this.pending = null;
-    await this.platform.save(data);
+
+    try {
+      await this.platform.save(data);
+      this.pending = null;
+    } catch (error) {
+      // Очередь не чистим: облако не приняло — отправим в следующий раз.
+      // Раньше `pending` обнулялся до записи, и сорвавшееся сохранение
+      // пропадало совсем. Локальная копия при этом уже на диске, так что
+      // прогресс игрока цел, и валить отказ наверх незачем: сброс сейва
+      // делается перед рекламой, а не показать ролик из-за икоты сети —
+      // худшее, что можно сделать с игроком.
+      console.warn('[save] облако не приняло сохранение', error);
+    }
   }
 
   private readLocal(): Partial<GameSave> | null {

@@ -149,3 +149,16 @@ describe('показ рекламы', () => {
     expect(platform.banners).toBe(0);
   });
 });
+describe('отказы вокруг показа', () => {
+  it('не сбросившийся сейв не отменяет награду', async () => {
+    // Сброс сейва перед роликом — предосторожность на случай, что вкладку
+    // закроют во время показа. Если облако молчит, ролик всё равно должен
+    // состояться: иначе икота сети стоит игроку награды.
+    const events = hooks();
+    events.flush.mockRejectedValue(new Error('облако недоступно'));
+    const ads = new AdManager(fakePlatform(true), events);
+
+    await expect(ads.rewarded('double')).resolves.toBe(true);
+    expect(events.resume).toHaveBeenCalledTimes(1);
+  });
+});

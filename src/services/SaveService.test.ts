@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { migrate, emptySave, SAVE_VERSION } from './SaveService';
+import { migrate, emptySave, SaveService, SAVE_VERSION, type GameSave } from './SaveService';
+import type { IPlatform } from '../platform';
 import { ONBOARDING_CHAIN } from '../meta/Onboarding';
 
 describe('миграции сейва', () => {
@@ -143,5 +144,50 @@ describe('миграции сейва', () => {
       bosses: { trophies: ['boss_som'], catches: { dock: 9 } },
     };
     expect(migrate(good)).toEqual({ ...good, updatedAt: 0 });
+  });
+});
+describe('сброс сейва в облако', () => {
+  interface Sink {
+    saved: GameSave[];
+    fail: boolean;
+  }
+
+  function platform(): IPlatform & Sink {
+    const sink: Sink = { saved: [], fail: false };
+    return {
+      ...sink,
+      async save(this: Sink, data: GameSave) {
+        if (this.fail) throw new Error('облако недоступно');
+        this.saved.push(data);
+      },
+      async load() {
+        return null;
+      },
+    } as unknown as IPlatform & Sink;
+  }
+
+  it('сорвавшееся сохранение не пропадает, а уходит со следующей попыткой', async () => {
+    const sink = platform();
+    const service = new SaveService(sink);
+    const data = { ...emptySave(), money: 500 };
+
+    sink.fail = true;
+    service.save(data);
+    await service.flush();
+    expect(sink.saved).toHaveLength(0);
+
+    // Очередь сохранилась: повтор отправляет те же данные, ничего не потеряв.
+    sink.fail = false;
+    await service.flush();
+    expect(sink.saved).toHaveLength(1);
+    expect(sink.saved[0]?.money).toBe(500);
+  });
+
+  it('отказ облака не валится наверх: он не должен рвать показ рекламы', async () => {
+    const sink = platform();
+    sink.fail = true;
+    const service = new SaveService(sink);
+    service.save(emptySave());
+    await expect(service.flush()).resolves.toBeUndefined();
   });
 });

@@ -66,12 +66,25 @@ export class AdManager {
     return !this.busy && this.now() - this.lastInterstitial >= INTERSTITIAL_COOLDOWN_MS;
   }
 
+  /**
+   * Сброс сейва перед показом — предосторожность на случай, что вкладку
+   * закроют во время ролика. Предосторожность не вправе отменять показ: если
+   * облако не отвечает, игрок всё равно должен получить свою награду.
+   */
+  private async flushQuietly(): Promise<void> {
+    try {
+      await this.hooks.flush();
+    } catch (error) {
+      console.warn('[ads] сейв не сбросился перед показом', error);
+    }
+  }
+
   /** @returns был ли показ */
   async interstitial(): Promise<boolean> {
     if (!this.interstitialReady) return false;
     this.busy = true;
     this.hooks.pause();
-    await this.hooks.flush();
+    await this.flushQuietly();
     try {
       await this.platform.showInterstitial();
       this.lastInterstitial = this.now();
@@ -87,7 +100,7 @@ export class AdManager {
     if (this.busy) return false;
     this.busy = true;
     this.hooks.pause();
-    await this.hooks.flush();
+    await this.flushQuietly();
     try {
       return await this.platform.showRewarded(placement);
     } finally {
