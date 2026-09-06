@@ -78,6 +78,15 @@ const RETRY_STAMINA = 0.6;
 /** Сколько длится свеча рыбы и как часто она возможна. */
 const LEAP_TIME = 0.8;
 const LEAP_COOLDOWN = 3.2;
+/**
+ * Глубже этого свечи не бывает, единиц мира.
+ *
+ * Свеча — надводное зрелище: рыба выходит из воды дугой. Дуга поднимает её на
+ * пару единиц, и с глубины в сотню она остаётся под водой — но всплеск, тряска
+ * и звук срабатывали всё равно. Игрок получал удар из ниоткуда. Теперь глубокий
+ * бой идёт вслепую, по натяжению и удилищу, а рыба показывается на подъёме.
+ */
+const LEAP_MAX_DEPTH = 2.5;
 
 /**
  * Зелёная зона шкалы заброса: попал в неё — трюк-шот и надбавка к цене.
@@ -826,7 +835,9 @@ export class FishingScene3D {
     }
 
     this.leapCooldown -= dt;
-    const ready = this.leapCooldown <= 0 && fight.surge > 0.82 && fight.stamina < 0.75;
+    const nearSurface = this.hook.position.y > -LEAP_MAX_DEPTH;
+    const ready =
+      nearSurface && this.leapCooldown <= 0 && fight.surge > 0.82 && fight.stamina < 0.75;
     if (ready && this.rng.next() < 0.55) {
       this.leapTimer = LEAP_TIME;
       this.leapCooldown = LEAP_COOLDOWN;
