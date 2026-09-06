@@ -145,6 +145,16 @@ describe('глубина и доступность улова', () => {
     }
   });
 
+  it('альбом собирается целиком: каждый вид где-то водится', () => {
+    // Альбом обещает 52 вида и считает проценты от всего каталога. Вид, не
+    // попавший ни в один пул, превратил бы сотню процентов в недостижимую.
+    const listed = new Set(ZONES.flatMap((zone) => [...zoneCatchIds(zone)]));
+    const orphans = CATCH_ENTRIES.filter((entry) => !listed.has(entry.id)).map(
+      (entry) => entry.id,
+    );
+    expect(orphans, 'виды вне всех локаций').toEqual([]);
+  });
+
   it('на стартовой леске в каждой локации есть что ловить', () => {
     for (const zone of ZONES) {
       const reachable = poolAt(Math.min(LINE_START, zone.maxDepth), zoneCatchIds(zone));
