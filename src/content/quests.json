@@ -1,40 +1,188 @@
 {
-  "$comment": "Цепочка заданий причала. Идут по порядку, одно активное за раз. Первые пять — это и есть воронка первых десяти минут (docs/03, § 3.6).",
+  "$comment": "Цепочка заданий. Идут по порядку, одно активное за раз. Первые пять — воронка первых десяти минут (docs/03, § 3.6), дальше цепочка ведёт по локациям до разлома. Если цель водится не там, где выдано задание, локация обязана быть названа в заголовке: игрок не должен гадать, почему рыба не клюёт. Это проверяет тест.",
   "quests": [
     {
       "id": "first_catch",
-      "title": { "ru": "Хоть что-нибудь", "en": "Anything at all" },
-      "npc": { "ru": "Механик", "en": "Mechanic" },
-      "goal": { "type": "catch_any", "count": 1 },
+      "title": {
+        "ru": "Хоть что-нибудь",
+        "en": "Anything at all"
+      },
+      "npc": {
+        "ru": "Механик",
+        "en": "Mechanic"
+      },
+      "goal": {
+        "type": "catch_any",
+        "count": 1
+      },
       "reward": 40
     },
     {
       "id": "perch_three",
-      "title": { "ru": "Три окуня механику на уху", "en": "Three perch for the mechanic" },
-      "npc": { "ru": "Механик", "en": "Mechanic" },
-      "goal": { "type": "catch_id", "id": "perch", "count": 3 },
+      "title": {
+        "ru": "Три окуня механику на уху",
+        "en": "Three perch for the mechanic"
+      },
+      "npc": {
+        "ru": "Механик",
+        "en": "Mechanic"
+      },
+      "goal": {
+        "type": "catch_id",
+        "id": "perch",
+        "count": 3
+      },
       "reward": 90
     },
     {
       "id": "junk_one",
-      "title": { "ru": "Достань что-нибудь несъедобное", "en": "Fish out something inedible" },
-      "npc": { "ru": "Скупщик", "en": "Trader" },
-      "goal": { "type": "catch_kind", "kind": "junk", "count": 1 },
+      "title": {
+        "ru": "Достань что-нибудь несъедобное",
+        "en": "Fish out something inedible"
+      },
+      "npc": {
+        "ru": "Скупщик",
+        "en": "Trader"
+      },
+      "goal": {
+        "type": "catch_kind",
+        "kind": "junk",
+        "count": 1
+      },
       "reward": 60
     },
     {
       "id": "deep_forty",
-      "title": { "ru": "Опустись на 40 метров", "en": "Go down to 40 metres" },
-      "npc": { "ru": "Скупщик", "en": "Trader" },
-      "goal": { "type": "reach_depth", "depth": 40 },
+      "title": {
+        "ru": "Опустись на 40 метров",
+        "en": "Go down to 40 metres"
+      },
+      "npc": {
+        "ru": "Скупщик",
+        "en": "Trader"
+      },
+      "goal": {
+        "type": "reach_depth",
+        "depth": 40
+      },
       "reward": 120
     },
     {
       "id": "pike_one",
-      "title": { "ru": "Поймай щуку в бухте", "en": "Catch a pike in the bay" },
-      "npc": { "ru": "Механик", "en": "Mechanic" },
-      "goal": { "type": "catch_id", "id": "pike", "count": 1 },
+      "title": {
+        "ru": "Поймай щуку в бухте",
+        "en": "Catch a pike in the bay"
+      },
+      "npc": {
+        "ru": "Механик",
+        "en": "Mechanic"
+      },
+      "goal": {
+        "type": "catch_id",
+        "id": "pike",
+        "count": 1
+      },
       "reward": 220
+    },
+    {
+      "id": "junk_five",
+      "title": {
+        "ru": "Пять находок со дна",
+        "en": "Five finds from the bottom"
+      },
+      "npc": {
+        "ru": "Скупщик",
+        "en": "Trader"
+      },
+      "goal": {
+        "type": "catch_kind",
+        "kind": "junk",
+        "count": 5
+      },
+      "reward": 260
+    },
+    {
+      "id": "deep_ninety",
+      "title": {
+        "ru": "Опустись на 90 метров в бухте",
+        "en": "Reach 90 metres in the bay"
+      },
+      "npc": {
+        "ru": "Скупщик",
+        "en": "Trader"
+      },
+      "goal": {
+        "type": "reach_depth",
+        "depth": 90
+      },
+      "reward": 320
+    },
+    {
+      "id": "eel_one",
+      "title": {
+        "ru": "Угорь с затонувшего корабля",
+        "en": "An eel from the wreck"
+      },
+      "npc": {
+        "ru": "Механик",
+        "en": "Mechanic"
+      },
+      "goal": {
+        "type": "catch_id",
+        "id": "eel",
+        "count": 1
+      },
+      "reward": 420
+    },
+    {
+      "id": "cod_three",
+      "title": {
+        "ru": "Три трески из ледяного пролива",
+        "en": "Three cod from the ice strait"
+      },
+      "npc": {
+        "ru": "Механик",
+        "en": "Mechanic"
+      },
+      "goal": {
+        "type": "catch_id",
+        "id": "cod",
+        "count": 3
+      },
+      "reward": 560
+    },
+    {
+      "id": "angler_one",
+      "title": {
+        "ru": "Морской чёрт из разлома",
+        "en": "An anglerfish from the rift"
+      },
+      "npc": {
+        "ru": "Скупщик",
+        "en": "Trader"
+      },
+      "goal": {
+        "type": "catch_id",
+        "id": "angler",
+        "count": 1
+      },
+      "reward": 900
+    },
+    {
+      "id": "deep_max",
+      "title": {
+        "ru": "Достань дно разлома — 250 метров",
+        "en": "Touch the rift floor — 250 metres"
+      },
+      "npc": {
+        "ru": "Механик",
+        "en": "Mechanic"
+      },
+      "goal": {
+        "type": "reach_depth",
+        "depth": 250
+      },
+      "reward": 1200
     }
   ]
 }

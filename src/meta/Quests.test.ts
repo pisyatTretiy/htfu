@@ -77,6 +77,49 @@ describe('выполнимость заданий', () => {
     }
   });
 
+  it('цель по глубине достижима, и чужая вода названа', () => {
+    const dock = ZONES[0]!;
+    const deepest = Math.max(...ZONES.map((zone) => zone.maxDepth));
+    for (const quest of QUESTS) {
+      const goal = quest.goal;
+      if (goal.type !== 'reach_depth') continue;
+
+      expect(goal.depth, `${quest.id}: глубже дна самой глубокой воды`).toBeLessThanOrEqual(deepest);
+      if (goal.depth <= dock.maxDepth) continue;
+
+      // Глубже причала — значит, придётся уплыть, и об этом надо сказать.
+      const reachable = ZONES.filter((zone) => zone.maxDepth >= goal.depth);
+      const words = reachable
+        .flatMap((zone) => [zone.name.ru, zone.name.en])
+        .filter((value): value is string => Boolean(value))
+        .flatMap((label) => label.toLowerCase().split(/\s+/))
+        .map((word) => word.slice(0, 4));
+      const titles = [quest.title.ru, quest.title.en]
+        .filter((value): value is string => Boolean(value))
+        .map((title) => title.toLowerCase());
+
+      expect(
+        words.some((word) => titles.some((title) => title.includes(word))),
+        `${quest.id}: не сказано, где такая глубина`,
+      ).toBe(true);
+    }
+  });
+
+  it('цепочка растёт в цене, хотя отдельный шаг может быть дешевле', () => {
+    // Ровного роста от задания к заданию нет и быть не должно: «достань
+    // что-нибудь несъедобное» — одна вещь, и платить за неё больше, чем за трёх
+    // окуней, незачем. Награда идёт за труд, а не за место в очереди. Расти
+    // должна цепочка целиком: доход по локациям отличается почти на порядок.
+    const rewards = QUESTS.map((quest) => quest.reward);
+    const last = rewards[rewards.length - 1] ?? 0;
+    expect(last, 'последнее задание должно быть самым дорогим').toBe(Math.max(...rewards));
+
+    const half = Math.floor(rewards.length / 2);
+    const mean = (values: number[]): number =>
+      values.reduce((sum, value) => sum + value, 0) / Math.max(1, values.length);
+    expect(mean(rewards.slice(half))).toBeGreaterThan(mean(rewards.slice(0, half)) * 2);
+  });
+
   it('если цель водится не там, где выдано задание, это сказано в названии', () => {
     const dock = ZONES[0]!;
     for (const quest of QUESTS) {
