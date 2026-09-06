@@ -17,7 +17,14 @@ import { join, relative, sep } from 'node:path';
 
 const DIST = 'dist';
 const OUT_DIR = 'dist-zip';
-const OUT_FILE = join(OUT_DIR, 'htfu.zip');
+
+/**
+ * Версия из package.json попадает в имя архива: в консоли площадки билдов
+ * накапливается несколько, и различать их по времени загрузки — верный способ
+ * залить не тот.
+ */
+const VERSION = (JSON.parse(readFileSync('package.json', 'utf8')) as { version?: string }).version;
+const OUT_FILE = join(OUT_DIR, `htfu-${VERSION ?? '0.0.0'}.zip`);
 
 /** Жёсткий лимит площадки. */
 const PLATFORM_LIMIT = 100 * 1024 * 1024;
@@ -167,6 +174,7 @@ function main(): void {
   const largest = [...entries].sort((a, b) => b.data.length - a.data.length).slice(0, 5);
 
   console.log(`✓ ${OUT_FILE}`);
+  console.log(`  версия:       ${VERSION ?? '—'}`);
   console.log(`  файлов:       ${entries.length}`);
   console.log(`  распакованно: ${human(unpacked)} из ${human(PLATFORM_LIMIT)}`);
   console.log(`  архив:        ${human(archive.length)}`);
