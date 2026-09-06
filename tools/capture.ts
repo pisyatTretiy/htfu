@@ -819,6 +819,32 @@ async function main(): Promise<void> {
   console.log(`Глубина берётся: ${Math.round(deepest * 100)} % от предела в ${limit} м`);
   await deep.close();
 
+  // --- высокий профиль качества ---
+  // Весь прогон идёт с ?q=low, и до этой проверки высокий профиль — тот, что
+  // видит игрок на десктопе, — не открывал никто. Тени и сглаживание живут
+  // только там, поэтому сломать их можно было незаметно.
+  const rich = await browser.newPage({ viewport: VIEWPORT, locale: 'ru-RU' });
+  const richErrors: string[] = [];
+  rich.on('pageerror', (error) => richErrors.push(String(error)));
+  rich.on('console', (message) => {
+    if (message.type() === 'error') richErrors.push(message.text());
+  });
+  await rich.goto(`${URL.replace('q=low', 'q=high')}&debug=1`, { waitUntil: 'networkidle' });
+  await waitForState(rich, ['idle', 'onboard'], 30000);
+  await rich.waitForTimeout(1200);
+  await rich.screenshot({ path: `${OUT}/22-quality-high.png` });
+
+  const hud = (await rich.locator('#hud').textContent()) ?? '';
+  const tier = hud.match(/профиль\s*(\w+)/)?.[1];
+  if (tier !== 'high') throw new Error(`Высокий профиль не включился: «${tier ?? '—'}»`);
+  const calls = Number(hud.match(/вызовов\s*(\d+)/)?.[1] ?? 0);
+  if (calls <= 0) throw new Error('Высокий профиль ничего не рисует');
+  if (richErrors.length > 0) {
+    throw new Error(`Высокий профиль сыплет ошибками: ${richErrors.join(' · ')}`);
+  }
+  console.log(`Высокий профиль: ${calls} вызовов отрисовки, ошибок нет`);
+  await rich.close();
+
   await browser.close();
 
   if (errors.length > 0) {
