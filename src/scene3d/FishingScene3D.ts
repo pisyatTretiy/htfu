@@ -68,6 +68,16 @@ const RETRY_STAMINA = 0.6;
 const LEAP_TIME = 0.8;
 const LEAP_COOLDOWN = 3.2;
 
+/**
+ * Зелёная зона шкалы заброса: попал в неё — трюк-шот и надбавка к цене.
+ *
+ * Те же числа нарисованы в CSS (`#ui .gauge-zone`, left/width в процентах).
+ * Держать их в согласии нечем, кроме теста: разъехавшись, они дадут полосу,
+ * которая показывает не туда, куда надо целиться.
+ */
+export const TRICK_FROM = 0.72;
+export const TRICK_TO = 0.88;
+
 /** Сколько крючок должен пробыть в воде, прежде чем на него начнут наводиться. */
 const AIM_DELAY = 0.35;
 
@@ -318,7 +328,7 @@ export class FishingScene3D {
   pressEnd(tapped: boolean): void {
     if (this.charging) {
       this.charging = false;
-      this.trickShot = this.power >= 0.72 && this.power <= 0.88;
+      this.trickShot = this.power >= TRICK_FROM && this.power <= TRICK_TO;
       this.trickStreak = this.trickShot ? this.trickStreak + 1 : 0;
       this.camera.getWorldDirection(this.forward);
       this.hook.reset(this.rodTip());
