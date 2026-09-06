@@ -32,7 +32,7 @@ import {
 } from '../gameplay/Rarity';
 import { CATCH_ENTRIES, entryName } from '../content/catalog';
 import { i18n } from '../services/I18n';
-import { clamp, damp } from '../core/world';
+import { UNITS_PER_M, clamp, damp } from '../core/world';
 import { Rng } from '../core/Rng';
 import type { CatchEntry, FightPhase } from '../content/types';
 import type { Effects } from '../meta/Progression';
@@ -41,11 +41,20 @@ import type { Zone } from '../meta/Zones';
 /** Шаг симуляции: 120 Гц. Кадр может быть любым, шаг — нет. */
 const STEP = 1 / 120;
 const MAX_STEPS = 8;
-/** Единиц мира на метр глубины: 250 м иначе уезжают за горизонт видимости. */
-const UNITS_PER_M = 0.5;
 const REEL_SPEED = 14;
-const BITE_MIN = 0.7;
-const BITE_MAX = 2.1;
+/**
+ * Пауза между «крючок встал» и поклёвкой.
+ *
+ * Раньше это был отсчёт от входа в воду, и клевало через 0,7–2,1 секунды —
+ * то есть на трёх-пяти метрах при пределе лески в сорок пять. Из-за этого
+ * ветка «Леска» не делала ничего, задания на глубину были невыполнимы, а
+ * половина каталога — весь глубоководный зверинец — не попадалась вовсе.
+ * Теперь отсчёт идёт с того момента, как крючок перестал опускаться.
+ */
+const BITE_MIN = 0.4;
+const BITE_MAX = 1.2;
+/** Медленнее этого спуск считается закончившимся, м/с. */
+const STALL_RATE = 0.5;
 /** Пределы наклона взгляда: вниз смотрим охотнее, чем вверх. */
 const PITCH_MIN = -1.15;
 const PITCH_MAX = 0.5;
@@ -164,6 +173,9 @@ export class FishingScene3D {
   private accumulator = 0;
   private time = 0;
   private submergedFor = 0;
+  /** Сколько секунд крючок уже никуда не опускается. */
+  private stalledFor = 0;
+  private lastDepth = 0;
   private biteAt = BITE_MIN;
   private hitstop = 0;
   private shake = 0;
@@ -416,12 +428,14 @@ export class FishingScene3D {
         if (this.hook.step(dt, this.water.heightAt(this.hook.position.x, this.hook.position.z))) {
           this.state = 'sinking';
           this.submergedFor = 0;
+          this.stalledFor = 0;
+          this.lastDepth = this.hook.depthMeters;
           this.biteAt = this.rng.range(BITE_MIN, BITE_MAX);
           this.hooks.sfx('splash');
           // Всплеск в точке входа: без него заброс заканчивается в пустоте.
           this.splash.burst(this.hook.position, 0.7);
         }
-        this.applyLineLimit(tip);
+        const atLineEnd = this.applyLineLimit(tip);
         if (this.state === 'sinking') {
           this.submergedFor += dt;
           // Тихие круги у лески: пока ждём поклёвки, вода должна жить.
@@ -436,12 +450,24 @@ export class FishingScene3D {
           const noticed = this.ambient.nearest(this.hook.position, NOTICE_RADIUS);
           this.ambient.highlight(noticed?.index ?? -1);
 
+          // Спуск закончился: крючок упёрся в предел лески, в дно локации
+          // или просто перестал опускаться. Это и есть сигнал к поклёвке —
+          // по нему глубина, до которой достаёт снасть, наконец что-то значит.
+          // Конец лески — сигнал сам по себе, а не через скорость: упёршись в
+          // сферу, крючок ещё несколько секунд сползает по ней вбок, и ждать,
+          // пока это движение затихнет, значит ждать впустую.
+          const depth = this.hook.depthMeters;
+          const rate = (depth - this.lastDepth) / Math.max(dt, 1e-6);
+          this.lastDepth = depth;
+          const settled = atLineEnd || rate < STALL_RATE;
+          this.stalledFor = settled ? this.stalledFor + dt : 0;
+
           const aimed =
             this.submergedFor > AIM_DELAY ? this.ambient.nearest(this.hook.position) : null;
           if (aimed) {
             this.ambient.take(aimed.index);
             this.bite(aimed.entryId);
-          } else if (this.submergedFor >= this.biteAt && this.hook.depthMeters > 2) {
+          } else if (this.stalledFor >= this.biteAt && depth > 2) {
             this.bite();
           }
         } else {
@@ -478,16 +504,18 @@ export class FishingScene3D {
     return Math.min(this.hooks.effects().maxLineM, this.hooks.zoneDepth()) * UNITS_PER_M;
   }
 
-  private applyLineLimit(tip: Vector3): void {
+  /** @returns упёрся ли крючок в конец лески именно сейчас */
+  private applyLineLimit(tip: Vector3): boolean {
     const max = this.maxLineUnits();
     const delta = this.lineDelta.copy(this.hook.position).sub(tip);
     const distance = delta.length();
-    if (distance <= max) return;
+    if (distance <= max) return false;
 
     const normal = delta.divideScalar(distance);
     this.hook.position.copy(tip).addScaledVector(normal, max);
     const radial = this.hook.velocity.dot(normal);
     if (radial > 0) this.hook.velocity.addScaledVector(normal, -radial);
+    return true;
   }
 
   /** @param aimedId вид, на который игрок навёл крючок, если навёл */

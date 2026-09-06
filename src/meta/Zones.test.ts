@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { Zones, zoneCatchIds, ZONES } from './Zones';
 import { BOSSES } from './Bosses';
 import { poolAt } from '../gameplay/CatchPool';
+import { CATCH_ENTRIES } from '../content/catalog';
 import { rollCatch } from '../gameplay/CatchPool';
 import { Rng } from '../core/Rng';
 
@@ -119,5 +120,44 @@ describe('локации', () => {
         expect(mods.darkness, zone.id).toBeLessThanOrEqual(0.7);
       }
     }
+  });
+});
+describe('глубина и доступность улова', () => {
+  /**
+   * Проверка появилась после того, как выяснилось: поклёвка срабатывала по
+   * таймеру от входа в воду, крючок успевал уйти на три-пять метров при
+   * пределе лески в сорок пять, и половина каталога не попадалась никому
+   * никогда. Данные при этом были в полном порядке — сломан был спуск.
+   * Здесь проверяется сторона данных: обещанное локацией должно быть
+   * достижимо тем, чем игрок в неё приходит.
+   */
+  const LINE_START = 60;
+
+  it('каждый вид локации достижим в пределах её глубины', () => {
+    for (const zone of ZONES) {
+      for (const id of zoneCatchIds(zone)) {
+        const entry = CATCH_ENTRIES.find((candidate) => candidate.id === id);
+        expect(entry, `${zone.id}: ${id}`).toBeDefined();
+        expect(entry!.depth[0], `${zone.id}: ${id} начинается глубже дна локации`).toBeLessThanOrEqual(
+          zone.maxDepth,
+        );
+      }
+    }
+  });
+
+  it('на стартовой леске в каждой локации есть что ловить', () => {
+    for (const zone of ZONES) {
+      const reachable = poolAt(Math.min(LINE_START, zone.maxDepth), zoneCatchIds(zone));
+      expect(reachable.length, `${zone.id}: пул на стартовой леске`).toBeGreaterThanOrEqual(8);
+    }
+  });
+
+  it('в нижней локации глубина остаётся поводом тянуть леску', () => {
+    // Иначе ветка «Леска» покупается впустую: если на стартовой снасти доступно
+    // всё, платить за длину незачем.
+    const abyss = ZONES[ZONES.length - 1]!;
+    const all = zoneCatchIds(abyss).length;
+    const onStart = poolAt(Math.min(LINE_START, abyss.maxDepth), zoneCatchIds(abyss)).length;
+    expect(onStart, 'на стартовой леске доступно слишком много').toBeLessThan(all * 0.75);
   });
 });

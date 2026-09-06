@@ -1,11 +1,40 @@
 import { Color, Mesh, MeshLambertMaterial, Object3D, SphereGeometry, Vector3 } from 'three';
+import { UNITS_PER_M, damp } from '../core/world';
 
 const GRAVITY_AIR = 9.8;
-/** Вес грузила за вычетом выталкивающей силы. */
-const GRAVITY_WATER = 1.6;
 const AIR_DRAG = 0.12;
 const WATER_DRAG = 1.5;
 const STEER = 3.2;
+
+/**
+ * Скорость погружения: у поверхности медленная, с глубиной растёт.
+ *
+ * Постоянная скорость не годится ни при каком значении. Медленная — и двести
+ * пятьдесят метров нижней локации превращаются в две минуты ожидания на один
+ * заброс. Быстрая — и стая в верхних метрах пролетает мимо за полсекунды,
+ * навести на неё крючок невозможно. Поэтому скорость линейно растёт от
+ * глубины: у поверхности есть время выцелить рыбу, ниже грузило разгоняется.
+ */
+const SINK_SURFACE_MPS = 3;
+const SINK_GAIN = 0.25;
+
+/** Скорость погружения на данной глубине, м/с. */
+export function sinkSpeedMps(depthMeters: number): number {
+  return SINK_SURFACE_MPS + Math.max(0, depthMeters) * SINK_GAIN;
+}
+
+/**
+ * Сколько секунд грузило падает до заданной глубины. Считается тем же
+ * профилем, что и в шаге, — тест держит за него время ожидания на забросе.
+ */
+export function sinkSecondsTo(depthMeters: number): number {
+  const step = 0.05;
+  let seconds = 0;
+  for (let depth = 0; depth < depthMeters; depth += step) {
+    seconds += step / sinkSpeedMps(depth);
+  }
+  return seconds;
+}
 
 /**
  * Крючок с поплавком. Над водой — баллистика, под водой — погружение с
@@ -37,7 +66,7 @@ export class Hook3D {
   }
 
   get depthMeters(): number {
-    return Math.max(0, -this.position.y);
+    return Math.max(0, -this.position.y) / UNITS_PER_M;
   }
 
   reset(at: Vector3): void {
@@ -62,12 +91,17 @@ export class Hook3D {
     const wasSubmerged = this.submerged;
 
     if (this.submerged) {
-      this.velocity.y -= GRAVITY_WATER * dt;
       this.velocity.addScaledVector(this.steer, STEER * dt);
       // Течение локации: сносит крючок вбок, пока он тонет, и вести его
       // приходится против сноса — это и есть особенность бухты.
       this.velocity.x += this.current * dt;
-      this.velocity.multiplyScalar(Math.exp(-WATER_DRAG * dt));
+      // Сопротивление гасит только снос: вертикаль задаётся профилем ниже,
+      // иначе разгон по глубине тут же съедался бы этим же множителем.
+      const drag = Math.exp(-WATER_DRAG * dt);
+      this.velocity.x *= drag;
+      this.velocity.z *= drag;
+      const sink = sinkSpeedMps(this.depthMeters) * UNITS_PER_M;
+      this.velocity.y = damp(this.velocity.y, -sink, 0.02, dt);
     } else {
       this.velocity.y -= GRAVITY_AIR * dt;
       this.velocity.multiplyScalar(Math.exp(-AIR_DRAG * dt));
