@@ -7,9 +7,18 @@ const PURCHASE_KEY = 'htfu.purchases';
 /**
  * Заглушка для локальной разработки: реклама — пауза на две секунды в консоли,
  * сохранения — localStorage. Позволяет писать игру, не открывая портал.
+ *
+ * `?failads=1` заставляет показы падать. На настоящей площадке ролик не
+ * наливается постоянно — сети нет, заказов нет, игрок закрыл окно, — и это
+ * штатный путь, а не поломка. Проверять его надо так же, как удачный: пока
+ * заглушка умела только успех, отказ рекламы уносил с собой переезд между
+ * локациями, и заметить это было негде.
  */
 export class LocalPlatform implements IPlatform {
   readonly name = 'local';
+
+  private readonly adsFail =
+    typeof location !== 'undefined' && new URLSearchParams(location.search).has('failads');
 
   async init(): Promise<void> {
     console.info('[platform] LocalPlatform: SDK площадки не найден, работаем локально');
@@ -36,12 +45,14 @@ export class LocalPlatform implements IPlatform {
   }
 
   async showRewarded(placement: string): Promise<boolean> {
+    if (this.adsFail) throw new Error(`ролик «${placement}» не налился (?failads=1)`);
     console.info(`[platform] rewarded «${placement}» — заглушка, награда выдана`);
     await new Promise((resolve) => setTimeout(resolve, 400));
     return true;
   }
 
   async showInterstitial(): Promise<void> {
+    if (this.adsFail) throw new Error('полноэкранная реклама не налилась (?failads=1)');
     console.info('[platform] interstitial — заглушка');
     await new Promise((resolve) => setTimeout(resolve, 400));
   }

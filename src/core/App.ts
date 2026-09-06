@@ -157,10 +157,10 @@ export class App {
     this.ui = new GameUi(
       {
         buy: (id) => this.buy(id),
-        travel: (id) => void this.travel(id),
+        travel: (id) => this.detach(this.travel(id), 'переезд'),
         claimDaily: (id) => this.claimDaily(id),
-        watchLure: () => void this.buyLure(),
-        buyProduct: (id) => void this.buyProduct(id),
+        watchLure: () => this.detach(this.buyLure(), 'приманка за ролик'),
+        buyProduct: (id) => this.detach(this.buyProduct(id), `покупка ${id}`),
         toggleSound: () => this.audio.toggle(),
         toggleQuality: () => {
           // Рендерер, тени и сетка воды собираются один раз, поэтому профиль
@@ -202,7 +202,7 @@ export class App {
 
     // Покупки: каталог и незавершённые оплаты разбираем сразу после запуска,
     // но не блокируем ими первый кадр — площадка отвечает не мгновенно.
-    void this.loadStore();
+    this.detach(this.loadStore(), 'каталог покупок');
 
     this.running = true;
     this.platform.ready();
@@ -373,7 +373,7 @@ export class App {
     this.renderUi();
     if (isBoss || this.platform.isTV() || !this.scene.canRetry) return;
     this.ui.offerReward(i18n.t('offer.retry', { name: i18n.pick(entry.name) }), 5, () =>
-      void this.doRetry(),
+      this.detach(this.doRetry(), 'вторая попытка'),
     );
   }
 
@@ -430,6 +430,19 @@ export class App {
   }
 
   /** Приманка за ролик: пять минут повышенного шанса редкого варианта. */
+  /**
+   * Запустить и забыть.
+   *
+   * Реклама, покупки и облачный сейв умеют падать — ролик не налился, сеть
+   * отвалилась, игрок закрыл окно оплаты. Раньше такие вызовы уходили голым
+   * `void`, и отказ становился необработанным отклонением: в консоли ошибка,
+   * а в игре — тишина. Ни один из этих отказов не должен останавливать игру,
+   * но и пропадать молча он не должен.
+   */
+  private detach(action: Promise<unknown>, what: string): void {
+    action.catch((error: unknown) => console.warn(`[app] ${what}: не вышло`, error));
+  }
+
   private async buyLure(): Promise<void> {
     const watched = await this.ads.rewarded('lure');
     if (!watched) return;
@@ -477,7 +490,7 @@ export class App {
     showToast(i18n.t('toast.boss', { reward: String(boss.reward) }));
     this.persist();
     // Карточка трофея висит две с половиной секунды — окно оценки после неё.
-    setTimeout(() => void this.askReview(), 3200);
+    setTimeout(() => this.detach(this.askReview(), 'окно оценки'), 3200);
   }
 
   private collect(entry: CatchEntry, reward: number, rarity: Rarity): void {
@@ -524,7 +537,7 @@ export class App {
 
     if (total > 0 && !this.platform.isTV()) {
       this.ui.offerReward(i18n.t('offer.double', { reward: total }), 6, () =>
-        void this.doubleReward(total),
+        this.detach(this.doubleReward(total), 'удвоение улова'),
       );
     }
   }
@@ -568,7 +581,7 @@ export class App {
     // Сундук: одно утроение в сутки и только сверх уже полученной награды.
     if (this.dailies.chestAvailable && !this.platform.isTV()) {
       this.ui.offerReward(i18n.t('offer.chest', { reward: reward * 2 }), 7, () =>
-        void this.openChest(reward),
+        this.detach(this.openChest(reward), 'сундук дня'),
       );
     }
   }
@@ -625,7 +638,12 @@ export class App {
     if (!this.zones.travelTo(id, this.unlockContext)) return;
 
     this.ui.toggle(null);
-    await this.ads.interstitial();
+    // Реклама между локациями — необязательный довесок. Если ролик не налился
+    // или упал, переезд всё равно должен состояться: иначе игрок нажал
+    // «Плыть», карта закрылась, а вода осталась прежней.
+    await this.ads.interstitial().catch((error: unknown) => {
+      console.warn('[app] реклама перед переездом: не вышло', error);
+    });
 
     this.onboarding.signal('traveled');
     this.scene.resetToSurface();

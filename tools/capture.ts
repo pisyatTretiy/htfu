@@ -714,6 +714,64 @@ async function main(): Promise<void> {
   console.log(`Английские подписи: ${[...new Set(toasts)].slice(0, 4).join(' · ')}`);
   await english.close();
 
+  // --- отказ рекламы не должен уносить с собой игру ---
+  // На площадке ролик не наливается постоянно: сети нет, заказов нет, игрок
+  // закрыл окно. Заглушка умеет падать по ?failads=1.
+  //
+  // Ловит здесь именно ролик за награду: у него нет кулдауна, и отказ виден
+  // сразу. Полноэкранная реклама в коротком прогоне не успевает: она включается
+  // через три минуты после начала сессии, поэтому переезд ниже проверяет не
+  // отказ показа, а то, что игра под ?failads=1 вообще доходит до новой воды.
+  const noAds = await browser.newPage({ viewport: VIEWPORT, locale: 'ru-RU' });
+  const noAdsErrors: string[] = [];
+  noAds.on('pageerror', (error) => noAdsErrors.push(String(error)));
+  await noAds.addInitScript(() => {
+    localStorage.setItem(
+      'htfu.save',
+      JSON.stringify({ version: 10, money: 9000, bosses: { trophies: ['boss_som'], catches: {} } }),
+    );
+  });
+  await noAds.goto(`${URL}&failads=1`, { waitUntil: 'networkidle' });
+  await waitForState(noAds, ['idle', 'onboard'], 30000);
+  await noAds.click('#ui-map-open');
+  await noAds.waitForTimeout(300);
+
+  const failTravel = noAds.locator('#ui-map-list .go').first();
+  if (await failTravel.count()) {
+    await failTravel.click();
+    let zone = 'dock';
+    const deadline = Date.now() + 12000;
+    while (Date.now() < deadline && zone === 'dock') {
+      zone = (await snapshot(noAds)).zone ?? 'dock';
+      if (zone === 'dock') await noAds.waitForTimeout(150);
+    }
+    if (zone === 'dock') throw new Error('Реклама не налилась — и переезд не состоялся');
+    console.log(`Реклама упала, переезд всё равно состоялся: ${zone}`);
+  } else {
+    console.warn('⚠ Не удалось проверить переезд при отказе рекламы: локации закрыты');
+  }
+  // Ролик за награду кулдауна не имеет, поэтому отказ по нему видно сразу:
+  // жмём «Приманка · Ролик» и смотрим, что игра осталась живой, а отказ не
+  // ушёл в необработанное отклонение.
+  await noAds.click('#ui-shop-open');
+  await noAds.waitForTimeout(300);
+  await noAds.click('#ui-lure-buy');
+  await noAds.waitForTimeout(1200);
+  await noAds.keyboard.press('Escape');
+  await noAds.waitForTimeout(200);
+
+  await cast(noAds);
+  const alive = await waitForState(noAds, ['sinking', 'flying', 'fighting'], 15000).catch(
+    () => 'idle',
+  );
+  if (alive === 'idle') throw new Error('После отказа ролика заброс перестал работать');
+
+  if (noAdsErrors.length > 0) {
+    throw new Error(`Отказ рекламы ушёл в необработанное отклонение: ${noAdsErrors.join(' · ')}`);
+  }
+  console.log('Отказ ролика пережит: игра играется, отклонение обработано');
+  await noAds.close();
+
   await browser.close();
 
   if (errors.length > 0) {
