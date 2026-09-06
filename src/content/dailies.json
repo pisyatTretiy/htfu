@@ -28,7 +28,7 @@
     {
       "id": "daily_deep",
       "title": { "ru": "Опуститься на {count} метров", "en": "Reach {count} metres" },
-      "goal": { "type": "reach_depth", "count": 60 },
+      "goal": { "type": "reach_depth", "count": 40 },
       "reward": 180
     },
     {

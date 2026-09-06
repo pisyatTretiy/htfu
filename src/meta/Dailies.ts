@@ -20,7 +20,9 @@ export interface DailyTask {
   reward: number;
 }
 
-const POOL = (dailies as unknown as { tasks: DailyTask[] }).tasks;
+/** Пул дел целиком: экспортирован, чтобы тест проверял его на выполнимость. */
+export const DAILY_POOL = (dailies as unknown as { tasks: DailyTask[] }).tasks;
+const POOL = DAILY_POOL;
 /** Сколько дел выдаётся в день. */
 const PER_DAY = 3;
 /** Награда за стрик: множитель к сумме дневных наград. */

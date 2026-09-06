@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { Dailies, currentDay } from './Dailies';
+import { DAILY_POOL, Dailies, currentDay } from './Dailies';
+import { ZONES, zoneCatchIds } from './Zones';
 import { CATCH_ENTRIES } from '../content/catalog';
 import type { CatchEntry } from '../content/types';
 
@@ -123,5 +124,30 @@ describe('ежедневные дела', () => {
     const restored = new Dailies();
     restored.restore(dailies.serialize());
     expect(restored.chestAvailable).toBe(false);
+  });
+});
+describe('выполнимость дел', () => {
+  /**
+   * Дела выдаются по номеру дня, а новый игрок сидит на причале: если дело
+   * требует того, чего на причале нет, день у него пропал. Так и было с
+   * «опуститься на 60 метров» — дно причала на сорока пяти.
+   */
+  const dock = ZONES[0]!;
+
+  it('каждое дело выполнимо в первой локации', () => {
+    for (const task of DAILY_POOL) {
+      const goal = task.goal;
+      if (goal.type === 'reach_depth') {
+        expect(goal.count, `${task.id}: глубже дна причала`).toBeLessThanOrEqual(dock.maxDepth);
+      }
+      if (goal.type === 'catch_kind') {
+        const available = zoneCatchIds(dock)
+          .map((id) => CATCH_ENTRIES.find((entry) => entry.id === id))
+          .filter((entry) => entry?.kind === goal.kind);
+        expect(available.length, `${task.id}: «${goal.kind}» на причале не водится`).toBeGreaterThan(
+          0,
+        );
+      }
+    }
   });
 });
