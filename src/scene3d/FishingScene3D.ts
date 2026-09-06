@@ -226,6 +226,8 @@ export class FishingScene3D {
   /** Рабочие векторы кадра: без них каждый кадр рождал по горстке объектов. */
   private readonly pullLocal = new Vector3();
   private readonly frameTip = new Vector3();
+  /** Рабочая точка всплеска: считается каждый кадр, аллокация не нужна. */
+  private readonly splashAt = new Vector3();
   private readonly lineDelta = new Vector3();
   private readonly rightAxis = new Vector3();
   private readonly forward = new Vector3();
@@ -621,6 +623,24 @@ export class FishingScene3D {
    * а не берётся у крючка: крючок может быть на сорока метрах глубины, а
    * тревожит воду именно леска.
    */
+  /**
+   * Где леска протыкает воду.
+   *
+   * Всплеск должен рождаться здесь, а не у крючка. Пока заброс останавливался
+   * на трёх метрах, разница была незаметна; с настоящей глубиной крючок бывает
+   * в двух сотнях метров под водой, и брызги от свечи, подсечки и вытащенного
+   * улова оставались там же — то есть не видел их никто. Свеча при этом
+   * задумана как главное зрелище боя.
+   */
+  private splashPoint(tip: Vector3): Vector3 {
+    const hook = this.hook.position;
+    if (hook.y >= 0 || tip.y <= hook.y) return hook;
+    const t = tip.y / (tip.y - hook.y);
+    this.splashAt.lerpVectors(tip, hook, t);
+    this.splashAt.y = this.water.heightAt(this.splashAt.x, this.splashAt.z);
+    return this.splashAt;
+  }
+
   private markSurface(tip: Vector3, intensity: number): void {
     const hook = this.hook.position;
     if (hook.y >= 0 || tip.y <= 0) {
@@ -671,7 +691,7 @@ export class FishingScene3D {
     const fight = this.fight;
     if (!fight) return;
     const outcome = fight.step(dt);
-    this.stepLeap(dt);
+    this.stepLeap(dt, tip);
 
     // Крючок ползёт от места поклёвки к вершинке по мере усталости рыбы:
     // положение — визуализация уже посчитанного боя, а не его причина.
@@ -742,7 +762,7 @@ export class FishingScene3D {
       if (lost) this.hooks.onLost(lost, wasBoss);
     } else if (outcome === 'landed') {
       this.hitstop = 0.08;
-      this.beginShowcase();
+      this.beginShowcase(tip);
     }
   }
 
@@ -752,7 +772,7 @@ export class FishingScene3D {
    * Без этого пойманное существо игрок не видит вовсе: был бой — и сразу
    * всплывающая надпись. Именно этот кадр в рыбалке и есть награда.
    */
-  private beginShowcase(): void {
+  private beginShowcase(tip: Vector3): void {
     if (!this.hooked) {
       this.finishLanding();
       return;
@@ -760,7 +780,7 @@ export class FishingScene3D {
     this.showcaseTimer = SHOWCASE_TIME;
     this.state = 'showcase';
     this.wake.hide();
-    this.splash.burst(this.hook.position, 0.6);
+    this.splash.burst(this.splashPoint(tip), 0.6);
     this.hooks.sfx('splash');
   }
 
@@ -792,14 +812,14 @@ export class FishingScene3D {
    * Свеча: измотанная рыба выбрасывается из воды. Это и зрелище, и подсказка —
    * игрок видит, кого тащит, и понимает, что бой идёт к концу.
    */
-  private stepLeap(dt: number): void {
+  private stepLeap(dt: number, tip: Vector3): void {
     const fight = this.fight;
     if (!fight) return;
 
     if (this.leapTimer > 0) {
       this.leapTimer -= dt;
       if (this.leapTimer <= 0) {
-        this.splash.burst(this.hook.position, 0.9);
+        this.splash.burst(this.splashPoint(tip), 0.9);
         this.hooks.sfx('splash');
       }
       return;
@@ -810,7 +830,7 @@ export class FishingScene3D {
     if (ready && this.rng.next() < 0.55) {
       this.leapTimer = LEAP_TIME;
       this.leapCooldown = LEAP_COOLDOWN;
-      this.splash.burst(this.hook.position, 0.85);
+      this.splash.burst(this.splashPoint(tip), 0.85);
       this.hooks.sfx('splash');
       this.shake = Math.max(this.shake, 0.12);
     }
